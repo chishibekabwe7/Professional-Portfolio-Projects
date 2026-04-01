@@ -86,18 +86,18 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1D2429', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <h1 style={{ color: '#30BDEC', fontSize: 32, fontWeight: 800, letterSpacing: 4, fontFamily: 'Roboto' }}>ELITRACK</h1>
-          <p style={{ color: '#666', fontSize: 11, letterSpacing: 2, marginTop: 6 }}>FLEET MULTI-ASSET PORTAL</p>
+          <h1 style={{ color: 'var(--primary)', fontSize: 32, fontWeight: 800, letterSpacing: 4, fontFamily: 'Roboto' }}>ELITRACK</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, marginTop: 6 }}>FLEET MULTI-ASSET PORTAL</p>
         </div>
 
-        <div style={{ background: '#1D2429', borderRadius: 16, border: '1px solid #30BDEC', padding: 32 }}>
+        <div style={{ background: 'var(--surface-2)', borderRadius: 16, border: '1px solid var(--primary)', padding: 32 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
             {['login','register'].map(m => (
               <button key={m} onClick={() => setMode(m)} className="btn"
-                style={{ flex: 1, background: mode === m ? '#30BDEC' : 'transparent', color: mode === m ? 'white' : '#666', border: '1px solid #333', fontSize: 11, fontFamily: 'Roboto' }}>
+                style={{ flex: 1, background: mode === m ? 'var(--primary)' : 'transparent', color: mode === m ? '#ffffff' : 'var(--text-muted)', border: '1px solid var(--border)', fontSize: 11, fontFamily: 'Roboto' }}>
                 {m === 'login' ? 'Sign In' : 'Register'}
               </button>
             ))}
@@ -112,7 +112,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          <div style={{ textAlign: 'center', marginBottom: 20, color: '#555', fontSize: 12 }}>
+          <div style={{ textAlign: 'center', marginBottom: 20, color: 'var(--text-muted)', fontSize: 12 }}>
             {mode === 'login' && 'Or continue with email'}
           </div>
 
@@ -120,31 +120,31 @@ export default function AuthPage() {
             {mode === 'register' && (
               <>
                 <div className="form-group">
-                  <label style={{ color: '#888' }}>Full Name</label>
+                  <label style={{ color: 'var(--text-muted)' }}>Full Name</label>
                   <input name="full_name" placeholder="Your full name" value={form.full_name} onChange={handle}
-                    style={{ background: '#1D2429', borderColor: '#333', color: 'white', fontFamily: 'Roboto' }} />
+                    style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
                 </div>
                 <div className="form-group">
-                  <label style={{ color: '#888' }}>Company / Mine</label>
+                  <label style={{ color: 'var(--text-muted)' }}>Company / Mine</label>
                   <input name="company" placeholder="e.g. Kansanshi Mining" value={form.company} onChange={handle}
-                    style={{ background: '#1D2429', borderColor: '#333', color: 'white', fontFamily: 'Roboto' }} />
+                    style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
                 </div>
                 <div className="form-group">
-                  <label style={{ color: '#888' }}>Phone</label>
+                  <label style={{ color: 'var(--text-muted)' }}>Phone</label>
                   <input name="phone" placeholder="0977 000 000" value={form.phone} onChange={handle} required
-                    style={{ background: '#1D2429', borderColor: '#333', color: 'white', fontFamily: 'Roboto' }} />
+                    style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
                 </div>
               </>
             )}
             <div className="form-group">
-              <label style={{ color: '#888' }}>Email</label>
+              <label style={{ color: 'var(--text-muted)' }}>Email</label>
               <input name="email" type="email" placeholder="you@company.zm" value={form.email} onChange={handle} required
-                style={{ background: '#1D2429', borderColor: '#333', color: 'white', fontFamily: 'Roboto' }} />
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
             </div>
             <div className="form-group">
-              <label style={{ color: '#888' }}>Password</label>
+              <label style={{ color: 'var(--text-muted)' }}>Password</label>
               <input name="password" type="password" placeholder="••••••••" value={form.password} onChange={handle} required
-                style={{ background: '#1D2429', borderColor: '#333', color: 'white', fontFamily: 'Roboto' }} />
+                style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
             </div>
 
             {success && <p style={{ color: '#4ade80', fontSize: 12, marginBottom: 16, textAlign: 'center', fontWeight: 600 }}><FontAwesomeIcon icon={faCircleCheck} style={{ color: '#4ade80', marginRight: 8 }} />{success}</p>}
@@ -155,7 +155,7 @@ export default function AuthPage() {
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: '#555' }}>
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'var(--text-muted)' }}>
             &copy; {new Date().getFullYear()} Elitrack Logistics. All rights reserved.
           </p>
         </div>

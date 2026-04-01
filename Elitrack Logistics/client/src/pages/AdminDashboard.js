@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [transactions, setTransactions] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState('');
   const [editingBookingId, setEditingBookingId] = useState(null);
   const [editingCurrentStatus, setEditingCurrentStatus] = useState(null);
   const [workflowError, setWorkflowError] = useState('');
@@ -67,34 +68,64 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
+      setApiError('');
       const { data } = await api.get('/admin/stats');
       setStats(data);
-    } catch {
+    } catch (error) {
       setStats({});
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load dashboard stats.');
     }
   };
 
   const loadBookings = async () => {
     setLoading(true);
-    try { const { data } = await api.get('/bookings/all'); setBookings(data); }
+    try {
+      setApiError('');
+      const { data } = await api.get('/bookings/all');
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setBookings([]);
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load bookings.');
+    }
     finally { setLoading(false); }
   };
 
   const loadUsers = async () => {
     setLoading(true);
-    try { const { data } = await api.get('/admin/users'); setUsers(data); }
+    try {
+      setApiError('');
+      const { data } = await api.get('/admin/users');
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setUsers([]);
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load users.');
+    }
     finally { setLoading(false); }
   };
 
   const loadTransactions = async () => {
     setLoading(true);
-    try { const { data } = await api.get('/admin/transactions'); setTransactions(data); }
+    try {
+      setApiError('');
+      const { data } = await api.get('/admin/transactions');
+      setTransactions(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setTransactions([]);
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load transactions.');
+    }
     finally { setLoading(false); }
   };
 
   const loadNotifications = async () => {
     setLoading(true);
-    try { const { data } = await api.get('/admin/notifications'); setNotifications(data); }
+    try {
+      setApiError('');
+      const { data } = await api.get('/admin/notifications');
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setNotifications([]);
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load notifications.');
+    }
     finally { setLoading(false); }
   };
 
@@ -141,8 +172,13 @@ export default function AdminDashboard() {
   };
 
   const updatePayment = async (id, status) => {
-    await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
-    loadTransactions(); loadStats();
+    try {
+      await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
+      loadTransactions();
+      loadStats();
+    } catch (error) {
+      setApiError(error.userMessage || error.response?.data?.error || 'Failed to update payment status.');
+    }
   };
 
   const removeUser = async (u) => {
@@ -175,37 +211,43 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1D2429', color: 'white' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
       {/* Header */}
-      <header style={{ background: '#1D2429', borderBottom: '3px solid #30BDEC', padding: '18px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Roboto' }}>
+      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '18px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Roboto' }}>
         <div>
-          <h1 style={{ color: '#30BDEC', fontSize: 20, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK</h1>
-          <p style={{ color: '#555', fontSize: 9, letterSpacing: 2 }}>ADMIN CONTROL CENTER</p>
+          <h1 style={{ color: 'var(--primary)', fontSize: 20, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 9, letterSpacing: 2 }}>ADMIN CONTROL CENTER</p>
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#888' }}>{user?.full_name || user?.email}</span>
-          <span style={{ background: '#30BDEC', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{(user?.role || 'admin').toUpperCase()}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user?.full_name || user?.email}</span>
+          <span style={{ background: 'var(--primary)', color: '#ffffff', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{(user?.role || 'admin').toUpperCase()}</span>
           <button className="btn btn-dark btn-sm" onClick={logout}>Logout</button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div style={{ background: '#131313', padding: '0 28px', display: 'flex', gap: 4, borderBottom: '1px solid #222', fontFamily: 'Roboto' }}>
+      <div style={{ background: 'var(--surface-2)', padding: '0 28px', display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', fontFamily: 'Roboto' }}>
         {TABS.map(([k,v]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer',
             fontSize: 12, fontFamily: 'Roboto', fontWeight: 700,
-            color: tab === k ? '#30BDEC' : '#444',
-            borderBottom: tab === k ? '2px solid #30BDEC' : '2px solid transparent', letterSpacing: 1
-          }}>{k === 'overview' ? <><FontAwesomeIcon icon={faChartBar} style={{color: '#30BDEC', marginRight: 8}}/>{v}</> : k === 'bookings' ? <><FontAwesomeIcon icon={faBox} style={{color: '#30BDEC', marginRight: 8}}/>{v}</> : k === 'transactions' ? <><FontAwesomeIcon icon={faMoneyBill} style={{color: '#30BDEC', marginRight: 8}}/>{v}</> : k === 'users' ? <><FontAwesomeIcon icon={faUsers} style={{color: '#30BDEC', marginRight: 8}}/>{v}</> : <><FontAwesomeIcon icon={faTruck} style={{color: '#30BDEC', marginRight: 8}}/>{v}</>}</button>
+            color: tab === k ? 'var(--primary)' : 'var(--text-muted)',
+            borderBottom: tab === k ? '2px solid var(--primary)' : '2px solid transparent', letterSpacing: 1
+          }}>{k === 'overview' ? <><FontAwesomeIcon icon={faChartBar} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'bookings' ? <><FontAwesomeIcon icon={faBox} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'transactions' ? <><FontAwesomeIcon icon={faMoneyBill} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'users' ? <><FontAwesomeIcon icon={faUsers} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : <><FontAwesomeIcon icon={faTruck} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</>}</button>
         ))}
       </div>
 
       <div style={{ padding: '28px', maxWidth: 1100, margin: '0 auto' }}>
+        {apiError && (
+          <div style={{ marginBottom: 16, background: 'var(--danger-surface)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', borderRadius: 10, padding: 12, fontSize: 12 }}>
+            Connection issue: {apiError}
+          </div>
+        )}
+
         {/* Overview */}
         {tab === 'overview' && (
           <div className="fade-up">
-            <h2 style={{ color: '#30BDEC', marginBottom: 24, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Dashboard Overview</h2>
+            <h2 style={{ color: 'var(--primary)', marginBottom: 24, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Dashboard Overview</h2>
             {user?.role !== 'dispatcher' && (stats ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
                 {[
@@ -216,7 +258,7 @@ export default function AdminDashboard() {
                   { label: 'Pending Revenue', value: `K${parseInt(stats.pending_revenue).toLocaleString()}`, icon: faHourglassEnd },
                 ].map(s => (
                   <div className="stat-card" key={s.label}>
-                    <div style={{ fontSize: 24, marginBottom: 8, color: '#30BDEC' }}><FontAwesomeIcon icon={s.icon} /></div>
+                    <div style={{ fontSize: 24, marginBottom: 8, color: 'var(--primary)' }}><FontAwesomeIcon icon={s.icon} /></div>
                     <div className="stat-value">{s.value}</div>
                     <div className="stat-label">{s.label}</div>
                   </div>
@@ -224,7 +266,7 @@ export default function AdminDashboard() {
               </div>
             ) : <div className="spinner" />)}
 
-              <div style={{ background: '#1D2429', borderRadius: 12, border: '1px solid #333', padding: 20, fontFamily: 'Roboto' }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', padding: 20, fontFamily: 'Roboto' }}>
               <p className="section-label">Quick Actions</p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <button className="btn btn-gold btn-sm" onClick={() => setTab('bookings')}>Manage Bookings</button>
@@ -242,27 +284,27 @@ export default function AdminDashboard() {
         {/* Bookings */}
         {tab === 'bookings' && (
           <div className="fade-up">
-            <h2 style={{ color: '#30BDEC', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>All Bookings</h2>
+            <h2 style={{ color: 'var(--primary)', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>All Bookings</h2>
             {loading ? <div className="spinner" /> : (
-              <div style={{ background: '#1a1a1a', borderRadius: 12, border: '1px solid #333', overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
                 <div className="table-wrap">
-                  <table style={{ color: '#ddd' }}>
+                  <table style={{ color: 'var(--text)' }}>
                     <thead>
                       <tr><th>Ref</th><th>Client</th><th>Asset</th><th>Hub</th><th>Units</th><th>Days</th><th>Total</th><th>Status</th><th>Dispatcher</th><th>ETA</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {bookings.map(b => (
-                        <tr key={b.id} style={{ borderBottom: '1px solid #222' }}>
-                          <td className="mono" style={{ color: '#30BDEC', fontSize: 11 }}>{b.booking_ref}</td>
+                        <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{b.booking_ref}</td>
                           <td>
                             <div style={{ fontSize: 12, fontWeight: 700 }}>{b.full_name || '—'}</div>
-                            <div style={{ fontSize: 10, color: '#666' }}>{b.email}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{b.email}</div>
                           </td>
                           <td style={{ fontSize: 11 }}>{b.truck_type}</td>
                           <td style={{ fontSize: 11, maxWidth: 220 }}>{formatHubLocation(b.hub)}</td>
                           <td style={{ textAlign: 'center' }}>{b.units}</td>
                           <td style={{ textAlign: 'center' }}>{b.days}</td>
-                          <td className="mono" style={{ fontWeight: 700, color: '#30BDEC' }}>K{parseInt(b.total_amount).toLocaleString()}</td>
+                          <td className="mono" style={{ fontWeight: 700, color: 'var(--primary)' }}>K{parseInt(b.total_amount).toLocaleString()}</td>
                           <td><span className={`badge badge-${b.status}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
                           <td style={{ fontSize: 12 }}>{b.dispatcher_name || '—'}</td>
                           <td style={{ fontSize: 12 }}>{b.eta ? new Date(b.eta).toLocaleString() : '—'}</td>
@@ -274,7 +316,7 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
-                {bookings.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: '#555' }}>No bookings yet.</p>}
+                {bookings.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No bookings yet.</p>}
               </div>
             )}
           </div>
@@ -342,7 +384,7 @@ export default function AdminDashboard() {
               </button>
             </div>
             {(NEXT_STATUS_MAP[editingCurrentStatus] || []).length === 0 && (
-              <p style={{ marginTop: 10, color: '#9ca3af', fontSize: 12 }}>
+              <p style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: 12 }}>
                 This booking is already completed. No further workflow transitions are available.
               </p>
             )}
@@ -357,18 +399,18 @@ export default function AdminDashboard() {
         {/* Transactions */}
         {tab === 'transactions' && (
           <div className="fade-up">
-            <h2 style={{ color: '#30BDEC', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>All Transactions</h2>
+            <h2 style={{ color: 'var(--primary)', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>All Transactions</h2>
             {loading ? <div className="spinner" /> : (
-              <div style={{ background: '#1a1a1a', borderRadius: 12, border: '1px solid #333', overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
                 <div className="table-wrap">
-                  <table style={{ color: '#ddd' }}>
+                  <table style={{ color: 'var(--text)' }}>
                     <thead>
                       <tr><th>Booking Ref</th><th>Client</th><th>Asset</th><th>Amount</th><th>Payment</th><th>Status</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {transactions.map(t => (
-                        <tr key={t.id} style={{ borderBottom: '1px solid #222' }}>
-                          <td className="mono" style={{ color: '#30BDEC', fontSize: 11 }}>{t.booking_ref}</td>
+                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{t.booking_ref}</td>
                           <td style={{ fontSize: 12 }}>{t.full_name || t.email}</td>
                           <td style={{ fontSize: 11 }}>{t.truck_type}</td>
                           <td className="mono" style={{ fontWeight: 700, color: '#27ae60' }}>K{parseInt(t.amount).toLocaleString()}</td>
@@ -384,7 +426,7 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
-                {transactions.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: '#555' }}>No transactions yet.</p>}
+                {transactions.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No transactions yet.</p>}
               </div>
             )}
           </div>
@@ -394,7 +436,7 @@ export default function AdminDashboard() {
         {tab === 'users' && (
           <div className="fade-up">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ color: '#30BDEC', fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto', margin: 0 }}>Registered Users</h2>
+              <h2 style={{ color: 'var(--primary)', fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto', margin: 0 }}>Registered Users</h2>
               {user?.role === 'super_admin' && (
                 <button
                   className="btn btn-gold btn-sm"
@@ -449,26 +491,26 @@ export default function AdminDashboard() {
             )}
 
             {loading ? <div className="spinner" /> : (
-              <div style={{ background: '#1a1a1a', borderRadius: 12, border: '1px solid #333', overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
                 <div className="table-wrap">
-                  <table style={{ color: '#ddd' }}>
+                  <table style={{ color: 'var(--text)' }}>
                     <thead>
                       <tr><th>Name</th><th>Email</th><th>Phone</th><th>Company</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
                     </thead>
                     <tbody>
                       {users.map(u => (
-                        <tr key={u.id} style={{ borderBottom: '1px solid #222' }}>
+                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ fontWeight: 700, fontSize: 13 }}>{u.full_name || '—'}</td>
                           <td style={{ fontSize: 12 }}>{u.email}</td>
                           <td className="mono" style={{ fontSize: 11 }}>{u.phone}</td>
                           <td style={{ fontSize: 12 }}>{u.company || '—'}</td>
-                          <td><span style={{ background: u.role === 'super_admin' ? '#e67e22' : u.role === 'admin' ? '#30BDEC' : '#333', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{u.role.toUpperCase()}</span></td>
-                          <td style={{ fontSize: 11, color: '#666' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                          <td><span style={{ background: u.role === 'super_admin' ? '#e67e22' : u.role === 'admin' ? 'var(--primary)' : 'var(--border)', color: '#ffffff', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{u.role.toUpperCase()}</span></td>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                           <td>
                             {u.id !== user?.id && (
                               <button
                                 className="btn btn-sm"
-                                style={{ background: '#c0392b', color: 'white', fontSize: 11 }}
+                                style={{ background: 'var(--danger)', color: '#ffffff', fontSize: 11 }}
                                 onClick={() => removeUser(u)}
                               >
                                 Remove
@@ -480,7 +522,7 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
-                {users.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: '#555' }}>No users yet.</p>}
+                {users.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No users yet.</p>}
               </div>
             )}
           </div>
@@ -489,31 +531,31 @@ export default function AdminDashboard() {
         {/* Notifications */}
         {tab === 'notifications' && (
           <div className="fade-up">
-            <h2 style={{ color: '#30BDEC', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Notification Audit Log</h2>
+            <h2 style={{ color: 'var(--primary)', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Notification Audit Log</h2>
             {loading ? <div className="spinner" /> : (
-              <div style={{ background: '#1a1a1a', borderRadius: 12, border: '1px solid #333', overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
                 <div className="table-wrap">
-                  <table style={{ color: '#ddd' }}>
+                  <table style={{ color: 'var(--text)' }}>
                     <thead>
                       <tr><th>Time</th><th>Booking</th><th>Client</th><th>Channel</th><th>Event</th><th>Status</th><th>Provider</th><th>Error</th></tr>
                     </thead>
                     <tbody>
                       {notifications.map((n) => (
-                        <tr key={n.id} style={{ borderBottom: '1px solid #222' }}>
-                          <td style={{ fontSize: 11, color: '#aaa' }}>{new Date(n.created_at).toLocaleString()}</td>
-                          <td className="mono" style={{ color: '#30BDEC', fontSize: 11 }}>{n.booking_ref || '—'}</td>
+                        <tr key={n.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(n.created_at).toLocaleString()}</td>
+                          <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{n.booking_ref || '—'}</td>
                           <td style={{ fontSize: 12 }}>{n.full_name || n.email || '—'}</td>
                           <td style={{ fontSize: 11, textTransform: 'uppercase' }}>{n.channel}</td>
                           <td style={{ fontSize: 11 }}>{n.event_type}</td>
                           <td><span className={`badge badge-${n.status}`}>{n.status}</span></td>
                           <td style={{ fontSize: 11 }}>{n.provider || '—'}</td>
-                          <td style={{ fontSize: 11, color: '#f87171', maxWidth: 260 }}>{n.error_text || '—'}</td>
+                          <td style={{ fontSize: 11, color: 'var(--danger)', maxWidth: 260 }}>{n.error_text || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                {notifications.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: '#555' }}>No notification events yet.</p>}
+                {notifications.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No notification events yet.</p>}
               </div>
             )}
           </div>

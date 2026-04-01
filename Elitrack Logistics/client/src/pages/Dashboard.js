@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
+  const [apiError, setApiError] = useState('');
   const intervalRef = useRef(null);
   const activeTrackedBooking = bookings.find((b) => ['dispatched', 'in_transit'].includes(b.status));
 
@@ -81,8 +82,12 @@ export default function Dashboard() {
   const loadBookings = async () => {
     setLoadingBookings(true);
     try {
+      setApiError('');
       const { data } = await api.get('/bookings/mine');
-      setBookings(data);
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setBookings([]);
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load bookings right now.');
     } finally { setLoadingBookings(false); }
   };
 
@@ -134,40 +139,48 @@ export default function Dashboard() {
       showToast(`Convoy of ${form.units} deployed from ${selectedHubLabel}`);
       setTab('track');
     } catch (e) {
-      showToast('Booking failed: ' + (e.response?.data?.error || 'Unknown error'));
+      const message = e.userMessage || e.response?.data?.error || 'Unknown error';
+      setApiError(message);
+      showToast('Booking failed: ' + message);
     } finally { setSubmitting(false); }
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#1D2429' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
       {/* Header */}
-      <header style={{ background: '#1D2429', borderBottom: '3px solid #30BDEC', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Roboto' }}>
+      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Roboto' }}>
         <div>
-          <h1 style={{ color: '#30BDEC', fontSize: 22, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK LOGISTICS</h1>
-          <p style={{ color: '#666', fontSize: 10, letterSpacing: 2 }}>CLIENT PORTAL</p>
+          <h1 style={{ color: 'var(--primary)', fontSize: 22, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK LOGISTICS</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2 }}>CLIENT PORTAL</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ color: '#888', fontSize: 12 }}>{user?.full_name || user?.email}</span>
+          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{user?.full_name || user?.email}</span>
           <button className="btn btn-dark btn-sm" onClick={logout}>Logout</button>
         </div>
       </header>
 
       {/* Tabs */}
-      <div style={{ background: '#1D2429', padding: '0 24px', display: 'flex', gap: 4, fontFamily: 'Roboto' }}>
+      <div style={{ background: 'var(--surface)', padding: '0 24px', display: 'flex', gap: 4, fontFamily: 'Roboto' }}>
         {[['book','Book Convoy'],['track','Live Tracking'],['bookings','My Bookings']].map(([k,v]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'Roboto', fontWeight: 700,
-            color: tab === k ? '#30BDEC' : '#555', borderBottom: tab === k ? '2px solid #30BDEC' : '2px solid transparent', letterSpacing: 1
-          }}>{k === 'book' ? <><FontAwesomeIcon icon={faTruck} style={{color: '#30BDEC', marginRight: 8}}/>{v}</> : k === 'track' ? <><FontAwesomeIcon icon={faBroadcastTower} style={{color: '#30BDEC', marginRight: 8}}/>{v}</> : <><FontAwesomeIcon icon={faClipboard} style={{color: '#30BDEC', marginRight: 8}}/>{v}</>}</button>
+            color: tab === k ? 'var(--primary)' : 'var(--text-muted)', borderBottom: tab === k ? '2px solid var(--primary)' : '2px solid transparent', letterSpacing: 1
+          }}>{k === 'book' ? <><FontAwesomeIcon icon={faTruck} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'track' ? <><FontAwesomeIcon icon={faBroadcastTower} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : <><FontAwesomeIcon icon={faClipboard} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</>}</button>
         ))}
       </div>
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+        {apiError && (
+          <div style={{ marginBottom: 16, background: 'var(--danger-surface)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', borderRadius: 10, padding: 12, fontSize: 12 }}>
+            Connection issue: {apiError}
+          </div>
+        )}
+
         {/* Book Tab */}
         {tab === 'book' && (
           <div className="fade-up">
             <div className="card" style={{ marginBottom: 16 }}>
-              <div className="section-label"><FontAwesomeIcon icon={faTruck} style={{color: '#30BDEC', marginRight: 8}}/>Asset Selection</div>
+              <div className="section-label"><FontAwesomeIcon icon={faTruck} style={{color: 'var(--primary)', marginRight: 8}}/>Asset Selection</div>
               <div className="form-group">
                 <label>Primary Vehicle Type</label>
                 <select value={form.truck} onChange={e => setForm(f => ({...f, truck: e.target.value}))}>
@@ -187,7 +200,7 @@ export default function Dashboard() {
             </div>
 
             <div className="card" style={{ marginBottom: 16 }}>
-              <div className="section-label"><FontAwesomeIcon icon={faLocationDot} style={{color: '#30BDEC', marginRight: 8}}/>Deployment Logistics</div>
+              <div className="section-label"><FontAwesomeIcon icon={faLocationDot} style={{color: 'var(--primary)', marginRight: 8}}/>Deployment Logistics</div>
               <div className="form-group">
                 <label>Strategic Hub</label>
                 <select value={form.hub} onChange={e => setForm(f => ({...f, hub: e.target.value}))}>
@@ -214,9 +227,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={{ background: '#1D2429', borderRadius: 16, border: '1px solid #30BDEC', padding: '24px', textAlign: 'center', marginBottom: 16, fontFamily: 'Roboto' }}>
-              <p style={{ color: '#888', fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>TOTAL LOGISTICS VALUE</p>
-              <p style={{ color: '#30BDEC', fontSize: 36, fontWeight: 800 }}>K{total.toLocaleString()}</p>
+            <div style={{ background: 'var(--surface-2)', borderRadius: 16, border: '1px solid var(--primary)', padding: '24px', textAlign: 'center', marginBottom: 16, fontFamily: 'Roboto' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>TOTAL LOGISTICS VALUE</p>
+              <p style={{ color: 'var(--primary)', fontSize: 36, fontWeight: 800 }}>K{total.toLocaleString()}</p>
               <button className="btn btn-gold btn-full" style={{ marginTop: 20 }} onClick={deploy} disabled={submitting}>
                 {submitting ? 'Deploying...' : <><FontAwesomeIcon icon={faRocket} style={{color: 'white', marginRight: 8}}/>Deploy Convoy & Link Cams</>}
               </button>
@@ -228,8 +241,8 @@ export default function Dashboard() {
         {tab === 'track' && (
           <div className="fade-up">
             {!deployed ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: '#999' }}>
-                <p style={{ fontSize: 40, marginBottom: 12 }}><FontAwesomeIcon icon={faBroadcastTower} style={{color: '#30BDEC'}}/></p>
+              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+                <p style={{ fontSize: 40, marginBottom: 12 }}><FontAwesomeIcon icon={faBroadcastTower} style={{color: 'var(--primary)'}}/></p>
                 <p>No active convoy. Book and deploy first.</p>
               </div>
             ) : (
@@ -237,14 +250,14 @@ export default function Dashboard() {
                 <div className="card" style={{ marginBottom: 16 }}>
                   <div className="section-label">🛰️ Live Telematics</div>
                   {activeTrackedBooking && (
-                    <div style={{ marginBottom: 14, background: '#222', border: '1px solid #30BDEC', borderRadius: 10, padding: 10, fontSize: 12 }}>
+                    <div style={{ marginBottom: 14, background: 'var(--surface-3)', border: '1px solid var(--primary)', borderRadius: 10, padding: 10, fontSize: 12 }}>
                       <div style={{ marginBottom: 6 }}>
                         <b>Dispatcher:</b> {activeTrackedBooking.dispatcher_name || 'Not assigned yet'}
                       </div>
                       <div style={{ marginBottom: 6 }}>
                         <b>ETA:</b> {activeTrackedBooking.eta ? new Date(activeTrackedBooking.eta).toLocaleString() : 'Not provided yet'}
                       </div>
-                      <div style={{ color: '#9ca3af' }}>
+                      <div style={{ color: 'var(--text-muted)' }}>
                         {activeTrackedBooking.status_notes || 'No status notes yet.'}
                       </div>
                     </div>
@@ -254,7 +267,7 @@ export default function Dashboard() {
                     <span>Cam: <b style={{ color: '#27ae60' }}>24H Live</b></span>
                     <span>Speed: <b style={{ color: '#d4af37' }}>{speed} km/h</b></span>
                   </div>
-                  <div style={{ background: '#000', borderRadius: 8, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', border: '1px solid #333' }}>
+                  <div style={{ background: '#000', borderRadius: 8, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', border: '1px solid var(--border)' }}>
                     <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(255,0,0,0.8)', color: 'white', padding: '3px 10px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>● LIVE</div>
                     <img src="https://images.unsplash.com/photo-1519003722824-192d992a605b?auto=format&fit=crop&w=600&q=60" alt="cam" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
                     <div style={{ position: 'absolute', bottom: 10, left: 10, color: 'white', fontSize: 11, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4 }}>
@@ -288,7 +301,7 @@ export default function Dashboard() {
             <div className="card">
               <div className="section-label">📋 My Bookings</div>
               {loadingBookings ? <div className="spinner" /> : bookings.length === 0 ? (
-                <p style={{ color: '#999', textAlign: 'center', padding: '30px 0' }}>No bookings yet.</p>
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>No bookings yet.</p>
               ) : (
                 <div className="table-wrap">
                   <table>
@@ -296,18 +309,18 @@ export default function Dashboard() {
                     <tbody>
                       {bookings.map(b => (
                         <tr key={b.id}>
-                          <td className="mono" style={{ color: '#d4af37', fontSize: 11 }}>{b.booking_ref}</td>
+                          <td className="mono" style={{ color: 'var(--warning)', fontSize: 11 }}>{b.booking_ref}</td>
                           <td style={{ fontSize: 12 }}>{b.truck_type}</td>
                            <td style={{ fontSize: 12 }}>{HUBS[b.hub]?.label || b.hub}</td>
                           <td className="mono" style={{ fontWeight: 700 }}>K{parseInt(b.total_amount).toLocaleString()}</td>
                           <td><span className={`badge badge-${b.status}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
-                          <td style={{ fontSize: 11, color: '#9ca3af', maxWidth: 180 }}>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
                             {b.dispatcher_name || '—'}
                           </td>
-                          <td style={{ fontSize: 11, color: '#9ca3af', maxWidth: 180 }}>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
                             {b.eta ? new Date(b.eta).toLocaleString() : '—'}
                           </td>
-                          <td style={{ fontSize: 11, color: '#9ca3af', maxWidth: 240 }}>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 240 }}>
                             {b.status_notes || 'No updates from dispatch yet.'}
                           </td>
                         </tr>
@@ -328,7 +341,7 @@ export default function Dashboard() {
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', background: '#1a1a1a', color: 'white', padding: '14px 24px', borderRadius: 12, border: '1px solid #d4af37', fontSize: 13, zIndex: 9999, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-2)', color: 'var(--text)', padding: '14px 24px', borderRadius: 12, border: '1px solid var(--warning)', fontSize: 13, zIndex: 9999, whiteSpace: 'nowrap' }}>
           {toast}
         </div>
       )}
