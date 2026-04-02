@@ -16,6 +16,7 @@
   --danger-border: #f2a8a1;
   --danger-text: #7f1d1d;
   --input-bg: #ffffff;
+  --toggle-icon-filter: none;
   --radius: 12px;
 }
 
@@ -35,6 +36,7 @@
   --danger-border: #f87171;
   --danger-text: #ffffff;
   --input-bg: #1D2429;
+  --toggle-icon-filter: invert(1);
   --radius: 12px;
 }
 
@@ -130,6 +132,9 @@ tr:hover td { background: var(--surface-3); }
 /* Theme toggle button */
 .theme-toggle {
   position: fixed;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   top: 16px;
   right: 20px;
   z-index: 4000;
@@ -142,6 +147,13 @@ tr:hover td { background: var(--surface-3); }
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle__icon {
+  width: 14px;
+  height: 14px;
+  filter: var(--toggle-icon-filter);
+  flex-shrink: 0;
 }
 
 .theme-toggle:hover {

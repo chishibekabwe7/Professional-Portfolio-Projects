@@ -11,7 +11,13 @@ export default function ThemeToggle() {
       aria-label="Toggle color theme"
       title="Switch theme"
     >
-      {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
+      <img
+        src="/icons/circle-half-stroke-solid-full.svg"
+        alt=""
+        aria-hidden="true"
+        className="theme-toggle__icon"
+      />
+      {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
     </button>
   );
 }
