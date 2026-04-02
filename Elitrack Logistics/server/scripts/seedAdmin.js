@@ -11,7 +11,7 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
 const mysql = require('mysql2/promise');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const readline = require('readline');
 
 const SALT_ROUNDS = 12;
@@ -23,12 +23,11 @@ async function main() {
   console.log('\n=== Elitrack – Super Admin Seeder ===\n');
 
   const email = (await ask('Super-admin email: ')).trim();
-  const phone = (await ask('Phone number     : ')).trim();
   const fullName = (await ask('Full name        : ')).trim();
   const password = (await ask('Password (min 8) : ')).trim();
 
-  if (!email || !phone || !password) {
-    console.error('❌  email, phone and password are all required.');
+  if (!email || !password) {
+    console.error('❌  email and password are required.');
     process.exit(1);
   }
   if (password.length < 8) {
@@ -55,10 +54,10 @@ async function main() {
       process.exit(1);
     }
 
-    const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const [result] = await pool.query(
-      `INSERT INTO users (email, phone, password_hash, role, full_name) VALUES (?, ?, ?, 'super_admin', ?)`,
-      [email, phone, password_hash, fullName || null]
+      `INSERT INTO users (email, password, role, full_name) VALUES (?, ?, 'super_admin', ?)`,
+      [email, hashedPassword, fullName || null]
     );
 
     console.log(`\n✅  super_admin account created (id=${result.insertId}).`);

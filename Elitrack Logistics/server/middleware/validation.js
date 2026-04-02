@@ -2,12 +2,12 @@ const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '')
 
 const validateRegister = (req, res, next) => {
   const { email, phone, password, full_name, company } = req.body;
-  if (!email || !phone || !password) {
-    return res.status(400).json({ error: 'email, phone and password are required.' });
+  if (!email || !password) {
+    return res.status(400).json({ error: 'email and password are required.' });
   }
   if (!isEmail(email)) return res.status(400).json({ error: 'Invalid email format.' });
   if (String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
-  if (String(phone).length < 7 || String(phone).length > 20) {
+  if (phone && (String(phone).length < 7 || String(phone).length > 20)) {
     return res.status(400).json({ error: 'Invalid phone number length.' });
   }
   if (full_name && String(full_name).length > 120) return res.status(400).json({ error: 'full_name too long.' });

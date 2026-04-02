@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { pool } = require('../config/db');
-const { authMiddleware, adminOnly, authorize } = require('../middleware/auth');
+const { authenticateToken, adminOnly, authorizeRoles } = require('../middleware/auth');
 const { sendNotification } = require('../services/notifications');
 const { validateBookingCreate } = require('../middleware/validation');
 const { auditAdminAction } = require('../middleware/audit');
@@ -31,8 +31,8 @@ const getBookingWithUser = async (bookingId) => {
   return rows[0] || null;
 };
 
-// Create booking (client)
-router.post('/', authMiddleware, validateBookingCreate, async (req, res) => {
+// Create booking (user)
+router.post('/', authenticateToken, validateBookingCreate, async (req, res) => {
   const { truck_type, truck_price_per_day, units, days, hub, manual_location, security_tier, security_price, total_amount, notes } = req.body;
   try {
     const ref = genRef();
@@ -55,16 +55,16 @@ router.post('/', authMiddleware, validateBookingCreate, async (req, res) => {
   }
 });
 
-// Get my bookings (client)
-router.get('/mine', authMiddleware, async (req, res) => {
+// Get my bookings (user)
+router.get('/mine', authenticateToken, async (req, res) => {
   const [rows] = await pool.query(
     'SELECT * FROM bookings WHERE user_id = ? ORDER BY created_at DESC', [req.user.id]
   );
   res.json(rows);
 });
 
-// Get all bookings (admin / super_admin / dispatcher)
-router.get('/all', authMiddleware, authorize(['admin', 'super_admin', 'dispatcher']), async (req, res) => {
+// Get all bookings (admin / super_admin)
+router.get('/all', authenticateToken, authorizeRoles('admin', 'super_admin'), async (req, res) => {
   const [rows] = await pool.query(
     `SELECT b.*, u.email, u.full_name, u.company FROM bookings b
      JOIN users u ON b.user_id = u.id ORDER BY b.created_at DESC`
@@ -72,12 +72,11 @@ router.get('/all', authMiddleware, authorize(['admin', 'super_admin', 'dispatche
   res.json(rows);
 });
 
-// Update booking status (admin / super_admin / dispatcher)
-// Dispatchers may only advance status to 'in_transit'.
+// Update booking status (admin / super_admin)
 router.patch(
   '/:id/status',
-  authMiddleware,
-  authorize(['admin', 'super_admin', 'dispatcher']),
+  authenticateToken,
+  authorizeRoles('admin', 'super_admin'),
   auditAdminAction('booking_status_updated', (req) => ({
     entity_type: 'booking',
     entity_id: Number(req.params.id),
@@ -90,11 +89,6 @@ router.patch(
   const dispatcherName = (req.body.dispatcher_name || '').trim();
   const eta = req.body.eta || null;
   const statusNotes = (req.body.status_notes || '').trim();
-
-  // Dispatchers may only set status to 'in_transit'
-  if (req.user.role === 'dispatcher' && requestedStatus !== 'in_transit') {
-    return res.status(403).json({ error: 'Dispatchers may only set status to in_transit.' });
-  }
 
   if (!WORKFLOW_STATUSES.includes(requestedStatus)) {
     return res.status(400).json({ error: 'Invalid status value.' });
@@ -161,7 +155,7 @@ router.patch(
 // Update transaction status (admin)
 router.patch(
   '/:id/payment',
-  authMiddleware,
+  authenticateToken,
   adminOnly,
   auditAdminAction('booking_payment_updated', (req) => ({
     entity_type: 'booking',

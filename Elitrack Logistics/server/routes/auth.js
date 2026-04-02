@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { pool } = require('../config/db');
@@ -23,13 +23,16 @@ const signAuthToken = (user) => jwt.sign(
 // Register
 router.post('/register', validateRegister, async (req, res) => {
   const { email, phone, password, full_name, company } = req.body;
-  if (!email || !phone || !password) return res.status(400).json({ error: 'Missing fields' });
+  if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
+
   try {
-    const hash = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (email, phone, password_hash, full_name, company) VALUES (?,?,?,?,?)',
-      [email, phone, hash, full_name || '', company || '']
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await pool.query(
+      `INSERT INTO users (email, password, role, phone, full_name, company)
+       VALUES (?, ?, 'user', ?, ?, ?)`,
+      [email, hashedPassword, phone || null, full_name || '', company || '']
     );
+
     res.json({ success: true, message: 'Account created successfully. Please log in.' });
   } catch (e) {
     if (e.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email already registered' });
@@ -41,11 +44,16 @@ router.post('/register', validateRegister, async (req, res) => {
 router.post('/login', validateLogin, async (req, res) => {
   const { email, password } = req.body;
   try {
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [rows] = await pool.query(
+      'SELECT id, email, password, role, full_name, company FROM users WHERE email = ? LIMIT 1',
+      [email]
+    );
+
     if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
     const user = rows[0];
-    const match = await bcrypt.compare(password, user.password_hash);
+    const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
+
     const token = signAuthToken(user);
     res.json({ token, user: { id: user.id, email: user.email, role: user.role, full_name: user.full_name, company: user.company } });
   } catch (e) {
@@ -73,11 +81,13 @@ router.post('/google', validateGoogleAuth, async (req, res) => {
     let user;
 
     if (rows.length === 0) {
+      const generatedPasswordHash = await bcrypt.hash(`oauth_${Date.now()}_${Math.random()}`, 12);
       const [result] = await pool.query(
-        'INSERT INTO users (email, full_name, phone, password_hash) VALUES (?,?,?,?)',
-        [email, name || '', 'N/A', await bcrypt.hash('oauth_user', 10)]
+        `INSERT INTO users (email, password, role, full_name, phone)
+         VALUES (?, ?, 'user', ?, ?)`,
+        [email, generatedPasswordHash, name || '', 'N/A']
       );
-      user = { id: result.insertId, email, full_name: name, role: 'client' };
+      user = { id: result.insertId, email, full_name: name, role: 'user' };
     } else {
       user = rows[0];
     }
@@ -177,11 +187,11 @@ router.post('/reset-password', validateResetPassword, async (req, res) => {
     }
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     // Update user password
     await pool.query(
-      'UPDATE users SET password_hash = ? WHERE id = ?',
+      'UPDATE users SET password = ? WHERE id = ?',
       [passwordHash, resetRecord.user_id]
     );
 

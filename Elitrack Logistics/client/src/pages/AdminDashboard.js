@@ -26,7 +26,7 @@ export default function AdminDashboard() {
 
   // Admin creation form state (super_admin only)
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
-  const [createAdminForm, setCreateAdminForm] = useState({ email: '', phone: '', password: '', full_name: '', company: '', role: 'admin' });
+  const [createAdminForm, setCreateAdminForm] = useState({ email: '', password: '' });
   const [createAdminError, setCreateAdminError] = useState('');
   const [createAdminSuccess, setCreateAdminSuccess] = useState('');
 
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
     return hub;
   };
 
-  useEffect(() => { if (user?.role !== 'dispatcher') loadStats(); }, []);
+  useEffect(() => { loadStats(); }, []);
   useEffect(() => {
     if (tab === 'bookings') loadBookings();
     if (tab === 'users') loadUsers();
@@ -198,17 +198,14 @@ export default function AdminDashboard() {
     try {
       await api.post('/admin/create-admin', createAdminForm);
       setCreateAdminSuccess(`Admin account created for ${createAdminForm.email}.`);
-      setCreateAdminForm({ email: '', phone: '', password: '', full_name: '', company: '', role: 'admin' });
+      setCreateAdminForm({ email: '', password: '' });
       loadUsers();
     } catch (err) {
       setCreateAdminError(err?.response?.data?.error || 'Failed to create admin.');
     }
   };
 
-  const TABS = [['overview','Overview'],['bookings','Bookings'],['transactions','Transactions'],['users','Users'],['notifications','Notifications']].filter(([k]) => {
-    if (user?.role === 'dispatcher' && k === 'users') return false;
-    return true;
-  });
+  const TABS = [['overview','Overview'],['bookings','Bookings'],['transactions','Transactions'],['users','Users'],['notifications','Notifications']];
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
@@ -248,7 +245,7 @@ export default function AdminDashboard() {
         {tab === 'overview' && (
           <div className="fade-up">
             <h2 style={{ color: 'var(--primary)', marginBottom: 24, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Dashboard Overview</h2>
-            {user?.role !== 'dispatcher' && (stats ? (
+            {stats ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
                 {[
                   { label: 'Total Clients', value: stats.total_users, icon: faUsers },
@@ -264,18 +261,14 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
-            ) : <div className="spinner" />)}
+            ) : <div className="spinner" />}
 
               <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', padding: 20, fontFamily: 'Roboto' }}>
               <p className="section-label">Quick Actions</p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <button className="btn btn-gold btn-sm" onClick={() => setTab('bookings')}>Manage Bookings</button>
-                {user?.role !== 'dispatcher' && (
-                  <>
-                    <button className="btn btn-dark btn-sm" onClick={() => setTab('transactions')}>View Transactions</button>
-                    <button className="btn btn-dark btn-sm" onClick={() => setTab('users')}>View Clients</button>
-                  </>
-                )}
+                <button className="btn btn-dark btn-sm" onClick={() => setTab('transactions')}>View Transactions</button>
+                <button className="btn btn-dark btn-sm" onClick={() => setTab('users')}>View Users</button>
               </div>
             </div>
           </div>
@@ -458,27 +451,8 @@ export default function AdminDashboard() {
                       <input type="email" required value={createAdminForm.email} onChange={(e) => setCreateAdminForm((p) => ({ ...p, email: e.target.value }))} placeholder="admin@example.com" />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Phone *</label>
-                      <input required value={createAdminForm.phone} onChange={(e) => setCreateAdminForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+260..." />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
                       <label>Password * (min 8 chars)</label>
                       <input type="password" required value={createAdminForm.password} onChange={(e) => setCreateAdminForm((p) => ({ ...p, password: e.target.value }))} />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Full Name</label>
-                      <input value={createAdminForm.full_name} onChange={(e) => setCreateAdminForm((p) => ({ ...p, full_name: e.target.value }))} placeholder="John Doe" />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Company</label>
-                      <input value={createAdminForm.company} onChange={(e) => setCreateAdminForm((p) => ({ ...p, company: e.target.value }))} placeholder="Optional" />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label>Role</label>
-                      <select value={createAdminForm.role} onChange={(e) => setCreateAdminForm((p) => ({ ...p, role: e.target.value }))}>
-                        <option value="admin">Admin</option>
-                        <option value="super_admin">Super Admin</option>
-                      </select>
                     </div>
                   </div>
                   <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>

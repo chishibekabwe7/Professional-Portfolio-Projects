@@ -13,6 +13,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
+  const isAdminRole = (role) => ['admin', 'super_admin'].includes(role);
 
   const handle = e => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -45,7 +46,7 @@ export default function AuthPage() {
       console.log('[CHECK] Token stored, redirecting...');
       localStorage.setItem('tl_token', data.token);
       localStorage.setItem('tl_user', JSON.stringify(data.user));
-      navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
+      navigate(isAdminRole(data.user.role) ? '/admin' : '/dashboard');
     } catch (err) {
       console.error('[ERROR] Google login error:', err);
       setError(err.message || 'Google login failed. Check browser console for details.');
@@ -67,7 +68,7 @@ export default function AuthPage() {
     try {
       if (mode === 'login') {
         const user = await login(form.email, form.password);
-        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+        navigate(isAdminRole(user.role) ? '/admin' : '/dashboard');
       } else {
         // For register, just create the account without logging in
         await register(form);
@@ -130,8 +131,8 @@ export default function AuthPage() {
                     style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
                 </div>
                 <div className="form-group">
-                  <label style={{ color: 'var(--text-muted)' }}>Phone</label>
-                  <input name="phone" placeholder="0977 000 000" value={form.phone} onChange={handle} required
+                  <label style={{ color: 'var(--text-muted)' }}>Phone (optional)</label>
+                  <input name="phone" placeholder="0977 000 000" value={form.phone} onChange={handle}
                     style={{ background: 'var(--input-bg)', borderColor: 'var(--border)', color: 'var(--text)', fontFamily: 'Roboto' }} />
                 </div>
               </>
