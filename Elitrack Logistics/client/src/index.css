@@ -131,13 +131,9 @@ tr:hover td { background: var(--surface-3); }
 
 /* Theme toggle button */
 .theme-toggle {
-  position: fixed;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  bottom: 20px;
-  right: 20px;
-  z-index: 1800;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
@@ -146,7 +142,6 @@ tr:hover td { background: var(--surface-3); }
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .theme-toggle__icon {
@@ -159,13 +154,4 @@ tr:hover td { background: var(--surface-3); }
 .theme-toggle:hover {
   border-color: var(--primary);
   color: var(--primary);
-}
-
-@media (max-width: 640px) {
-  .theme-toggle {
-    right: 12px;
-    bottom: 12px;
-    padding: 7px 10px;
-    font-size: 11px;
-  }
 }

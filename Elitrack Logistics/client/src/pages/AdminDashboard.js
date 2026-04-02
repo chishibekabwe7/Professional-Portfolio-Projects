@@ -2,6 +2,7 @@ import { faBox, faChartBar, faHourglassEnd, faMoneyBill, faTruck, faUsers } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
 import api from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard() {
@@ -210,12 +211,13 @@ export default function AdminDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
       {/* Header */}
-      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '18px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Roboto' }}>
+      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '18px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontFamily: 'Roboto' }}>
         <div>
           <h1 style={{ color: 'var(--primary)', fontSize: 20, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 9, letterSpacing: 2 }}>ADMIN CONTROL CENTER</p>
         </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <ThemeToggle />
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user?.full_name || user?.email}</span>
           <span style={{ background: 'var(--primary)', color: '#ffffff', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{(user?.role || 'admin').toUpperCase()}</span>
           <button className="btn btn-dark btn-sm" onClick={logout}>Logout</button>

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import InstallButton from './components/InstallButton';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import ThemeToggle from './components/ThemeToggle';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
 import AdminDashboard from './pages/AdminDashboard';
@@ -79,7 +78,6 @@ export default function App() {
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          <ThemeToggle />
           <InstallButton />
         </BrowserRouter>
       </AuthProvider>

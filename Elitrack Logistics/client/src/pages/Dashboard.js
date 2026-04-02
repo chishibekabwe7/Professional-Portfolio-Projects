@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import api from '../api';
+import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 
 // Fix leaflet marker icons
@@ -148,12 +149,13 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
       {/* Header */}
-      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'Roboto' }}>
+      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontFamily: 'Roboto' }}>
         <div>
           <h1 style={{ color: 'var(--primary)', fontSize: 22, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK LOGISTICS</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2 }}>CLIENT PORTAL</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <ThemeToggle />
           <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{user?.full_name || user?.email}</span>
           <button className="btn btn-dark btn-sm" onClick={logout}>Logout</button>
         </div>
@@ -333,11 +335,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {/* Sticky Call */}
-      <a href="tel:0973930287" style={{ position: 'fixed', bottom: 20, right: 20, background: '#27ae60', color: 'white', padding: '14px 22px', borderRadius: 50, fontWeight: 700, textDecoration: 'none', fontSize: 12, boxShadow: '0 5px 20px rgba(0,0,0,0.3)', zIndex: 999 }}>
-        📞 Call Dispatch
-      </a>
 
       {/* Toast */}
       {toast && (

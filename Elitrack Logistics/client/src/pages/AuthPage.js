@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { GoogleLogin } from '@react-oauth/google';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthPage() {
@@ -89,6 +90,9 @@ export default function AuthPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
+          <ThemeToggle />
+        </div>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1 style={{ color: 'var(--primary)', fontSize: 32, fontWeight: 800, letterSpacing: 4, fontFamily: 'Roboto' }}>ELITRACK</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 11, letterSpacing: 2, marginTop: 6 }}>FLEET MULTI-ASSET PORTAL</p>
