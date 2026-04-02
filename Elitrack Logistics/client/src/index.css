@@ -135,9 +135,9 @@ tr:hover td { background: var(--surface-3); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  top: 16px;
+  bottom: 20px;
   right: 20px;
-  z-index: 4000;
+  z-index: 1800;
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
@@ -159,4 +159,13 @@ tr:hover td { background: var(--surface-3); }
 .theme-toggle:hover {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .theme-toggle {
+    right: 12px;
+    bottom: 12px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
 }
