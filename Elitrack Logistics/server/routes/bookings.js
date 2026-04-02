@@ -17,7 +17,27 @@ const ALLOWED_TRANSITIONS = {
   completed: [],
 };
 
+const CATEGORY_BASE_RATE = {
+  truck: 11500,
+  van: 7000,
+  suv: 5500,
+  motorbike: 2500,
+  other: 4500,
+};
+
 const normalizeStatus = (status) => LEGACY_MAP[status] || status;
+
+const getVehicleForUser = async (vehicleId, userId) => {
+  const [rows] = await pool.query(
+    `SELECT id, category, vehicle_name, plate_number, tracking_enabled
+     FROM vehicles
+     WHERE id = ? AND user_id = ?
+     LIMIT 1`,
+    [vehicleId, userId]
+  );
+
+  return rows[0] || null;
+};
 
 const getBookingWithUser = async (bookingId) => {
   const [rows] = await pool.query(
@@ -33,16 +53,73 @@ const getBookingWithUser = async (bookingId) => {
 
 // Create booking (user)
 router.post('/', authenticateToken, validateBookingCreate, async (req, res) => {
-  const { truck_type, truck_price_per_day, units, days, hub, manual_location, security_tier, security_price, total_amount, notes } = req.body;
+  const {
+    vehicle_id,
+    truck_type,
+    truck_price_per_day,
+    units,
+    days,
+    hub,
+    manual_location,
+    security_tier,
+    security_price,
+    total_amount,
+    notes,
+  } = req.body;
+
   try {
+    let resolvedVehicleId = null;
+    let resolvedTruckType = String(truck_type || '').trim();
+    let resolvedTruckPrice = Number(truck_price_per_day);
+
+    if (vehicle_id) {
+      const vehicleRecord = await getVehicleForUser(Number(vehicle_id), req.user.id);
+
+      if (!vehicleRecord) {
+        return res.status(404).json({ error: 'Selected vehicle was not found in your fleet.' });
+      }
+
+      resolvedVehicleId = vehicleRecord.id;
+      const normalizedCategory = String(vehicleRecord.category || 'other').toLowerCase();
+
+      resolvedTruckType = `${vehicleRecord.vehicle_name} (${normalizedCategory.toUpperCase()})`;
+
+      if (!Number.isFinite(resolvedTruckPrice) || resolvedTruckPrice <= 0) {
+        resolvedTruckPrice = CATEGORY_BASE_RATE[normalizedCategory] || CATEGORY_BASE_RATE.other;
+      }
+    }
+
+    if (!resolvedTruckType) {
+      return res.status(400).json({ error: 'A valid vehicle selection is required.' });
+    }
+
+    if (!Number.isFinite(resolvedTruckPrice) || resolvedTruckPrice <= 0) {
+      return res.status(400).json({ error: 'Unable to determine pricing for the selected vehicle.' });
+    }
+
     const ref = genRef();
     const normalizedHub = String(hub).toLowerCase() === 'other'
       ? String(manual_location || '').trim()
       : hub;
+
     const [result] = await pool.query(
-      `INSERT INTO bookings (user_id, booking_ref, truck_type, truck_price_per_day, units, days, hub, security_tier, security_price, total_amount, notes, status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [req.user.id, ref, truck_type, truck_price_per_day, units, days, normalizedHub, security_tier, security_price, total_amount, notes || '', 'pending_review']
+      `INSERT INTO bookings (user_id, vehicle_id, booking_ref, truck_type, truck_price_per_day, units, days, hub, security_tier, security_price, total_amount, notes, status)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        req.user.id,
+        resolvedVehicleId,
+        ref,
+        resolvedTruckType,
+        resolvedTruckPrice,
+        units,
+        days,
+        normalizedHub,
+        security_tier,
+        security_price,
+        total_amount,
+        notes || '',
+        'pending_review',
+      ]
     );
     // Create pending transaction
     await pool.query(

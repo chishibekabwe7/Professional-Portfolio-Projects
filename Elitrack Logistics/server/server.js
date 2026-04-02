@@ -19,6 +19,7 @@ app.use(express.json({ limit: '200kb' }));
 
 app.use('/api/auth', authRateLimit, require('./routes/auth'));
 app.use('/api/bookings', require('./routes/bookings'));
+app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/admin', adminRateLimit, require('./routes/admin'));
 
 app.get('/', (_, res) => {

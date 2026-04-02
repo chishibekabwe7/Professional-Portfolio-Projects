@@ -1,35 +1,28 @@
-import { faBroadcastTower, faClipboard, faLocationDot, faRocket, faTruck } from '@fortawesome/free-solid-svg-icons';
+import {
+  faBroadcastTower,
+  faCalendarCheck,
+  faClipboard,
+  faLocationDot,
+  faWarehouse,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api';
+import AddVehicle from '../components/AddVehicle';
+import FleetDashboard from '../components/FleetDashboard';
 import ResponsiveNavbar from '../components/ResponsiveNavbar';
+import VehicleCategory, { CATEGORY_BASE_RATE } from '../components/VehicleCategory';
+import VehicleTracking from '../components/VehicleTracking';
 import { useAuth } from '../context/AuthContext';
 
-// Fix leaflet marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
-
 const HUBS = {
-  kitwe: { coords: [-12.8167, 28.2000], label: 'Kitwe Hub (Copperbelt)' },
+  kitwe: { coords: [-12.8167, 28.2], label: 'Kitwe Hub (Copperbelt)' },
   ndola: { coords: [-12.9667, 28.6333], label: 'Ndola Industrial' },
-  solwezi: { coords: [-12.1833, 26.4000], label: 'Solwezi (Kansanshi/Sentinel)' },
-  chingola: { coords: [-12.5333, 27.8500], label: 'Chingola (KCM)' },
+  solwezi: { coords: [-12.1833, 26.4], label: 'Solwezi (Kansanshi/Sentinel)' },
+  chingola: { coords: [-12.5333, 27.85], label: 'Chingola (KCM)' },
 };
-const OTHER_HUB_VALUE = 'other';
 
-const TRUCKS = [
-  { value: 11500, label: 'Volvo FMX Dump Truck', price: 11500 },
-  { value: 15000, label: 'Heavy-Duty Low Loader', price: 15000 },
-  { value: 10000, label: 'Excavator CAT 320', price: 10000 },
-  { value: 8000, label: 'Bullion Van / Escort Vehicle', price: 8000 },
-];
+const OTHER_HUB_VALUE = 'other';
 
 const SEC_TIERS = [
   { value: 0, label: 'Standard (GPS Tracking Only)' },
@@ -49,45 +42,146 @@ const STATUS_LABELS = {
 };
 
 const DASHBOARD_TABS = [
-  { key: 'book', label: 'Book Convoy', icon: faTruck },
+  { key: 'fleet', label: 'My Fleet', icon: faWarehouse },
+  { key: 'book', label: 'Create Booking', icon: faCalendarCheck },
   { key: 'track', label: 'Live Tracking', icon: faBroadcastTower },
   { key: 'bookings', label: 'My Bookings', icon: faClipboard },
 ];
 
-function FlyTo({ center }) {
-  const map = useMap();
-  useEffect(() => { if (center) map.flyTo(center, 13); }, [center, map]);
-  return null;
-}
+const TRACKABLE_BOOKING_STATUSES = ['dispatched', 'in_transit'];
+
+const parseInteger = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const formatHubLabel = (hub) => {
+  const normalized = String(hub || '').toLowerCase();
+  return HUBS[normalized]?.label || hub || 'Unknown';
+};
+
+const resolveVehicleRate = (vehicle) => {
+  if (!vehicle) return 0;
+
+  const category = String(vehicle.category || 'other').toLowerCase();
+  return CATEGORY_BASE_RATE[category] || CATEGORY_BASE_RATE.other;
+};
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
-  const [tab, setTab] = useState('book');
-  const [form, setForm] = useState({ truck: 11500, units: 1, days: 1, hub: 'kitwe', customHub: '', sec: 0 });
-  const [total, setTotal] = useState(11500);
-  const [deployed, setDeployed] = useState(false);
-  const [positions, setPositions] = useState([]);
-  const [activeHub, setActiveHub] = useState(null);
-  const [speed, setSpeed] = useState(0);
-  const [bookings, setBookings] = useState([]);
+  const firstFleetLoadRef = useRef(true);
+
+  const [tab, setTab] = useState('fleet');
+  const [fleet, setFleet] = useState([]);
+  const [loadingFleet, setLoadingFleet] = useState(true);
   const [loadingBookings, setLoadingBookings] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState('');
+  const [savingVehicle, setSavingVehicle] = useState(false);
+  const [deletingVehicleId, setDeletingVehicleId] = useState(null);
+  const [submittingBooking, setSubmittingBooking] = useState(false);
   const [apiError, setApiError] = useState('');
-  const intervalRef = useRef(null);
-  const activeTrackedBooking = bookings.find((b) => ['dispatched', 'in_transit'].includes(b.status));
+  const [toast, setToast] = useState('');
+  const [bookings, setBookings] = useState([]);
 
-  useEffect(() => {
-    const t = parseInt(form.truck) * parseInt(form.units) * parseInt(form.days) + parseInt(form.sec);
-    setTotal(t);
-  }, [form]);
+  const [selectedCategory, setSelectedCategory] = useState('truck');
+  const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState(null);
+  const [trackingVehicle, setTrackingVehicle] = useState(null);
 
-  useEffect(() => {
-    if (tab === 'bookings' || tab === 'track') loadBookings();
-  }, [tab]);
+  const [bookingForm, setBookingForm] = useState({
+    vehicle_id: '',
+    units: 1,
+    days: 1,
+    hub: 'kitwe',
+    customHub: '',
+    sec: 0,
+  });
+
+  const selectedBookingVehicle = useMemo(
+    () => fleet.find((vehicle) => vehicle.id === Number(bookingForm.vehicle_id)) || null,
+    [fleet, bookingForm.vehicle_id]
+  );
+
+  const selectedTrackingVehicle = useMemo(
+    () => fleet.find((vehicle) => vehicle.id === Number(trackingVehicle?.id)) || trackingVehicle,
+    [fleet, trackingVehicle]
+  );
+
+  const bookingTotal = useMemo(() => {
+    const baseRate = resolveVehicleRate(selectedBookingVehicle);
+    const units = Math.max(1, parseInteger(bookingForm.units, 1));
+    const days = Math.max(1, parseInteger(bookingForm.days, 1));
+    const security = Math.max(0, parseInteger(bookingForm.sec, 0));
+    return baseRate * units * days + security;
+  }, [selectedBookingVehicle, bookingForm.units, bookingForm.days, bookingForm.sec]);
+
+  const activeTrackedBooking = useMemo(() => {
+    if (!selectedTrackingVehicle) return null;
+
+    return bookings.find(
+      (booking) =>
+        Number(booking.vehicle_id) === Number(selectedTrackingVehicle.id)
+        && TRACKABLE_BOOKING_STATUSES.includes(booking.status)
+    ) || null;
+  }, [bookings, selectedTrackingVehicle]);
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(''), 3500);
+  };
+
+  const applyFleetResult = (vehicles) => {
+    const normalizedFleet = Array.isArray(vehicles) ? vehicles : [];
+    setFleet(normalizedFleet);
+
+    if (firstFleetLoadRef.current) {
+      setTab('fleet');
+      firstFleetLoadRef.current = false;
+    }
+
+    if (!normalizedFleet.length) {
+      setBookingForm((previous) => ({ ...previous, vehicle_id: '' }));
+      setTrackingVehicle(null);
+      setEditingVehicle(null);
+      return;
+    }
+
+    setBookingForm((previous) => {
+      const hasSelectedVehicle = normalizedFleet.some((vehicle) => vehicle.id === Number(previous.vehicle_id));
+      return {
+        ...previous,
+        vehicle_id: hasSelectedVehicle ? previous.vehicle_id : String(normalizedFleet[0].id),
+      };
+    });
+
+    setTrackingVehicle((previous) => {
+      if (!previous) return normalizedFleet[0];
+      const matchedVehicle = normalizedFleet.find((vehicle) => vehicle.id === Number(previous.id));
+      return matchedVehicle || normalizedFleet[0];
+    });
+  };
+
+  const loadFleet = async (silent = false) => {
+    if (!silent) {
+      setLoadingFleet(true);
+    }
+
+    try {
+      setApiError('');
+      const { data } = await api.get('/vehicles');
+      applyFleetResult(data);
+    } catch (error) {
+      setFleet([]);
+      setApiError(error.userMessage || error.response?.data?.error || 'Could not load your fleet.');
+    } finally {
+      if (!silent) {
+        setLoadingFleet(false);
+      }
+    }
+  };
 
   const loadBookings = async () => {
     setLoadingBookings(true);
+
     try {
       setApiError('');
       const { data } = await api.get('/bookings/mine');
@@ -95,68 +189,124 @@ export default function Dashboard() {
     } catch (error) {
       setBookings([]);
       setApiError(error.userMessage || error.response?.data?.error || 'Could not load bookings right now.');
-    } finally { setLoadingBookings(false); }
+    } finally {
+      setLoadingBookings(false);
+    }
   };
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(''), 3500);
+  useEffect(() => {
+    loadFleet();
+  }, []);
+
+  useEffect(() => {
+    if (tab === 'bookings' || tab === 'track') {
+      loadBookings();
+    }
+  }, [tab]);
+
+  const saveVehicle = async (payload) => {
+    setSavingVehicle(true);
+
+    try {
+      const normalizedPayload = {
+        ...payload,
+        category: payload.category === 'other'
+          ? (payload.custom_category || 'other')
+          : payload.category,
+      };
+
+      if (editingVehicle) {
+        await api.put(`/vehicles/${editingVehicle.id}`, normalizedPayload);
+        showToast('Vehicle updated successfully.');
+      } else {
+        await api.post('/vehicles', normalizedPayload);
+        showToast('Vehicle registered in your fleet.');
+      }
+
+      setShowVehicleForm(false);
+      setEditingVehicle(null);
+      await loadFleet(true);
+    } catch (error) {
+      const message = error.userMessage || error.response?.data?.error || 'Vehicle save failed.';
+      setApiError(message);
+      showToast(message);
+      throw error;
+    } finally {
+      setSavingVehicle(false);
+    }
   };
 
-  const deploy = async () => {
-    const customHub = form.customHub.trim();
-    if (form.hub === OTHER_HUB_VALUE && !customHub) {
+  const removeVehicle = async (vehicle) => {
+    if (!window.confirm(`Remove ${vehicle.vehicle_name} from your fleet?`)) return;
+
+    setDeletingVehicleId(vehicle.id);
+    try {
+      await api.delete(`/vehicles/${vehicle.id}`);
+      showToast('Vehicle removed from fleet.');
+      await loadFleet(true);
+      await loadBookings();
+    } catch (error) {
+      const message = error.userMessage || error.response?.data?.error || 'Failed to remove vehicle.';
+      setApiError(message);
+      showToast(message);
+    } finally {
+      setDeletingVehicleId(null);
+    }
+  };
+
+  const createBooking = async () => {
+    const customHub = bookingForm.customHub.trim();
+
+    if (!selectedBookingVehicle) {
+      showToast('Select a vehicle before creating a booking.');
+      setTab('fleet');
+      return;
+    }
+
+    if (bookingForm.hub === OTHER_HUB_VALUE && !customHub) {
       showToast('Please specify the exact location for manual entry.');
       return;
     }
 
-    setSubmitting(true);
+    setSubmittingBooking(true);
+
     try {
-      const truck = TRUCKS.find(t => t.value === parseInt(form.truck));
-      const sec = SEC_TIERS.find(s => s.value === parseInt(form.sec));
-      const selectedHubLabel = form.hub === OTHER_HUB_VALUE ? customHub : (HUBS[form.hub]?.label || form.hub);
+      const selectedSecurityTier = SEC_TIERS.find((tier) => tier.value === Number(bookingForm.sec)) || SEC_TIERS[0];
+      const selectedHubLabel = bookingForm.hub === OTHER_HUB_VALUE
+        ? customHub
+        : (HUBS[bookingForm.hub]?.label || bookingForm.hub);
+
       await api.post('/bookings', {
-        truck_type: truck.label,
-        truck_price_per_day: truck.price,
-        units: form.units,
-        days: form.days,
-        hub: form.hub,
+        vehicle_id: selectedBookingVehicle.id,
+        truck_type: `${selectedBookingVehicle.vehicle_name} (${selectedBookingVehicle.category})`,
+        truck_price_per_day: resolveVehicleRate(selectedBookingVehicle),
+        units: parseInteger(bookingForm.units, 1),
+        days: parseInteger(bookingForm.days, 1),
+        hub: bookingForm.hub,
         manual_location: customHub,
-        security_tier: sec.label,
-        security_price: sec.value,
-        total_amount: total,
+        security_tier: selectedSecurityTier.label,
+        security_price: selectedSecurityTier.value,
+        total_amount: bookingTotal,
       });
 
-      const hub = HUBS[form.hub]?.coords || HUBS.kitwe.coords;
-      setActiveHub(hub);
-      const pos = Array.from({ length: form.units }, (_, i) => ({
-        id: `TL-${101 + i}`,
-        lat: hub[0] + i * 0.006,
-        lng: hub[1] + i * 0.006,
-      }));
-      setPositions(pos);
-      setDeployed(true);
-
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      intervalRef.current = setInterval(() => {
-        setPositions(p => p.map(t => ({ ...t, lat: t.lat + (Math.random() - 0.5) * 0.001, lng: t.lng + (Math.random() - 0.5) * 0.001 })));
-        setSpeed(Math.floor(Math.random() * 20 + 45));
-      }, 4000);
-
-      showToast(`Convoy of ${form.units} deployed from ${selectedHubLabel}`);
+      setTrackingVehicle(selectedBookingVehicle);
+      showToast(`Booking created for ${selectedBookingVehicle.vehicle_name} from ${selectedHubLabel}.`);
       setTab('track');
-    } catch (e) {
-      const message = e.userMessage || e.response?.data?.error || 'Unknown error';
+      await loadBookings();
+    } catch (error) {
+      const message = error.userMessage || error.response?.data?.error || 'Unknown booking error.';
       setApiError(message);
-      showToast('Booking failed: ' + message);
-    } finally { setSubmitting(false); }
+      showToast(`Booking failed: ${message}`);
+    } finally {
+      setSubmittingBooking(false);
+    }
   };
 
   return (
     <div className="app-page">
       <ResponsiveNavbar
         brand="ELITRACK LOGISTICS"
-        subtitle="CLIENT PORTAL"
+        subtitle="CLIENT FLEET PORTAL"
         userLabel={user?.full_name || user?.email}
         tabs={DASHBOARD_TABS}
         activeTab={tab}
@@ -166,172 +316,296 @@ export default function Dashboard() {
 
       <main className="dashboard-main">
         <div className="dashboard-shell">
-        {apiError && (
-          <div style={{ marginBottom: 16, background: 'var(--danger-surface)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', borderRadius: 10, padding: 12, fontSize: 12 }}>
-            Connection issue: {apiError}
-          </div>
-        )}
-
-        {/* Book Tab */}
-        {tab === 'book' && (
-          <div className="fade-up">
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div className="section-label"><FontAwesomeIcon icon={faTruck} style={{color: 'var(--primary)', marginRight: 8}}/>Asset Selection</div>
-              <div className="form-group">
-                <label>Primary Vehicle Type</label>
-                <select value={form.truck} onChange={e => setForm(f => ({...f, truck: e.target.value}))}>
-                  {TRUCKS.map(t => <option key={t.value} value={t.value}>{t.label} (K{t.price.toLocaleString()}/day)</option>)}
-                </select>
-              </div>
-              <div className="responsive-split">
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Total Units</label>
-                  <input type="number" min="1" max="10" value={form.units} onChange={e => setForm(f => ({...f, units: e.target.value}))} />
-                </div>
-                <div className="form-group" style={{ flex: 1 }}>
-                  <label>Contract Days</label>
-                  <input type="number" min="1" value={form.days} onChange={e => setForm(f => ({...f, days: e.target.value}))} />
-                </div>
-              </div>
+          {apiError && (
+            <div
+              style={{
+                marginBottom: 16,
+                background: 'var(--danger-surface)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger-text)',
+                borderRadius: 10,
+                padding: 12,
+                fontSize: 12,
+              }}
+            >
+              Connection issue: {apiError}
             </div>
+          )}
 
-            <div className="card" style={{ marginBottom: 16 }}>
-              <div className="section-label"><FontAwesomeIcon icon={faLocationDot} style={{color: 'var(--primary)', marginRight: 8}}/>Deployment Logistics</div>
-              <div className="form-group">
-                <label>Strategic Hub</label>
-                <select value={form.hub} onChange={e => setForm(f => ({...f, hub: e.target.value}))}>
-                  {Object.entries(HUBS).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                  <option value={OTHER_HUB_VALUE}>Other / Manual Entry</option>
-                </select>
-              </div>
-              {form.hub === OTHER_HUB_VALUE && (
-                <div className="form-group">
-                  <label>Specify Exact Location</label>
-                  <input
-                    type="text"
-                    value={form.customHub}
-                    onChange={e => setForm(f => ({ ...f, customHub: e.target.value }))}
-                    placeholder="e.g., specific mine site or coordinates"
-                  />
-                </div>
-              )}
-              <div className="form-group">
-                <label>Security Tier</label>
-                <select value={form.sec} onChange={e => setForm(f => ({...f, sec: e.target.value}))}>
-                  {SEC_TIERS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="pricing-summary">
-              <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>TOTAL LOGISTICS VALUE</p>
-              <p className="pricing-summary__amount">K{total.toLocaleString()}</p>
-              <button className="btn btn-gold btn-full" style={{ marginTop: 20 }} onClick={deploy} disabled={submitting}>
-                {submitting ? 'Deploying...' : <><FontAwesomeIcon icon={faRocket} style={{color: 'white', marginRight: 8}}/>Deploy Convoy & Link Cams</>}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Track Tab */}
-        {tab === 'track' && (
-          <div className="fade-up">
-            {!deployed ? (
-              <div className="empty-state">
-                <p style={{ fontSize: 40, marginBottom: 12 }}><FontAwesomeIcon icon={faBroadcastTower} style={{color: 'var(--primary)'}}/></p>
-                <p>No active convoy. Book and deploy first.</p>
-              </div>
-            ) : (
-              <>
-                <div className="card" style={{ marginBottom: 16 }}>
-                  <div className="section-label">🛰️ Live Telematics</div>
-                  {activeTrackedBooking && (
-                    <div style={{ marginBottom: 14, background: 'var(--surface-3)', border: '1px solid var(--primary)', borderRadius: 10, padding: 10, fontSize: 12 }}>
-                      <div style={{ marginBottom: 6 }}>
-                        <b>Dispatcher:</b> {activeTrackedBooking.dispatcher_name || 'Not assigned yet'}
-                      </div>
-                      <div style={{ marginBottom: 6 }}>
-                        <b>ETA:</b> {activeTrackedBooking.eta ? new Date(activeTrackedBooking.eta).toLocaleString() : 'Not provided yet'}
-                      </div>
-                      <div style={{ color: 'var(--text-muted)' }}>
-                        {activeTrackedBooking.status_notes || 'No status notes yet.'}
-                      </div>
-                    </div>
-                  )}
-                  <div className="telematics-meta">
-                    <span>Network: <b style={{ color: '#27ae60' }}>4G LTE</b></span>
-                    <span>Cam: <b style={{ color: '#27ae60' }}>24H Live</b></span>
-                    <span>Speed: <b style={{ color: '#d4af37' }}>{speed} km/h</b></span>
-                  </div>
-                  <div className="live-camera">
-                    <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(255,0,0,0.8)', color: 'white', padding: '3px 10px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>● LIVE</div>
-                    <img src="https://images.unsplash.com/photo-1519003722824-192d992a605b?auto=format&fit=crop&w=600&q=60" alt="cam" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
-                    <div style={{ position: 'absolute', bottom: 10, left: 10, color: 'white', fontSize: 11, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4 }}>
-                      {positions[0]?.id} — PRIMARY CAM
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="section-label">📡 Real-Time GPS</div>
-                  <div className="map-panel">
-                    <MapContainer center={activeHub} zoom={12} style={{ height: '100%', width: '100%' }}>
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      <FlyTo center={activeHub} />
-                      {positions.map(t => (
-                        <Marker key={t.id} position={[t.lat, t.lng]}>
-                          <Popup><b>{t.id}</b></Popup>
-                        </Marker>
-                      ))}
-                    </MapContainer>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Bookings Tab */}
-        {tab === 'bookings' && (
-          <div className="fade-up">
-            <div className="card">
-              <div className="section-label">📋 My Bookings</div>
-              {loadingBookings ? <div className="spinner" /> : bookings.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>No bookings yet.</p>
+          {tab === 'fleet' && (
+            <>
+              {loadingFleet ? (
+                <div className="card"><div className="spinner" /></div>
+              ) : showVehicleForm ? (
+                <AddVehicle
+                  initialCategory={selectedCategory}
+                  initialVehicle={editingVehicle}
+                  submitting={savingVehicle}
+                  onSubmit={saveVehicle}
+                  onCancel={() => {
+                    setShowVehicleForm(false);
+                    setEditingVehicle(null);
+                  }}
+                />
+              ) : fleet.length === 0 ? (
+                <VehicleCategory
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  onContinue={() => {
+                    setEditingVehicle(null);
+                    setShowVehicleForm(true);
+                  }}
+                />
               ) : (
-                <div className="table-wrap">
-                  <table>
-                    <thead><tr><th>Ref</th><th>Asset</th><th>Hub</th><th>Total</th><th>Status</th><th>Dispatcher</th><th>ETA</th><th>Status Notes</th></tr></thead>
-                    <tbody>
-                      {bookings.map(b => (
-                        <tr key={b.id}>
-                          <td className="mono" style={{ color: 'var(--warning)', fontSize: 11 }}>{b.booking_ref}</td>
-                          <td style={{ fontSize: 12 }}>{b.truck_type}</td>
-                           <td style={{ fontSize: 12 }}>{HUBS[b.hub]?.label || b.hub}</td>
-                          <td className="mono" style={{ fontWeight: 700 }}>K{parseInt(b.total_amount).toLocaleString()}</td>
-                          <td><span className={`badge badge-${b.status}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
-                          <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
-                            {b.dispatcher_name || '—'}
-                          </td>
-                          <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
-                            {b.eta ? new Date(b.eta).toLocaleString() : '—'}
-                          </td>
-                          <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 240 }}>
-                            {b.status_notes || 'No updates from dispatch yet.'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <FleetDashboard
+                  vehicles={fleet}
+                  loading={loadingFleet}
+                  deletingVehicleId={deletingVehicleId}
+                  onAddVehicle={() => {
+                    setEditingVehicle(null);
+                    setSelectedCategory('truck');
+                    setShowVehicleForm(true);
+                  }}
+                  onViewTracking={(vehicle) => {
+                    setTrackingVehicle(vehicle);
+                    setTab('track');
+                  }}
+                  onEditVehicle={(vehicle) => {
+                    setEditingVehicle(vehicle);
+                    setSelectedCategory(String(vehicle.category || 'other').toLowerCase());
+                    setShowVehicleForm(true);
+                  }}
+                  onRemoveVehicle={removeVehicle}
+                />
+              )}
+            </>
+          )}
+
+          {tab === 'book' && (
+            <div className="fade-up">
+              {fleet.length === 0 ? (
+                <div className="card empty-state">
+                  <p style={{ marginBottom: 14 }}>No fleet vehicles found. Register a vehicle to continue.</p>
+                  <button className="btn btn-gold" onClick={() => setTab('fleet')}>
+                    Go To My Fleet
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div className="section-label">Booking Setup</div>
+
+                    <div className="form-group">
+                      <label>Registered Vehicle</label>
+                      <select
+                        value={bookingForm.vehicle_id}
+                        onChange={(event) => setBookingForm((previous) => ({ ...previous, vehicle_id: event.target.value }))}
+                      >
+                        {fleet.map((vehicle) => (
+                          <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.vehicle_name} ({vehicle.category}) - {vehicle.plate_number}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="responsive-split">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Support Units</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={bookingForm.units}
+                          onChange={(event) => setBookingForm((previous) => ({ ...previous, units: event.target.value }))}
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Contract Days</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={bookingForm.days}
+                          onChange={(event) => setBookingForm((previous) => ({ ...previous, days: event.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div className="section-label">
+                      <FontAwesomeIcon icon={faLocationDot} style={{ marginRight: 8 }} />
+                      Deployment Logistics
+                    </div>
+
+                    <div className="form-group">
+                      <label>Strategic Hub</label>
+                      <select
+                        value={bookingForm.hub}
+                        onChange={(event) => setBookingForm((previous) => ({ ...previous, hub: event.target.value }))}
+                      >
+                        {Object.entries(HUBS).map(([hubKey, hub]) => (
+                          <option key={hubKey} value={hubKey}>{hub.label}</option>
+                        ))}
+                        <option value={OTHER_HUB_VALUE}>Other / Manual Entry</option>
+                      </select>
+                    </div>
+
+                    {bookingForm.hub === OTHER_HUB_VALUE && (
+                      <div className="form-group">
+                        <label>Specify Exact Location</label>
+                        <input
+                          type="text"
+                          value={bookingForm.customHub}
+                          onChange={(event) => setBookingForm((previous) => ({ ...previous, customHub: event.target.value }))}
+                          placeholder="e.g. specific mine site or coordinates"
+                        />
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label>Security Tier</label>
+                      <select
+                        value={bookingForm.sec}
+                        onChange={(event) => setBookingForm((previous) => ({ ...previous, sec: event.target.value }))}
+                      >
+                        {SEC_TIERS.map((tier) => (
+                          <option key={tier.value} value={tier.value}>{tier.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pricing-summary">
+                    <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>
+                      TOTAL LOGISTICS VALUE
+                    </p>
+                    <p className="pricing-summary__amount">K{bookingTotal.toLocaleString()}</p>
+                    <button
+                      className="btn btn-gold btn-full"
+                      style={{ marginTop: 20 }}
+                      onClick={createBooking}
+                      disabled={submittingBooking}
+                    >
+                      {submittingBooking ? 'Creating Booking...' : 'Create Booking'}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
-          </div>
-        )}
+          )}
+
+          {tab === 'track' && (
+            <div className="fade-up">
+              {fleet.length === 0 ? (
+                <div className="card empty-state">
+                  <p style={{ marginBottom: 14 }}>No fleet vehicles available for tracking.</p>
+                  <button className="btn btn-gold" onClick={() => setTab('fleet')}>Open My Fleet</button>
+                </div>
+              ) : (
+                <>
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div className="section-label">Select Vehicle To Track</div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Vehicle</label>
+                      <select
+                        value={selectedTrackingVehicle?.id || ''}
+                        onChange={(event) => {
+                          const nextVehicle = fleet.find((vehicle) => vehicle.id === Number(event.target.value)) || null;
+                          setTrackingVehicle(nextVehicle);
+                        }}
+                      >
+                        {fleet.map((vehicle) => (
+                          <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.vehicle_name} ({vehicle.plate_number})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedTrackingVehicle && !selectedTrackingVehicle.tracking_enabled ? (
+                    <div className="card empty-state">
+                      <p style={{ marginBottom: 14 }}>
+                        Tracking is disabled for {selectedTrackingVehicle.vehicle_name}. Enable tracking in My Fleet.
+                      </p>
+                      <button className="btn btn-dark" onClick={() => setTab('fleet')}>Back To Fleet</button>
+                    </div>
+                  ) : selectedTrackingVehicle ? (
+                    <VehicleTracking
+                      vehicle={selectedTrackingVehicle}
+                      lastBookedHub={activeTrackedBooking?.hub}
+                      bookingMeta={activeTrackedBooking}
+                    />
+                  ) : null}
+                </>
+              )}
+            </div>
+          )}
+
+          {tab === 'bookings' && (
+            <div className="fade-up">
+              <div className="card">
+                <div className="section-label">My Bookings</div>
+                {loadingBookings ? (
+                  <div className="spinner" />
+                ) : bookings.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>
+                    No bookings yet.
+                  </p>
+                ) : (
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Ref</th>
+                          <th>Vehicle</th>
+                          <th>Hub</th>
+                          <th>Total</th>
+                          <th>Status</th>
+                          <th>Dispatcher</th>
+                          <th>ETA</th>
+                          <th>Status Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.map((booking) => (
+                          <tr key={booking.id}>
+                            <td className="mono" style={{ color: 'var(--warning)', fontSize: 11 }}>
+                              {booking.booking_ref}
+                            </td>
+                            <td style={{ fontSize: 12 }}>{booking.truck_type}</td>
+                            <td style={{ fontSize: 12 }}>{formatHubLabel(booking.hub)}</td>
+                            <td className="mono" style={{ fontWeight: 700 }}>
+                              K{parseInteger(booking.total_amount).toLocaleString()}
+                            </td>
+                            <td>
+                              <span className={`badge badge-${booking.status}`}>
+                                {STATUS_LABELS[booking.status] || booking.status}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
+                              {booking.dispatcher_name || '-'}
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
+                              {booking.eta ? new Date(booking.eta).toLocaleString() : '-'}
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 240 }}>
+                              {booking.status_notes || 'No updates from dispatch yet.'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Toast */}
       {toast && (
         <div className="app-toast">
           {toast}

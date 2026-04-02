@@ -30,13 +30,30 @@ const validateGoogleAuth = (req, res, next) => {
 
 const validateBookingCreate = (req, res, next) => {
   const {
-    truck_type, truck_price_per_day, units, days, hub, manual_location,
+    vehicle_id, truck_type, truck_price_per_day, units, days, hub, manual_location,
     security_tier, security_price, total_amount,
   } = req.body;
-  if (!truck_type || !hub || !security_tier) return res.status(400).json({ error: 'Missing required booking fields.' });
-  if ([truck_price_per_day, units, days, security_price, total_amount].some((v) => Number.isNaN(Number(v)))) {
+
+  if (!hub || !security_tier) {
+    return res.status(400).json({ error: 'Missing required booking fields.' });
+  }
+
+  if (!vehicle_id && !truck_type) {
+    return res.status(400).json({ error: 'vehicle_id is required for fleet bookings.' });
+  }
+
+  if ([units, days, security_price, total_amount].some((v) => Number.isNaN(Number(v)))) {
     return res.status(400).json({ error: 'Booking numeric fields must be valid numbers.' });
   }
+
+  if (typeof truck_price_per_day !== 'undefined' && Number.isNaN(Number(truck_price_per_day))) {
+    return res.status(400).json({ error: 'truck_price_per_day must be a valid number when provided.' });
+  }
+
+  if (vehicle_id && (!Number.isInteger(Number(vehicle_id)) || Number(vehicle_id) <= 0)) {
+    return res.status(400).json({ error: 'vehicle_id must be a positive integer.' });
+  }
+
   if (Number(units) < 1 || Number(days) < 1) return res.status(400).json({ error: 'units and days must be >= 1.' });
   if (String(hub).toLowerCase() === 'other' && !String(manual_location || '').trim()) {
     return res.status(400).json({ error: 'manual_location is required when hub is Other.' });

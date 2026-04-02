@@ -77,6 +77,72 @@ const applySchemaMigrations = async (conn, dbName) => {
   }
 };
 
+const ensureVehiclesSchema = async (conn, dbName) => {
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vehicles (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      user_id INT NOT NULL,
+      category VARCHAR(60) NOT NULL DEFAULT 'other',
+      vehicle_name VARCHAR(120) NOT NULL,
+      plate_number VARCHAR(30) NOT NULL,
+      tracking_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_user_plate (user_id, plate_number),
+      INDEX idx_vehicles_user_id (user_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  const [vehicleColumn] = await conn.query(
+    `SELECT COLUMN_NAME
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = 'bookings'
+       AND COLUMN_NAME = 'vehicle_id'
+     LIMIT 1`,
+    [dbName]
+  );
+
+  if (!vehicleColumn.length) {
+    await conn.query('ALTER TABLE bookings ADD COLUMN vehicle_id INT NULL AFTER user_id');
+  }
+
+  const [vehicleIndex] = await conn.query(
+    `SELECT INDEX_NAME
+     FROM information_schema.STATISTICS
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = 'bookings'
+       AND INDEX_NAME = 'idx_bookings_vehicle_id'
+     LIMIT 1`,
+    [dbName]
+  );
+
+  if (!vehicleIndex.length) {
+    await conn.query('ALTER TABLE bookings ADD INDEX idx_bookings_vehicle_id (vehicle_id)');
+  }
+
+  const [vehicleFk] = await conn.query(
+    `SELECT CONSTRAINT_NAME
+     FROM information_schema.KEY_COLUMN_USAGE
+     WHERE TABLE_SCHEMA = ?
+       AND TABLE_NAME = 'bookings'
+       AND COLUMN_NAME = 'vehicle_id'
+       AND REFERENCED_TABLE_NAME = 'vehicles'
+     LIMIT 1`,
+    [dbName]
+  );
+
+  if (!vehicleFk.length) {
+    await conn.query(`
+      ALTER TABLE bookings
+      ADD CONSTRAINT fk_bookings_vehicle
+      FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)
+      ON DELETE SET NULL
+      ON UPDATE CASCADE
+    `);
+  }
+};
+
 const ensureUsersAuthSchema = async (conn, dbName) => {
   const hasColumn = async (columnName) => {
     const [columns] = await conn.query(
@@ -173,9 +239,25 @@ const initDB = async () => {
     `);
 
     await conn.query(`
+      CREATE TABLE IF NOT EXISTS vehicles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        category VARCHAR(60) NOT NULL DEFAULT 'other',
+        vehicle_name VARCHAR(120) NOT NULL,
+        plate_number VARCHAR(30) NOT NULL,
+        tracking_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_user_plate (user_id, plate_number),
+        INDEX idx_vehicles_user_id (user_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    await conn.query(`
       CREATE TABLE IF NOT EXISTS bookings (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
+        vehicle_id INT NULL,
         booking_ref VARCHAR(20) UNIQUE NOT NULL,
         truck_type VARCHAR(100) NOT NULL,
         truck_price_per_day INT NOT NULL,
@@ -192,7 +274,8 @@ const initDB = async () => {
         status_notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL ON UPDATE CASCADE
       )
     `);
 
@@ -287,6 +370,7 @@ const initDB = async () => {
 
     await ensureUsersAuthSchema(conn, dbName);
     await applySchemaMigrations(conn, dbName);
+    await ensureVehiclesSchema(conn, dbName);
     await ensureDefaultSuperAdmin(conn);
 
     console.log('✅ Database initialized');

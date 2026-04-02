@@ -746,6 +746,221 @@ tr:hover td {
   margin-bottom: 20px;
 }
 
+/* Fleet modules */
+.fleet-category-shell {
+  border-color: var(--primary);
+}
+
+.fleet-category-copy {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.fleet-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.75rem;
+}
+
+.fleet-category-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fleet-category-card:hover {
+  border-color: var(--primary);
+}
+
+.fleet-category-card.is-selected {
+  border-color: var(--primary);
+  background: rgba(48, 189, 236, 0.09);
+}
+
+.fleet-category-icon {
+  font-size: 1.15rem;
+  color: var(--primary);
+}
+
+.fleet-category-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.fleet-category-blurb {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.fleet-inline-error {
+  background: var(--danger-surface);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.85rem;
+}
+
+.fleet-toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  font-size: 0.87rem;
+  color: var(--text-muted);
+}
+
+.fleet-toggle-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.fleet-form-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.fleet-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.fleet-copy-muted {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.9rem;
+}
+
+.fleet-vehicle-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.fleet-vehicle-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.fleet-vehicle-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-3);
+  color: var(--primary);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.fleet-vehicle-name {
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.fleet-vehicle-sub {
+  color: var(--text-muted);
+  font-size: 0.77rem;
+}
+
+.fleet-card-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.tracking-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+
+.tracking-meta-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: var(--surface-3);
+}
+
+.tracking-meta-item span {
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+
+.tracking-meta-item p {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin: 0.3rem 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tracking-meta-item strong {
+  font-size: 0.9rem;
+}
+
+.tracking-booking-note {
+  margin-top: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-3);
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.tracking-map-panel {
+  height: clamp(250px, 48vw, 360px);
+}
+
+.tracking-live-camera {
+  min-height: 220px;
+}
+
+.tracking-live-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.82;
+}
+
+.tracking-live-overlay {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  background: rgba(220, 38, 38, 0.9);
+  color: #ffffff;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.24rem 0.58rem;
+}
+
 /* App shell utility UI */
 .offline-banner {
   position: sticky;
@@ -859,6 +1074,19 @@ tr:hover td {
     align-items: flex-start;
   }
 
+  .fleet-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .fleet-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .fleet-header-row {
+    align-items: flex-start;
+  }
+
   table {
     min-width: 38rem;
   }
@@ -890,6 +1118,14 @@ tr:hover td {
 
   .section-head-row .btn {
     width: auto;
+  }
+
+  .fleet-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fleet-grid {
+    grid-template-columns: 1fr;
   }
 
   .theme-toggle {
