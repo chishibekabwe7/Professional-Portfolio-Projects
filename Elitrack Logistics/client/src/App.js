@@ -1,13 +1,14 @@
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import InstallButton from './components/InstallButton';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
-import AdminDashboard from './pages/AdminDashboard';
-import AuthPage from './pages/AuthPage';
-import Dashboard from './pages/Dashboard';
+
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 
@@ -50,34 +51,24 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           {(isOffline || apiUnavailable) && (
-            <div
-              style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 3000,
-                background: 'var(--danger-surface)',
-                color: 'var(--danger-text)',
-                borderBottom: '1px solid var(--danger-border)',
-                padding: '10px 16px',
-                fontSize: 12,
-                textAlign: 'center',
-              }}
-            >
+            <div className="offline-banner">
               {isOffline
                 ? 'You are offline. Some features may use cached data only.'
                 : apiMessage || 'Cannot reach API right now. Retrying automatically.'}
             </div>
           )}
-          <Routes>
-            <Route path="/" element={<AuthPage />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute><Dashboard /></ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-              <ProtectedRoute allowedRoles={['admin', 'super_admin']}><AdminDashboard /></ProtectedRoute>
-            } />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <Suspense fallback={<div className="route-fallback"><div className="spinner" /></div>}>
+            <Routes>
+              <Route path="/" element={<AuthPage />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute><Dashboard /></ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}><AdminDashboard /></ProtectedRoute>
+              } />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
           <InstallButton />
         </BrowserRouter>
       </AuthProvider>

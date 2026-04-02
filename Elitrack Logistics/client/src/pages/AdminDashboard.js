@@ -2,8 +2,16 @@ import { faBox, faChartBar, faHourglassEnd, faMoneyBill, faTruck, faUsers } from
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
 import api from '../api';
-import ThemeToggle from '../components/ThemeToggle';
+import ResponsiveNavbar from '../components/ResponsiveNavbar';
 import { useAuth } from '../context/AuthContext';
+
+const ADMIN_TABS = [
+  { key: 'overview', label: 'Overview', icon: faChartBar },
+  { key: 'bookings', label: 'Bookings', icon: faBox },
+  { key: 'transactions', label: 'Transactions', icon: faMoneyBill },
+  { key: 'users', label: 'Users', icon: faUsers },
+  { key: 'notifications', label: 'Notifications', icon: faTruck },
+];
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -206,37 +214,21 @@ export default function AdminDashboard() {
     }
   };
 
-  const TABS = [['overview','Overview'],['bookings','Bookings'],['transactions','Transactions'],['users','Users'],['notifications','Notifications']];
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
-      {/* Header */}
-      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '18px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontFamily: 'Roboto' }}>
-        <div>
-          <h1 style={{ color: 'var(--primary)', fontSize: 20, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 9, letterSpacing: 2 }}>ADMIN CONTROL CENTER</p>
-        </div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <ThemeToggle />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{user?.full_name || user?.email}</span>
-          <span style={{ background: 'var(--primary)', color: '#ffffff', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{(user?.role || 'admin').toUpperCase()}</span>
-          <button className="btn btn-dark btn-sm" onClick={logout}>Logout</button>
-        </div>
-      </header>
+    <div className="app-page">
+      <ResponsiveNavbar
+        brand="ELITRACK"
+        subtitle="ADMIN CONTROL CENTER"
+        userLabel={user?.full_name || user?.email}
+        roleLabel={(user?.role || 'admin').toUpperCase()}
+        tabs={ADMIN_TABS}
+        activeTab={tab}
+        onTabChange={setTab}
+        onLogout={logout}
+      />
 
-      {/* Tabs */}
-      <div style={{ background: 'var(--surface-2)', padding: '0 28px', display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', fontFamily: 'Roboto' }}>
-        {TABS.map(([k,v]) => (
-          <button key={k} onClick={() => setTab(k)} style={{
-            padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 12, fontFamily: 'Roboto', fontWeight: 700,
-            color: tab === k ? 'var(--primary)' : 'var(--text-muted)',
-            borderBottom: tab === k ? '2px solid var(--primary)' : '2px solid transparent', letterSpacing: 1
-          }}>{k === 'overview' ? <><FontAwesomeIcon icon={faChartBar} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'bookings' ? <><FontAwesomeIcon icon={faBox} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'transactions' ? <><FontAwesomeIcon icon={faMoneyBill} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'users' ? <><FontAwesomeIcon icon={faUsers} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : <><FontAwesomeIcon icon={faTruck} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</>}</button>
-        ))}
-      </div>
-
-      <div style={{ padding: '28px', maxWidth: 1100, margin: '0 auto' }}>
+      <main className="dashboard-main">
+        <div className="admin-shell">
         {apiError && (
           <div style={{ marginBottom: 16, background: 'var(--danger-surface)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', borderRadius: 10, padding: 12, fontSize: 12 }}>
             Connection issue: {apiError}
@@ -430,7 +422,7 @@ export default function AdminDashboard() {
         {/* Users */}
         {tab === 'users' && (
           <div className="fade-up">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div className="section-head-row">
               <h2 style={{ color: 'var(--primary)', fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto', margin: 0 }}>Registered Users</h2>
               {user?.role === 'super_admin' && (
                 <button
@@ -536,7 +528,8 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

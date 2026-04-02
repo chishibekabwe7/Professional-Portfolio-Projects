@@ -43,20 +43,7 @@ export default function InstallButton() {
     <button
       onClick={installApp}
       type="button"
-      style={{
-        position: 'fixed',
-        bottom: 20,
-        left: 20,
-        zIndex: 2000,
-        background: '#30BDEC',
-        color: '#ffffff',
-        border: 'none',
-        borderRadius: 10,
-        padding: '12px 16px',
-        fontWeight: 700,
-        cursor: 'pointer',
-        boxShadow: '0 8px 20px rgba(0,0,0,0.3)',
-      }}
+      className="install-btn"
     >
       Install App
     </button>

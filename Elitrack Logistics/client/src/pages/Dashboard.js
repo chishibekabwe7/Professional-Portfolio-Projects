@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef, useState } from 'react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import api from '../api';
-import ThemeToggle from '../components/ThemeToggle';
+import ResponsiveNavbar from '../components/ResponsiveNavbar';
 import { useAuth } from '../context/AuthContext';
 
 // Fix leaflet marker icons
@@ -47,6 +47,12 @@ const STATUS_LABELS = {
   pending: 'Pending Review',
   active: 'In Transit',
 };
+
+const DASHBOARD_TABS = [
+  { key: 'book', label: 'Book Convoy', icon: faTruck },
+  { key: 'track', label: 'Live Tracking', icon: faBroadcastTower },
+  { key: 'bookings', label: 'My Bookings', icon: faClipboard },
+];
 
 function FlyTo({ center }) {
   const map = useMap();
@@ -147,31 +153,19 @@ export default function Dashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--surface)', color: 'var(--text)' }}>
-      {/* Header */}
-      <header style={{ background: 'var(--surface)', borderBottom: '3px solid var(--primary)', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontFamily: 'Roboto' }}>
-        <div>
-          <h1 style={{ color: 'var(--primary)', fontSize: 22, fontWeight: 800, letterSpacing: 3, fontFamily: 'Roboto' }}>ELITRACK LOGISTICS</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2 }}>CLIENT PORTAL</p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <ThemeToggle />
-          <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{user?.full_name || user?.email}</span>
-          <button className="btn btn-dark btn-sm" onClick={logout}>Logout</button>
-        </div>
-      </header>
+    <div className="app-page">
+      <ResponsiveNavbar
+        brand="ELITRACK LOGISTICS"
+        subtitle="CLIENT PORTAL"
+        userLabel={user?.full_name || user?.email}
+        tabs={DASHBOARD_TABS}
+        activeTab={tab}
+        onTabChange={setTab}
+        onLogout={logout}
+      />
 
-      {/* Tabs */}
-      <div style={{ background: 'var(--surface)', padding: '0 24px', display: 'flex', gap: 4, fontFamily: 'Roboto' }}>
-        {[['book','Book Convoy'],['track','Live Tracking'],['bookings','My Bookings']].map(([k,v]) => (
-          <button key={k} onClick={() => setTab(k)} style={{
-            padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'Roboto', fontWeight: 700,
-            color: tab === k ? 'var(--primary)' : 'var(--text-muted)', borderBottom: tab === k ? '2px solid var(--primary)' : '2px solid transparent', letterSpacing: 1
-          }}>{k === 'book' ? <><FontAwesomeIcon icon={faTruck} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : k === 'track' ? <><FontAwesomeIcon icon={faBroadcastTower} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</> : <><FontAwesomeIcon icon={faClipboard} style={{color: 'var(--primary)', marginRight: 8}}/>{v}</>}</button>
-        ))}
-      </div>
-
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+      <main className="dashboard-main">
+        <div className="dashboard-shell">
         {apiError && (
           <div style={{ marginBottom: 16, background: 'var(--danger-surface)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', borderRadius: 10, padding: 12, fontSize: 12 }}>
             Connection issue: {apiError}
@@ -189,7 +183,7 @@ export default function Dashboard() {
                   {TRUCKS.map(t => <option key={t.value} value={t.value}>{t.label} (K{t.price.toLocaleString()}/day)</option>)}
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: 16 }}>
+              <div className="responsive-split">
                 <div className="form-group" style={{ flex: 1 }}>
                   <label>Total Units</label>
                   <input type="number" min="1" max="10" value={form.units} onChange={e => setForm(f => ({...f, units: e.target.value}))} />
@@ -229,9 +223,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={{ background: 'var(--surface-2)', borderRadius: 16, border: '1px solid var(--primary)', padding: '24px', textAlign: 'center', marginBottom: 16, fontFamily: 'Roboto' }}>
+            <div className="pricing-summary">
               <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>TOTAL LOGISTICS VALUE</p>
-              <p style={{ color: 'var(--primary)', fontSize: 36, fontWeight: 800 }}>K{total.toLocaleString()}</p>
+              <p className="pricing-summary__amount">K{total.toLocaleString()}</p>
               <button className="btn btn-gold btn-full" style={{ marginTop: 20 }} onClick={deploy} disabled={submitting}>
                 {submitting ? 'Deploying...' : <><FontAwesomeIcon icon={faRocket} style={{color: 'white', marginRight: 8}}/>Deploy Convoy & Link Cams</>}
               </button>
@@ -243,7 +237,7 @@ export default function Dashboard() {
         {tab === 'track' && (
           <div className="fade-up">
             {!deployed ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
+              <div className="empty-state">
                 <p style={{ fontSize: 40, marginBottom: 12 }}><FontAwesomeIcon icon={faBroadcastTower} style={{color: 'var(--primary)'}}/></p>
                 <p>No active convoy. Book and deploy first.</p>
               </div>
@@ -264,12 +258,12 @@ export default function Dashboard() {
                       </div>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 16 }}>
+                  <div className="telematics-meta">
                     <span>Network: <b style={{ color: '#27ae60' }}>4G LTE</b></span>
                     <span>Cam: <b style={{ color: '#27ae60' }}>24H Live</b></span>
                     <span>Speed: <b style={{ color: '#d4af37' }}>{speed} km/h</b></span>
                   </div>
-                  <div style={{ background: '#000', borderRadius: 8, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <div className="live-camera">
                     <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(255,0,0,0.8)', color: 'white', padding: '3px 10px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>● LIVE</div>
                     <img src="https://images.unsplash.com/photo-1519003722824-192d992a605b?auto=format&fit=crop&w=600&q=60" alt="cam" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.5 }} />
                     <div style={{ position: 'absolute', bottom: 10, left: 10, color: 'white', fontSize: 11, background: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: 4 }}>
@@ -280,7 +274,7 @@ export default function Dashboard() {
 
                 <div className="card">
                   <div className="section-label">📡 Real-Time GPS</div>
-                  <div style={{ height: 300, borderRadius: 10, overflow: 'hidden' }}>
+                  <div className="map-panel">
                     <MapContainer center={activeHub} zoom={12} style={{ height: '100%', width: '100%' }}>
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                       <FlyTo center={activeHub} />
@@ -334,11 +328,12 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      </main>
 
       {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 80, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-2)', color: 'var(--text)', padding: '14px 24px', borderRadius: 12, border: '1px solid var(--warning)', fontSize: 13, zIndex: 9999, whiteSpace: 'nowrap' }}>
+        <div className="app-toast">
           {toast}
         </div>
       )}
