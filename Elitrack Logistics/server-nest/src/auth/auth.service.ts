@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import bcrypt from 'bcrypt';
+import { Prisma } from '../generated/prisma/client';
+import { users_role } from '../generated/prisma/enums';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface RegisterRequest {
 	email?: string;
@@ -15,47 +19,195 @@ export interface LoginRequest {
 }
 
 export interface JwtTokenPayload {
-	sub: number;
+	id: number;
 	email: string;
 	role: 'super_admin' | 'admin' | 'user';
 }
 
+export interface AuthServiceResult {
+	statusCode: number;
+	body: unknown;
+}
+
 @Injectable()
 export class AuthService {
-	constructor(private readonly jwtService: JwtService) {}
+	constructor(
+		private readonly jwtService: JwtService,
+		private readonly prisma: PrismaService,
+	) {}
 
-	register(payload: RegisterRequest) {
-		return {
-			success: true,
-			message: 'Mock register route is working',
-			data: {
-				email: payload.email ?? 'mock.user@example.com',
-				full_name: payload.full_name ?? 'Mock User',
-				company: payload.company ?? 'Mock Company',
-			},
-		};
+	async register(payload: RegisterRequest): Promise<AuthServiceResult> {
+		const registerValidationError = this.validateRegister(payload);
+		if (registerValidationError) {
+			return {
+				statusCode: 400,
+				body: { error: registerValidationError },
+			};
+		}
+
+		const email = String(payload.email);
+		const password = String(payload.password);
+
+		try {
+			const hashedPassword = await bcrypt.hash(password, 12);
+			await this.prisma.users.create({
+				data: {
+					email,
+					password: hashedPassword,
+					role: users_role.user,
+					phone: payload.phone || null,
+					full_name: payload.full_name || '',
+					company: payload.company || '',
+				},
+			});
+
+			return {
+				statusCode: 200,
+				body: {
+					success: true,
+					message: 'Account created successfully. Please log in.',
+				},
+			};
+		} catch (error: unknown) {
+			if (
+				error instanceof Prisma.PrismaClientKnownRequestError &&
+				error.code === 'P2002'
+			) {
+				return {
+					statusCode: 409,
+					body: { error: 'Email already registered' },
+				};
+			}
+
+			return {
+				statusCode: 500,
+				body: { error: this.getErrorMessage(error) },
+			};
+		}
 	}
 
-	async login(payload: LoginRequest) {
-		const user = {
-			id: 1,
-			email: payload.email ?? 'mock.user@example.com',
-			role: 'user' as const,
-		};
+	async login(payload: LoginRequest): Promise<AuthServiceResult> {
+		const loginValidationError = this.validateLogin(payload);
+		if (loginValidationError) {
+			return {
+				statusCode: 400,
+				body: { error: loginValidationError },
+			};
+		}
 
-		const tokenPayload: JwtTokenPayload = {
-			sub: user.id,
-			email: user.email,
-			role: user.role,
-		};
+		const email = String(payload.email);
+		const password = String(payload.password);
 
-		const token = await this.jwtService.signAsync(tokenPayload);
+		try {
+			const user = await this.prisma.users.findUnique({
+				where: { email },
+				select: {
+					id: true,
+					email: true,
+					password: true,
+					role: true,
+					full_name: true,
+					company: true,
+				},
+			});
 
-		return {
-			success: true,
-			message: 'Mock login route is working',
-			token,
-			user,
-		};
+			if (!user) {
+				return {
+					statusCode: 401,
+					body: { error: 'Invalid credentials' },
+				};
+			}
+
+			const passwordMatches = await bcrypt.compare(password, user.password);
+			if (!passwordMatches) {
+				return {
+					statusCode: 401,
+					body: { error: 'Invalid credentials' },
+				};
+			}
+
+			const tokenPayload: JwtTokenPayload = {
+				id: user.id,
+				email: user.email,
+				role: user.role,
+			};
+
+			const token = await this.jwtService.signAsync(tokenPayload);
+
+			return {
+				statusCode: 200,
+				body: {
+					token,
+					user: {
+						id: user.id,
+						email: user.email,
+						role: user.role,
+						full_name: user.full_name,
+						company: user.company,
+					},
+				},
+			};
+		} catch (error: unknown) {
+			return {
+				statusCode: 500,
+				body: { error: this.getErrorMessage(error) },
+			};
+		}
+	}
+
+	private validateRegister(payload: RegisterRequest): string | null {
+		const { email, phone, password, full_name, company } = payload;
+
+		if (!email || !password) {
+			return 'email and password are required.';
+		}
+
+		if (!this.isEmail(email)) {
+			return 'Invalid email format.';
+		}
+
+		if (String(password).length < 8) {
+			return 'Password must be at least 8 characters.';
+		}
+
+		if (phone && (String(phone).length < 7 || String(phone).length > 20)) {
+			return 'Invalid phone number length.';
+		}
+
+		if (full_name && String(full_name).length > 120) {
+			return 'full_name too long.';
+		}
+
+		if (company && String(company).length > 120) {
+			return 'company too long.';
+		}
+
+		return null;
+	}
+
+	private validateLogin(payload: LoginRequest): string | null {
+		const { email, password } = payload;
+
+		if (!email || !password) {
+			return 'email and password are required.';
+		}
+
+		if (!this.isEmail(email)) {
+			return 'Invalid email format.';
+		}
+
+		return null;
+	}
+
+	private isEmail(value: string): boolean {
+		return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || ''));
+	}
+
+	private getErrorMessage(error: unknown): string {
+		if (error instanceof Error) {
+			return error.message;
+		}
+
+		return 'Unknown server error';
 	}
 }

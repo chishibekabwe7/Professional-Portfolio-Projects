@@ -16,11 +16,15 @@
     "@nestjs/core": "^11.1.18",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.18",
+    "@prisma/adapter-mariadb": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "bcrypt": "^6.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.6",
     "@types/node": "^25.5.2",
     "prisma": "^7.7.0",
     "ts-node": "^10.9.2",

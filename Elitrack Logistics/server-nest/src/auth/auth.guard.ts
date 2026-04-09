@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { JwtTokenPayload } from './auth.service';
+import { getJwtConfig } from './jwt.config';
 
 interface RequestWithAuth {
   headers: Record<string, string | string[] | undefined>;
@@ -14,6 +15,8 @@ interface RequestWithAuth {
 
 @Injectable()
 export class AuthGuard implements CanActivate {
+  private readonly jwtConfig = getJwtConfig();
+
   constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -26,7 +29,9 @@ export class AuthGuard implements CanActivate {
 
     try {
       request.user = await this.jwtService.verifyAsync<JwtTokenPayload>(token, {
-        secret: process.env.JWT_SECRET || 'dev-jwt-secret',
+        secret: this.jwtConfig.secret,
+        issuer: this.jwtConfig.issuer,
+        audience: this.jwtConfig.audience,
       });
       return true;
     } catch {
