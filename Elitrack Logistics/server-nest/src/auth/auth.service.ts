@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 export interface RegisterRequest {
 	email?: string;
@@ -13,8 +14,16 @@ export interface LoginRequest {
 	password?: string;
 }
 
+export interface JwtTokenPayload {
+	sub: number;
+	email: string;
+	role: 'super_admin' | 'admin' | 'user';
+}
+
 @Injectable()
 export class AuthService {
+	constructor(private readonly jwtService: JwtService) {}
+
 	register(payload: RegisterRequest) {
 		return {
 			success: true,
@@ -27,16 +36,26 @@ export class AuthService {
 		};
 	}
 
-	login(payload: LoginRequest) {
+	async login(payload: LoginRequest) {
+		const user = {
+			id: 1,
+			email: payload.email ?? 'mock.user@example.com',
+			role: 'user' as const,
+		};
+
+		const tokenPayload: JwtTokenPayload = {
+			sub: user.id,
+			email: user.email,
+			role: user.role,
+		};
+
+		const token = await this.jwtService.signAsync(tokenPayload);
+
 		return {
 			success: true,
 			message: 'Mock login route is working',
-			token: 'mock-jwt-token',
-			user: {
-				id: 1,
-				email: payload.email ?? 'mock.user@example.com',
-				role: 'user',
-			},
+			token,
+			user,
 		};
 	}
 }
