@@ -36,6 +36,7 @@ model audit_logs {
 model bookings {
   id                  Int                   @id @default(autoincrement())
   user_id             Int
+  vehicle_id          Int?
   booking_ref         String                @unique(map: "booking_ref") @db.VarChar(20)
   truck_type          String                @db.VarChar(100)
   truck_price_per_day Int
@@ -53,11 +54,28 @@ model bookings {
   created_at          DateTime?             @default(now()) @db.Timestamp(0)
   updated_at          DateTime?             @default(now()) @db.Timestamp(0)
   users               users                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_1")
+  vehicles            vehicles?             @relation(fields: [vehicle_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   fleet_telemetry     fleet_telemetry[]
   notification_events notification_events[]
   transactions        transactions[]
 
   @@index([user_id], map: "user_id")
+  @@index([vehicle_id], map: "idx_bookings_vehicle_id")
+}
+
+model vehicles {
+  id               Int        @id @default(autoincrement())
+  user_id          Int
+  category         String     @default("other") @db.VarChar(60)
+  vehicle_name     String     @db.VarChar(120)
+  plate_number     String     @db.VarChar(30)
+  tracking_enabled Boolean    @default(true)
+  created_at       DateTime?  @default(now()) @db.Timestamp(0)
+  users            users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  bookings         bookings[]
+
+  @@unique([user_id, plate_number], map: "uniq_user_plate")
+  @@index([user_id], map: "idx_vehicles_user_id")
 }
 
 model fleet_telemetry {
@@ -136,6 +154,7 @@ model users {
   admin_audit_logs      admin_audit_logs[]
   audit_logs            audit_logs[]
   bookings              bookings[]
+  vehicles              vehicles[]
   notification_events   notification_events[]
   password_reset_tokens password_reset_tokens[]
   transactions          transactions[]
