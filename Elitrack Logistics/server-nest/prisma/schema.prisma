@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model admin_audit_logs {
+  id            Int       @id @default(autoincrement())
+  admin_user_id Int
+  action        String    @db.VarChar(120)
+  entity_type   String?   @db.VarChar(80)
+  entity_id     Int?
+  details_json  Json?
+  ip_address    String?   @db.VarChar(80)
+  user_agent    String?   @db.VarChar(255)
+  created_at    DateTime? @default(now()) @db.Timestamp(0)
+  users         users     @relation(fields: [admin_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "admin_audit_logs_ibfk_1")
+
+  @@index([admin_user_id], map: "admin_user_id")
+}
+
+model audit_logs {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  action     String    @db.VarChar(120)
+  target_id  Int?
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "audit_logs_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model bookings {
+  id                  Int                   @id @default(autoincrement())
+  user_id             Int
+  booking_ref         String                @unique(map: "booking_ref") @db.VarChar(20)
+  truck_type          String                @db.VarChar(100)
+  truck_price_per_day Int
+  units               Int                   @default(1)
+  days                Int                   @default(1)
+  hub                 String                @db.VarChar(255)
+  security_tier       String                @db.VarChar(100)
+  security_price      Int                   @default(0)
+  total_amount        Int
+  status              bookings_status?      @default(pending_review)
+  notes               String?               @db.Text
+  dispatcher_name     String?               @db.VarChar(255)
+  eta                 DateTime?             @db.DateTime(0)
+  status_notes        String?               @db.Text
+  created_at          DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at          DateTime?             @default(now()) @db.Timestamp(0)
+  users               users                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_1")
+  fleet_telemetry     fleet_telemetry[]
+  notification_events notification_events[]
+  transactions        transactions[]
+
+  @@index([user_id], map: "user_id")
+}
+
+model fleet_telemetry {
+  id          Int       @id @default(autoincrement())
+  booking_id  Int
+  truck_id    String    @db.VarChar(20)
+  latitude    Decimal?  @db.Decimal(10, 7)
+  longitude   Decimal?  @db.Decimal(10, 7)
+  speed       Int?      @default(0)
+  status      String?   @default("TRACKING") @db.VarChar(50)
+  recorded_at DateTime? @default(now()) @db.Timestamp(0)
+  bookings    bookings  @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fleet_telemetry_ibfk_1")
+
+  @@index([booking_id], map: "booking_id")
+}
+
+model notification_events {
+  id              Int                         @id @default(autoincrement())
+  booking_id      Int?
+  user_id         Int?
+  channel         notification_events_channel
+  event_type      String                      @db.VarChar(64)
+  recipient       String?                     @db.VarChar(255)
+  status          notification_events_status
+  provider        String?                     @db.VarChar(50)
+  message_subject String?                     @db.VarChar(255)
+  message_text    String?                     @db.Text
+  error_text      String?                     @db.Text
+  created_at      DateTime?                   @default(now()) @db.Timestamp(0)
+  bookings        bookings?                   @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_events_ibfk_1")
+  users           users?                      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_events_ibfk_2")
+
+  @@index([booking_id], map: "booking_id")
+  @@index([user_id], map: "user_id")
+}
+
+model password_reset_tokens {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  token      String    @unique(map: "token") @db.VarChar(255)
+  expires_at DateTime  @db.DateTime(0)
+  used       Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(0)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "password_reset_tokens_ibfk_1")
+
+  @@index([token], map: "idx_token")
+  @@index([user_id, expires_at], map: "idx_user_expires")
+}
+
+model transactions {
+  id             Int                  @id @default(autoincrement())
+  booking_id     Int
+  user_id        Int
+  amount         Int
+  currency       String?              @default("ZMW") @db.VarChar(10)
+  payment_method String?              @default("pending") @db.VarChar(50)
+  status         transactions_status? @default(pending)
+  reference      String?              @db.VarChar(100)
+  created_at     DateTime?            @default(now()) @db.Timestamp(0)
+  bookings       bookings             @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_ibfk_1")
+  users          users                @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "transactions_ibfk_2")
+
+  @@index([booking_id], map: "booking_id")
+  @@index([user_id], map: "user_id")
+}
+
+model users {
+  id                    Int                     @id @default(autoincrement())
+  email                 String                  @unique(map: "email") @db.VarChar(255)
+  password              String                  @db.VarChar(255)
+  role                  users_role              @default(user)
+  phone                 String?                 @db.VarChar(50)
+  full_name             String?                 @db.VarChar(255)
+  company               String?                 @db.VarChar(255)
+  created_at            DateTime?               @default(now()) @db.Timestamp(0)
+  admin_audit_logs      admin_audit_logs[]
+  audit_logs            audit_logs[]
+  bookings              bookings[]
+  notification_events   notification_events[]
+  password_reset_tokens password_reset_tokens[]
+  transactions          transactions[]
+}
+
+enum users_role {
+  super_admin
+  admin
+  user
+}
+
+enum notification_events_channel {
+  email
+  sms
+  whatsapp
+}
+
+enum notification_events_status {
+  sent
+  failed
+  skipped
+}
+
+enum transactions_status {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum bookings_status {
+  pending_review
+  approved
+  dispatched
+  in_transit
+  completed
+}
