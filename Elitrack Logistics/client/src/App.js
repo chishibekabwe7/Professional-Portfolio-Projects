@@ -4,7 +4,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import InstallButton from './components/InstallButton';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
-import './index.css';
 
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
