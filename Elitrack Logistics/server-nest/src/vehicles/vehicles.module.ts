@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from '../auth/auth.guard';
 import { getJwtConfig } from '../auth/jwt.config';
+import { PrismaService } from '../prisma/prisma.service';
 import { VehiclesController } from './vehicles.controller';
 import { VehiclesService } from './vehicles.service';
 
@@ -19,6 +20,6 @@ const jwtConfig = getJwtConfig();
     }),
   ],
   controllers: [VehiclesController],
-  providers: [VehiclesService, AuthGuard],
+  providers: [VehiclesService, PrismaService, AuthGuard],
 })
 export class VehiclesModule {}

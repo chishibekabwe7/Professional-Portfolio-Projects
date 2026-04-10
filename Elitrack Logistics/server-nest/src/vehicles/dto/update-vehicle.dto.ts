@@ -1,6 +1,3 @@
-export class UpdateVehicleDto {
-	category?: string;
-	vehicleName?: string;
-	plateNumber?: string;
-	trackingEnabled?: boolean;
-}
+import { CreateVehicleDto } from './create-vehicle.dto';
+
+export class UpdateVehicleDto extends CreateVehicleDto {}
