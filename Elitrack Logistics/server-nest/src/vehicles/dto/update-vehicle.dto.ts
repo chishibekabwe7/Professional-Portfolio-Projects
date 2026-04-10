@@ -1,3 +1,6 @@
-import { CreateVehicleDto } from './create-vehicle.dto';
-
-export interface UpdateVehicleDto extends CreateVehicleDto {}
+export class UpdateVehicleDto {
+	category?: string;
+	vehicleName?: string;
+	plateNumber?: string;
+	trackingEnabled?: boolean;
+}
