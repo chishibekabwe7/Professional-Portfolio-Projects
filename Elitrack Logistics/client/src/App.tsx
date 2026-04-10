@@ -9,25 +9,30 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+type ApiStatusEventDetail = {
+  message?: string;
+};
+
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
 console.log('[LOCK] Google Client ID loaded:', GOOGLE_CLIENT_ID ? '[CHECK] Loaded' : '[ERROR] Missing - Check .env file');
 
 export default function App() {
-  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
-  const [apiUnavailable, setApiUnavailable] = useState(false);
-  const [apiMessage, setApiMessage] = useState('');
+  const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const [apiUnavailable, setApiUnavailable] = useState<boolean>(false);
+  const [apiMessage, setApiMessage] = useState<string>('');
 
   useEffect(() => {
-    const onOnline = () => setIsOffline(false);
-    const onOffline = () => setIsOffline(true);
+    const onOnline = (): void => setIsOffline(false);
+    const onOffline = (): void => setIsOffline(true);
 
-    const onApiOffline = (event) => {
+    const onApiOffline = (event: Event): void => {
+      const apiEvent = event as CustomEvent<ApiStatusEventDetail>;
       setApiUnavailable(true);
-      setApiMessage(event?.detail?.message || 'Backend is currently unavailable. Showing cached/offline content when possible.');
+      setApiMessage(apiEvent?.detail?.message || 'Backend is currently unavailable. Showing cached/offline content when possible.');
     };
 
-    const onApiOnline = () => {
+    const onApiOnline = (): void => {
       setApiUnavailable(false);
       setApiMessage('');
     };
