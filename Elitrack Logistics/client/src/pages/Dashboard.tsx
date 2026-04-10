@@ -52,6 +52,20 @@ const DASHBOARD_TABS = [
 
 const TRACKABLE_BOOKING_STATUSES = ['dispatched', 'in_transit'];
 
+type BookingFormState = {
+  vehicle_id: string;
+  units: number | string;
+  days: number | string;
+  hub: string;
+  customHub: string;
+  sec: number | string;
+};
+
+type VehicleMutationPayload = Record<string, unknown> & {
+  category?: string;
+  custom_category?: string;
+};
+
 const parseInteger = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -102,7 +116,11 @@ export default function Dashboard() {
     enabled: shouldLoadBookings,
   });
 
-  const saveVehicleMutation = useMutation({
+  const saveVehicleMutation = useMutation<
+    'updated' | 'created',
+    Error,
+    { vehicleId?: number; payload: VehicleMutationPayload }
+  >({
     mutationFn: async ({ vehicleId, payload }) => {
       if (vehicleId) {
         await api.put(`/vehicles/${vehicleId}`, payload);
@@ -114,13 +132,13 @@ export default function Dashboard() {
     },
   });
 
-  const removeVehicleMutation = useMutation({
+  const removeVehicleMutation = useMutation<void, Error, { vehicleId: number }>({
     mutationFn: async ({ vehicleId }) => {
       await api.delete(`/vehicles/${vehicleId}`);
     },
   });
 
-  const createBookingMutation = useMutation({
+  const createBookingMutation = useMutation<void, Error, { payload: Record<string, unknown> }>({
     mutationFn: async ({ payload }) => {
       await api.post('/bookings', payload);
     },
@@ -142,7 +160,7 @@ export default function Dashboard() {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [trackingVehicle, setTrackingVehicle] = useState(null);
 
-  const [bookingForm, setBookingForm] = useState({
+  const [bookingForm, setBookingForm] = useState<BookingFormState>({
     vehicle_id: '',
     units: 1,
     days: 1,
@@ -340,6 +358,7 @@ export default function Dashboard() {
         brand="ELITRACK LOGISTICS"
         subtitle="CLIENT FLEET PORTAL"
         userLabel={user?.full_name || user?.email}
+        roleLabel={undefined}
         tabs={DASHBOARD_TABS}
         activeTab={tab}
         onTabChange={setTab}

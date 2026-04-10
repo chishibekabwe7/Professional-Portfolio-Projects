@@ -10,7 +10,7 @@ export default function ResponsiveNavbar({
   brand,
   subtitle,
   userLabel,
-  roleLabel,
+  roleLabel = '',
   tabs,
   activeTab,
   onTabChange,

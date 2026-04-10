@@ -44,6 +44,33 @@ const fetchAdminNotifications = async () => {
   return Array.isArray(data) ? data : [];
 };
 
+type WorkflowMutationPayload = {
+  status: string;
+  dispatcher_name: string;
+  eta: string | null;
+  status_notes: string;
+};
+
+type UpdateBookingStatusVariables = {
+  id: number;
+  payload: WorkflowMutationPayload;
+};
+
+type UpdatePaymentVariables = {
+  id: number;
+  status: string;
+};
+
+type AdminUser = {
+  id: number;
+  [key: string]: any;
+};
+
+type CreateAdminPayload = {
+  email: string;
+  password: string;
+};
+
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const queryClient = useQueryClient();
@@ -82,26 +109,26 @@ export default function AdminDashboard() {
     enabled: isNotificationsTab,
   });
 
-  const updateBookingStatusMutation = useMutation({
+  const updateBookingStatusMutation = useMutation<void, Error, UpdateBookingStatusVariables>({
     mutationFn: async ({ id, payload }) => {
       await api.patch(`/bookings/${id}/status`, payload);
     },
   });
 
-  const updatePaymentMutation = useMutation({
+  const updatePaymentMutation = useMutation<void, Error, UpdatePaymentVariables>({
     mutationFn: async ({ id, status }) => {
       await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
     },
   });
 
-  const removeUserMutation = useMutation({
+  const removeUserMutation = useMutation<AdminUser, Error, AdminUser>({
     mutationFn: async (targetUser) => {
       await api.delete(`/admin/users/${targetUser.id}`);
       return targetUser;
     },
   });
 
-  const createAdminMutation = useMutation({
+  const createAdminMutation = useMutation<CreateAdminPayload, Error, CreateAdminPayload>({
     mutationFn: async (payload) => {
       await api.post('/admin/create-admin', payload);
       return payload;

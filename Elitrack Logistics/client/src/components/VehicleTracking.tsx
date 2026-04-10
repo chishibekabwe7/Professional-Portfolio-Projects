@@ -12,21 +12,23 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 
 // Ensure map markers load correctly when Leaflet is bundled by React.
-delete L.Icon.Default.prototype._getIconUrl;
+delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-const HUB_COORDS = {
+type Coordinate = [number, number];
+
+const HUB_COORDS: Record<string, Coordinate> = {
   kitwe: [-12.8167, 28.2],
   ndola: [-12.9667, 28.6333],
   solwezi: [-12.1833, 26.4],
   chingola: [-12.5333, 27.85],
 };
 
-function FlyToPosition({ center }) {
+function FlyToPosition({ center }: { center: Coordinate | null }) {
   const map = useMap();
 
   useEffect(() => {
@@ -38,17 +40,17 @@ function FlyToPosition({ center }) {
   return null;
 }
 
-const seededOffset = (seed, maxDelta) => {
+const seededOffset = (seed: string, maxDelta: number): number => {
   const hash = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return ((hash % 100) / 100 - 0.5) * maxDelta;
 };
 
 export default function VehicleTracking({ vehicle, lastBookedHub, bookingMeta }) {
   const [speed, setSpeed] = useState(0);
-  const [route, setRoute] = useState([]);
-  const intervalRef = useRef(null);
+  const [route, setRoute] = useState<Coordinate[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const startCenter = useMemo(() => {
+  const startCenter = useMemo<Coordinate>(() => {
     const hubKey = String(lastBookedHub || '').toLowerCase();
     const hub = HUB_COORDS[hubKey];
 
@@ -56,10 +58,10 @@ export default function VehicleTracking({ vehicle, lastBookedHub, bookingMeta })
       return [
         hub[0] + seededOffset(String(vehicle.id), 0.02),
         hub[1] + seededOffset(String(vehicle.plate_number || vehicle.id), 0.02),
-      ];
+      ] as Coordinate;
     }
 
-    return [-12.95 + seededOffset(String(vehicle.id), 0.03), 28.1 + seededOffset(String(vehicle.vehicle_name || ''), 0.03)];
+    return [-12.95 + seededOffset(String(vehicle.id), 0.03), 28.1 + seededOffset(String(vehicle.vehicle_name || ''), 0.03)] as Coordinate;
   }, [lastBookedHub, vehicle.id, vehicle.plate_number, vehicle.vehicle_name]);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ export default function VehicleTracking({ vehicle, lastBookedHub, bookingMeta })
     intervalRef.current = setInterval(() => {
       setRoute((previous) => {
         const current = previous[previous.length - 1] || startCenter;
-        const nextPoint = [
+        const nextPoint: Coordinate = [
           current[0] + (Math.random() - 0.5) * 0.004,
           current[1] + (Math.random() - 0.5) * 0.004,
         ];
