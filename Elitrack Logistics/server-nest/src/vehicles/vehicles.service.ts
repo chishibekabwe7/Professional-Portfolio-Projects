@@ -142,7 +142,7 @@ export class VehiclesService {
 			this.logger.log(
 				`[updateVehicle] userId=${userId} updating vehicleId=${vehicleId}`,
 			);
-			await this.prisma.executeQuery(
+			const updatedVehicle = await this.prisma.executeQuery(
 				'VehiclesService.updateVehicle.vehicles.update',
 				() =>
 					this.prisma.vehicles.update({
@@ -153,14 +153,6 @@ export class VehiclesService {
 							plate_number: parsed.plateNumber,
 							tracking_enabled: parsed.trackingEnabled,
 						},
-					}),
-			);
-
-			const updatedVehicle = await this.prisma.executeQuery(
-				'VehiclesService.updateVehicle.vehicles.findUnique',
-				() =>
-					this.prisma.vehicles.findUnique({
-						where: { id: vehicleId },
 					}),
 			);
 			this.logger.log(

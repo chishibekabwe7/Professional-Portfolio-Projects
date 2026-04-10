@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from '../generated/prisma/client';
+import { Prisma, PrismaClient } from '../generated/prisma/client';
 
 type PrismaQueryOutcome<T> =
   | { type: 'result'; value: T }
@@ -17,6 +17,7 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
   private readonly instanceId: number;
   private readonly queryTimeoutMs: number;
+  private readonly slowQueryThresholdMs: number;
 
   constructor() {
     const databaseUrl = process.env.DATABASE_URL;
@@ -27,16 +28,19 @@ export class PrismaService
 
     super({
       adapter: new PrismaMariaDb(databaseUrl),
+      log: [{ emit: 'event', level: 'query' }],
     });
 
     PrismaService.instanceCount += 1;
     this.instanceId = PrismaService.instanceCount;
     this.queryTimeoutMs = this.getQueryTimeoutMs();
+    this.slowQueryThresholdMs = this.getSlowQueryThresholdMs();
+    this.registerSlowQueryLogger();
 
     this.logger.log(
       `[instance:${this.instanceId}] PrismaService initialized for ${this.getConnectionTarget(
         databaseUrl,
-      )}. queryTimeoutMs=${this.queryTimeoutMs}`,
+      )}. queryTimeoutMs=${this.queryTimeoutMs}, slowQueryThresholdMs=${this.slowQueryThresholdMs}`,
     );
 
     if (PrismaService.instanceCount > 1) {
@@ -118,6 +122,30 @@ export class PrismaService
     }
 
     return Math.floor(fromEnv);
+  }
+
+  private getSlowQueryThresholdMs(): number {
+    const fromEnv = Number(process.env.PRISMA_SLOW_QUERY_MS);
+
+    if (!Number.isFinite(fromEnv) || fromEnv <= 0) {
+      return 500;
+    }
+
+    return Math.floor(fromEnv);
+  }
+
+  private registerSlowQueryLogger(): void {
+    const prismaWithQueryEvents = this as unknown as PrismaClient<'query'>;
+
+    prismaWithQueryEvents.$on('query', (event: Prisma.QueryEvent) => {
+      if (event.duration <= this.slowQueryThresholdMs) {
+        return;
+      }
+
+      this.logger.warn(
+        `[PrismaQuery:slow] durationMs=${event.duration} thresholdMs=${this.slowQueryThresholdMs} target=${event.target} query=${event.query} params=${event.params}`,
+      );
+    });
   }
 
   private getConnectionTarget(databaseUrl: string): string {

@@ -76,6 +76,7 @@ model vehicles {
 
   @@unique([user_id, plate_number], map: "uniq_user_plate")
   @@index([user_id], map: "idx_vehicles_user_id")
+  @@index([user_id, created_at], map: "idx_vehicles_user_created_at")
 }
 
 model fleet_telemetry {
