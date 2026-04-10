@@ -57,18 +57,18 @@ CREATE TABLE IF NOT EXISTS vehicles (
 
 Booking integration uses `bookings.vehicle_id` with a foreign key to `vehicles.id`.
 
-## Express routes and controllers
+## Nest routes and handlers
 
-- `POST /api/vehicles` -> `createVehicle`
-- `GET /api/vehicles` -> `getVehicles`
-- `PUT /api/vehicles/:id` -> `updateVehicle`
-- `DELETE /api/vehicles/:id` -> `deleteVehicle`
+- `POST /vehicles` -> create vehicle
+- `GET /vehicles` -> list vehicles
+- `PATCH /vehicles/:id` -> update vehicle
+- `DELETE /vehicles/:id` -> delete vehicle
 
 Controller file:
-- `server/controllers/vehiclesController.js`
+- `server/src/vehicles/vehicles.controller.ts`
 
-Route file:
-- `server/routes/vehicles.js`
+Service file:
+- `server/src/vehicles/vehicles.service.ts`
 
 ## React fleet components
 

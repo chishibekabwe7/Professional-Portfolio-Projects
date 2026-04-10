@@ -79,13 +79,13 @@
 #### Step 2 — Initialize NestJS workspace in parallel
 - **Goal:** Create a non-invasive NestJS app folder without replacing Express.
 - **Generated prompt:**  
-  “Initialize a NestJS TypeScript backend in `server-nest/` with starter modules (`auth`, `users`, `bookings`, `shipments`, `vehicles`, `admin`) and a `/health` endpoint. Keep existing Express server untouched.”
+  “Initialize a NestJS TypeScript backend in `server/` with starter modules (`auth`, `users`, `bookings`, `shipments`, `vehicles`, `admin`) and a `/health` endpoint. Keep existing Express server untouched.”
 - **Expected result:** NestJS app compiles and runs independently.
 
 #### Step 3 — Add Prisma mapped to existing MySQL schema
 - **Goal:** Introduce ORM safely before feature migration.
 - **Generated prompt:**  
-  “Add Prisma to `server-nest`, create schema models/enums matching current MySQL tables, generate client, and verify connection against existing DB. Do not alter business logic yet.”
+  “Add Prisma to `server`, create schema models/enums matching current MySQL tables, generate client, and verify connection against existing DB. Do not alter business logic yet.”
 - **Expected result:** Prisma client works with existing schema and passes a basic connectivity check.
 
 #### Step 4 — Migrate Users/Auth module
