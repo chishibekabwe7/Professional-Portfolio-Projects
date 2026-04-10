@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
+import { GoogleOAuthStrategy } from './google-oauth.strategy';
 import { getJwtConfig } from './jwt.config';
 
 const jwtConfig = getJwtConfig();
@@ -19,6 +20,6 @@ const jwtConfig = getJwtConfig();
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthGuard],
+  providers: [AuthService, AuthGuard, GoogleOAuthStrategy],
 })
 export class AuthModule {}

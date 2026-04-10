@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { Prisma } from '../generated/prisma/client';
 import { users_role } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoogleOAuthStrategy } from './google-oauth.strategy';
 
 export interface RegisterRequest {
 	email?: string;
@@ -16,6 +17,10 @@ export interface RegisterRequest {
 export interface LoginRequest {
 	email?: string;
 	password?: string;
+}
+
+export interface GoogleAuthRequest {
+	token?: string;
 }
 
 export interface JwtTokenPayload {
@@ -36,6 +41,7 @@ export class AuthService {
 	constructor(
 		private readonly jwtService: JwtService,
 		private readonly prisma: PrismaService,
+		private readonly googleOAuthStrategy: GoogleOAuthStrategy,
 	) {}
 
 	async register(payload: RegisterRequest): Promise<AuthServiceResult> {
@@ -175,6 +181,137 @@ export class AuthService {
 		}
 	}
 
+	async googleAuth(payload: GoogleAuthRequest): Promise<AuthServiceResult> {
+		const googleValidationError = this.validateGoogleAuth(payload);
+		if (googleValidationError) {
+			return {
+				statusCode: 400,
+				body: { error: googleValidationError },
+			};
+		}
+
+		const token = String(payload.token);
+
+		try {
+			const profile = await this.googleOAuthStrategy.verifyIdToken(token);
+			this.logger.log(`[googleAuth] Google profile verified for ${profile.email}`);
+
+			let user = await this.prisma.executeQuery('AuthService.googleAuth.users.findUnique', () =>
+				this.prisma.users.findUnique({
+					where: { email: profile.email },
+					select: {
+						id: true,
+						email: true,
+						role: true,
+						full_name: true,
+						company: true,
+					},
+				}),
+			);
+
+			if (!user) {
+				const generatedPasswordHash = await bcrypt.hash(
+					`oauth_${Date.now()}_${Math.random()}`,
+					12,
+				);
+
+				try {
+					user = await this.prisma.executeQuery('AuthService.googleAuth.users.create', () =>
+						this.prisma.users.create({
+							data: {
+								email: profile.email,
+								password: generatedPasswordHash,
+								role: users_role.user,
+								full_name: profile.name,
+								phone: 'N/A',
+							},
+							select: {
+								id: true,
+								email: true,
+								role: true,
+								full_name: true,
+								company: true,
+							},
+						}),
+					);
+				} catch (error: unknown) {
+					if (
+						error instanceof Prisma.PrismaClientKnownRequestError &&
+						error.code === 'P2002'
+					) {
+						this.logger.warn(
+							`[googleAuth] Duplicate email race while creating ${profile.email}; retrying lookup.`,
+						);
+
+						user = await this.prisma.executeQuery(
+							'AuthService.googleAuth.users.findUnique.retry',
+							() =>
+								this.prisma.users.findUnique({
+									where: { email: profile.email },
+									select: {
+										id: true,
+										email: true,
+										role: true,
+										full_name: true,
+										company: true,
+									},
+								}),
+						);
+					} else {
+						throw error;
+					}
+				}
+			}
+
+			if (!user) {
+				throw new Error('Google user could not be created or loaded.');
+			}
+
+			const tokenPayload: JwtTokenPayload = {
+				id: user.id,
+				email: user.email,
+				role: user.role,
+			};
+
+			const jwtToken = await this.jwtService.signAsync(tokenPayload);
+			this.logger.log(`[googleAuth] Successful Google login for userId=${user.id}`);
+
+			return {
+				statusCode: 200,
+				body: {
+					token: jwtToken,
+					user: {
+						id: user.id,
+						email: user.email,
+						role: user.role,
+						full_name: user.full_name,
+						company: user.company,
+					},
+				},
+			};
+		} catch (error: unknown) {
+			if (
+				error instanceof Error &&
+				error.message === 'GOOGLE_CLIENT_ID is not configured.'
+			) {
+				this.logger.error('[googleAuth] GOOGLE_CLIENT_ID is missing in environment.');
+				return {
+					statusCode: 500,
+					body: { error: 'GOOGLE_CLIENT_ID is not configured.' },
+				};
+			}
+
+			this.logger.error(
+				`[googleAuth] Failed: ${this.getErrorMessage(error)}`,
+			);
+
+			return {
+				statusCode: 401,
+				body: { error: `Google authentication failed: ${this.getErrorMessage(error)}` },
+			};
+		}
+	}
+
 	private validateRegister(payload: RegisterRequest): string | null {
 		const { email, phone, password, full_name, company } = payload;
 
@@ -214,6 +351,16 @@ export class AuthService {
 
 		if (!this.isEmail(email)) {
 			return 'Invalid email format.';
+		}
+
+		return null;
+	}
+
+	private validateGoogleAuth(payload: GoogleAuthRequest): string | null {
+		const { token } = payload;
+
+		if (!token || String(token).length < 20) {
+			return 'Valid Google token is required.';
 		}
 
 		return null;

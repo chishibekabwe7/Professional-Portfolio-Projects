@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { AuthGuard } from './auth.guard';
 import {
     AuthService,
+    GoogleAuthRequest,
     JwtTokenPayload,
     LoginRequest,
     RegisterRequest,
@@ -21,6 +22,12 @@ export class AuthController {
 	@Post('login')
 	async login(@Body() payload: LoginRequest, @Res() response: Response) {
 		const result = await this.authService.login(payload);
+		return response.status(result.statusCode).json(result.body);
+	}
+
+	@Post('google')
+	async google(@Body() payload: GoogleAuthRequest, @Res() response: Response) {
+		const result = await this.authService.googleAuth(payload);
 		return response.status(result.statusCode).json(result.body);
 	}
 

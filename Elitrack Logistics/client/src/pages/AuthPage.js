@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { buildApiUrl } from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function AuthPage() {
   const [mode, setMode] = useState('login');
@@ -14,6 +15,7 @@ export default function AuthPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const isAdminRole = (role) => ['admin', 'super_admin'].includes(role);
 
@@ -116,8 +118,10 @@ export default function AuthPage() {
           {mode === 'login' && (
             <div className="auth-google-wrap">
               <GoogleLogin
+                key={theme}
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
+                theme={theme === 'dark' ? 'filled_black' : 'outline'}
               />
             </div>
           )}
