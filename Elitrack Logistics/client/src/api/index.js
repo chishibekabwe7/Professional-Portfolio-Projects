@@ -22,13 +22,28 @@ const USE_NEST_API = parseBoolean(
 
 const EXPRESS_API_BASE_URL = process.env.REACT_APP_EXPRESS_API_URL || '/api';
 const NEST_API_BASE_URL = process.env.REACT_APP_NEST_API_URL || 'http://localhost:4001';
+const NORMALIZED_EXPRESS_API_BASE_URL = EXPRESS_API_BASE_URL.replace(/\/+$/, '');
+const NORMALIZED_NEST_API_BASE_URL = NEST_API_BASE_URL.replace(/\/+$/, '');
+
+const isAdminEndpoint = (endpoint) => {
+  if (typeof endpoint !== 'string' || endpoint.length === 0) {
+    return false;
+  }
+
+  if (/^https?:\/\//i.test(endpoint)) {
+    return false;
+  }
+
+  const normalizedPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return normalizedPath === '/admin' || normalizedPath.startsWith('/admin/');
+};
 
 const resolveApiBaseUrl = () => {
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
 
-  return USE_NEST_API ? NEST_API_BASE_URL : EXPRESS_API_BASE_URL;
+  return USE_NEST_API ? NORMALIZED_NEST_API_BASE_URL : NORMALIZED_EXPRESS_API_BASE_URL;
 };
 
 const API_BASE_URL = resolveApiBaseUrl().replace(/\/+$/, '');
@@ -41,7 +56,11 @@ export const buildApiUrl = (path) => {
   }
 
   const normalizedPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  return `${API_BASE_URL}${normalizedPath}`;
+  const targetBaseUrl = isAdminEndpoint(normalizedPath)
+    ? NORMALIZED_NEST_API_BASE_URL
+    : API_BASE_URL;
+
+  return `${targetBaseUrl}${normalizedPath}`;
 };
 
 const getCacheKey = (config) => {
@@ -100,6 +119,10 @@ const api = axios.create({
 api.interceptors.request.use(cfg => {
   const token = localStorage.getItem('tl_token');
   if (token) cfg.headers.Authorization = `Bearer ${token}`;
+
+  if (isAdminEndpoint(cfg.url || '')) {
+    cfg.baseURL = NORMALIZED_NEST_API_BASE_URL;
+  }
 
   if ((cfg.method || 'get').toLowerCase() === 'get') {
     cfg.__cacheKey = getCacheKey(cfg);
