@@ -6,7 +6,7 @@ import {
     faWarehouse,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api';
 import AddVehicle from '../components/AddVehicle';
@@ -102,16 +102,40 @@ export default function Dashboard() {
     enabled: shouldLoadBookings,
   });
 
+  const saveVehicleMutation = useMutation({
+    mutationFn: async ({ vehicleId, payload }) => {
+      if (vehicleId) {
+        await api.put(`/vehicles/${vehicleId}`, payload);
+        return 'updated';
+      }
+
+      await api.post('/vehicles', payload);
+      return 'created';
+    },
+  });
+
+  const removeVehicleMutation = useMutation({
+    mutationFn: async ({ vehicleId }) => {
+      await api.delete(`/vehicles/${vehicleId}`);
+    },
+  });
+
+  const createBookingMutation = useMutation({
+    mutationFn: async ({ payload }) => {
+      await api.post('/bookings', payload);
+    },
+  });
+
   const [fleet, setFleet] = useState([]);
-  const [savingVehicle, setSavingVehicle] = useState(false);
   const [deletingVehicleId, setDeletingVehicleId] = useState(null);
-  const [submittingBooking, setSubmittingBooking] = useState(false);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
   const [bookings, setBookings] = useState([]);
 
   const loadingFleet = fleetQuery.isPending;
   const loadingBookings = shouldLoadBookings && bookingsQuery.isFetching;
+  const savingVehicle = saveVehicleMutation.isPending;
+  const submittingBooking = createBookingMutation.isPending;
 
   const [selectedCategory, setSelectedCategory] = useState('truck');
   const [showVehicleForm, setShowVehicleForm] = useState(false);
@@ -216,8 +240,6 @@ export default function Dashboard() {
   }, [bookingsQuery.isError, bookingsQuery.error]);
 
   const saveVehicle = async (payload) => {
-    setSavingVehicle(true);
-
     try {
       const normalizedPayload = {
         ...payload,
@@ -226,11 +248,14 @@ export default function Dashboard() {
           : payload.category,
       };
 
-      if (editingVehicle) {
-        await api.put(`/vehicles/${editingVehicle.id}`, normalizedPayload);
+      const mode = await saveVehicleMutation.mutateAsync({
+        vehicleId: editingVehicle?.id,
+        payload: normalizedPayload,
+      });
+
+      if (mode === 'updated') {
         showToast('Vehicle updated successfully.');
       } else {
-        await api.post('/vehicles', normalizedPayload);
         showToast('Vehicle registered in your fleet.');
       }
 
@@ -242,8 +267,6 @@ export default function Dashboard() {
       setApiError(message);
       showToast(message);
       throw error;
-    } finally {
-      setSavingVehicle(false);
     }
   };
 
@@ -252,7 +275,7 @@ export default function Dashboard() {
 
     setDeletingVehicleId(vehicle.id);
     try {
-      await api.delete(`/vehicles/${vehicle.id}`);
+      await removeVehicleMutation.mutateAsync({ vehicleId: vehicle.id });
       showToast('Vehicle removed from fleet.');
       await queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.mine });
       await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.mine });
@@ -279,25 +302,25 @@ export default function Dashboard() {
       return;
     }
 
-    setSubmittingBooking(true);
-
     try {
       const selectedSecurityTier = SEC_TIERS.find((tier) => tier.value === Number(bookingForm.sec)) || SEC_TIERS[0];
       const selectedHubLabel = bookingForm.hub === OTHER_HUB_VALUE
         ? customHub
         : (HUBS[bookingForm.hub]?.label || bookingForm.hub);
 
-      await api.post('/bookings', {
-        vehicle_id: selectedBookingVehicle.id,
-        truck_type: `${selectedBookingVehicle.vehicle_name} (${selectedBookingVehicle.category})`,
-        truck_price_per_day: resolveVehicleRate(selectedBookingVehicle),
-        units: parseInteger(bookingForm.units, 1),
-        days: parseInteger(bookingForm.days, 1),
-        hub: bookingForm.hub,
-        manual_location: customHub,
-        security_tier: selectedSecurityTier.label,
-        security_price: selectedSecurityTier.value,
-        total_amount: bookingTotal,
+      await createBookingMutation.mutateAsync({
+        payload: {
+          vehicle_id: selectedBookingVehicle.id,
+          truck_type: `${selectedBookingVehicle.vehicle_name} (${selectedBookingVehicle.category})`,
+          truck_price_per_day: resolveVehicleRate(selectedBookingVehicle),
+          units: parseInteger(bookingForm.units, 1),
+          days: parseInteger(bookingForm.days, 1),
+          hub: bookingForm.hub,
+          manual_location: customHub,
+          security_tier: selectedSecurityTier.label,
+          security_price: selectedSecurityTier.value,
+          total_amount: bookingTotal,
+        },
       });
 
       setTrackingVehicle(selectedBookingVehicle);
@@ -308,8 +331,6 @@ export default function Dashboard() {
       const message = getApiErrorMessage(error, 'Unknown booking error.');
       setApiError(message);
       showToast(`Booking failed: ${message}`);
-    } finally {
-      setSubmittingBooking(false);
     }
   };
 

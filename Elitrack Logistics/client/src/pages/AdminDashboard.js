@@ -1,9 +1,11 @@
 import { faBox, faChartBar, faHourglassEnd, faMoneyBill, faTruck, faUsers } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import api from '../api';
 import ResponsiveNavbar from '../components/ResponsiveNavbar';
 import { useAuth } from '../context/AuthContext';
+import { queryKeys } from '../queryKeys';
 
 const ADMIN_TABS = [
   { key: 'overview', label: 'Overview', icon: faChartBar },
@@ -13,15 +15,78 @@ const ADMIN_TABS = [
   { key: 'notifications', label: 'Notifications', icon: faTruck },
 ];
 
+const getApiErrorMessage = (error, fallback) => (
+  error?.userMessage || error?.response?.data?.error || fallback
+);
+
+const fetchAdminStats = async () => {
+  const { data } = await api.get('/admin/stats');
+  return data || {};
+};
+
+const fetchAllBookings = async () => {
+  const { data } = await api.get('/bookings/all');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchAdminUsers = async () => {
+  const { data } = await api.get('/admin/users');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchAdminTransactions = async () => {
+  const { data } = await api.get('/admin/transactions');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchAdminNotifications = async () => {
+  const { data } = await api.get('/admin/notifications');
+  return Array.isArray(data) ? data : [];
+};
+
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState('overview');
+  const isBookingsTab = tab === 'bookings';
+  const isUsersTab = tab === 'users';
+  const isTransactionsTab = tab === 'transactions';
+  const isNotificationsTab = tab === 'notifications';
+
+  const statsQuery = useQuery({
+    queryKey: queryKeys.admin.stats,
+    queryFn: fetchAdminStats,
+  });
+
+  const bookingsQuery = useQuery({
+    queryKey: queryKeys.admin.bookingsAll,
+    queryFn: fetchAllBookings,
+    enabled: isBookingsTab,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: queryKeys.admin.users,
+    queryFn: fetchAdminUsers,
+    enabled: isUsersTab,
+  });
+
+  const transactionsQuery = useQuery({
+    queryKey: queryKeys.admin.transactions,
+    queryFn: fetchAdminTransactions,
+    enabled: isTransactionsTab,
+  });
+
+  const notificationsQuery = useQuery({
+    queryKey: queryKeys.admin.notifications,
+    queryFn: fetchAdminNotifications,
+    enabled: isNotificationsTab,
+  });
+
   const [stats, setStats] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [users, setUsers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [editingBookingId, setEditingBookingId] = useState(null);
   const [editingCurrentStatus, setEditingCurrentStatus] = useState(null);
@@ -38,6 +103,13 @@ export default function AdminDashboard() {
   const [createAdminForm, setCreateAdminForm] = useState({ email: '', password: '' });
   const [createAdminError, setCreateAdminError] = useState('');
   const [createAdminSuccess, setCreateAdminSuccess] = useState('');
+
+  const loading = (
+    (isBookingsTab && bookingsQuery.isFetching)
+    || (isUsersTab && usersQuery.isFetching)
+    || (isTransactionsTab && transactionsQuery.isFetching)
+    || (isNotificationsTab && notificationsQuery.isFetching)
+  );
 
   const STATUS_OPTIONS = ['pending_review', 'approved', 'dispatched', 'in_transit', 'completed'];
   const NEXT_STATUS_MAP = {
@@ -67,76 +139,65 @@ export default function AdminDashboard() {
     return hub;
   };
 
-  useEffect(() => { loadStats(); }, []);
   useEffect(() => {
-    if (tab === 'bookings') loadBookings();
-    if (tab === 'users') loadUsers();
-    if (tab === 'transactions') loadTransactions();
-    if (tab === 'notifications') loadNotifications();
-  }, [tab]);
+    if (!statsQuery.isSuccess) return;
+    setApiError('');
+    setStats(statsQuery.data || {});
+  }, [statsQuery.isSuccess, statsQuery.data]);
 
-  const loadStats = async () => {
-    try {
-      setApiError('');
-      const { data } = await api.get('/admin/stats');
-      setStats(data);
-    } catch (error) {
-      setStats({});
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load dashboard stats.');
-    }
-  };
+  useEffect(() => {
+    if (!statsQuery.isError) return;
+    setStats({});
+    setApiError(getApiErrorMessage(statsQuery.error, 'Could not load dashboard stats.'));
+  }, [statsQuery.isError, statsQuery.error]);
 
-  const loadBookings = async () => {
-    setLoading(true);
-    try {
-      setApiError('');
-      const { data } = await api.get('/bookings/all');
-      setBookings(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setBookings([]);
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load bookings.');
-    }
-    finally { setLoading(false); }
-  };
+  useEffect(() => {
+    if (!bookingsQuery.isSuccess) return;
+    setApiError('');
+    setBookings(Array.isArray(bookingsQuery.data) ? bookingsQuery.data : []);
+  }, [bookingsQuery.isSuccess, bookingsQuery.data]);
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      setApiError('');
-      const { data } = await api.get('/admin/users');
-      setUsers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setUsers([]);
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load users.');
-    }
-    finally { setLoading(false); }
-  };
+  useEffect(() => {
+    if (!bookingsQuery.isError) return;
+    setBookings([]);
+    setApiError(getApiErrorMessage(bookingsQuery.error, 'Could not load bookings.'));
+  }, [bookingsQuery.isError, bookingsQuery.error]);
 
-  const loadTransactions = async () => {
-    setLoading(true);
-    try {
-      setApiError('');
-      const { data } = await api.get('/admin/transactions');
-      setTransactions(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setTransactions([]);
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load transactions.');
-    }
-    finally { setLoading(false); }
-  };
+  useEffect(() => {
+    if (!usersQuery.isSuccess) return;
+    setApiError('');
+    setUsers(Array.isArray(usersQuery.data) ? usersQuery.data : []);
+  }, [usersQuery.isSuccess, usersQuery.data]);
 
-  const loadNotifications = async () => {
-    setLoading(true);
-    try {
-      setApiError('');
-      const { data } = await api.get('/admin/notifications');
-      setNotifications(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setNotifications([]);
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load notifications.');
-    }
-    finally { setLoading(false); }
-  };
+  useEffect(() => {
+    if (!usersQuery.isError) return;
+    setUsers([]);
+    setApiError(getApiErrorMessage(usersQuery.error, 'Could not load users.'));
+  }, [usersQuery.isError, usersQuery.error]);
+
+  useEffect(() => {
+    if (!transactionsQuery.isSuccess) return;
+    setApiError('');
+    setTransactions(Array.isArray(transactionsQuery.data) ? transactionsQuery.data : []);
+  }, [transactionsQuery.isSuccess, transactionsQuery.data]);
+
+  useEffect(() => {
+    if (!transactionsQuery.isError) return;
+    setTransactions([]);
+    setApiError(getApiErrorMessage(transactionsQuery.error, 'Could not load transactions.'));
+  }, [transactionsQuery.isError, transactionsQuery.error]);
+
+  useEffect(() => {
+    if (!notificationsQuery.isSuccess) return;
+    setApiError('');
+    setNotifications(Array.isArray(notificationsQuery.data) ? notificationsQuery.data : []);
+  }, [notificationsQuery.isSuccess, notificationsQuery.data]);
+
+  useEffect(() => {
+    if (!notificationsQuery.isError) return;
+    setNotifications([]);
+    setApiError(getApiErrorMessage(notificationsQuery.error, 'Could not load notifications.'));
+  }, [notificationsQuery.isError, notificationsQuery.error]);
 
   const openWorkflowForm = (booking) => {
     const currentStatus = normalizeStatus(booking.status);
@@ -174,7 +235,8 @@ export default function AdminDashboard() {
       });
       setEditingBookingId(null);
       setEditingCurrentStatus(null);
-      loadBookings(); loadStats();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.bookingsAll });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (error) {
       setWorkflowError(error?.response?.data?.error || 'Failed to update booking workflow.');
     }
@@ -183,10 +245,10 @@ export default function AdminDashboard() {
   const updatePayment = async (id, status) => {
     try {
       await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
-      loadTransactions();
-      loadStats();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.transactions });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (error) {
-      setApiError(error.userMessage || error.response?.data?.error || 'Failed to update payment status.');
+      setApiError(getApiErrorMessage(error, 'Failed to update payment status.'));
     }
   };
 
@@ -195,6 +257,8 @@ export default function AdminDashboard() {
     try {
       await api.delete(`/admin/users/${u.id}`);
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (err) {
       alert(err?.response?.data?.error || 'Failed to remove user.');
     }
@@ -208,7 +272,8 @@ export default function AdminDashboard() {
       await api.post('/admin/create-admin', createAdminForm);
       setCreateAdminSuccess(`Admin account created for ${createAdminForm.email}.`);
       setCreateAdminForm({ email: '', password: '' });
-      loadUsers();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (err) {
       setCreateAdminError(err?.response?.data?.error || 'Failed to create admin.');
     }
