@@ -68,7 +68,7 @@ type VehicleMutationPayload = Record<string, unknown> & {
   custom_category?: string;
 };
 
-const parseInteger = (value: number | string, fallback = 0): number => {
+const parseInteger = (value: number | string | undefined, fallback = 0): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };

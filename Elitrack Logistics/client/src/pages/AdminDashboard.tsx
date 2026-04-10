@@ -337,6 +337,10 @@ export default function AdminDashboard() {
     }
   };
 
+  const availableNextStatuses = editingCurrentStatus
+    ? (NEXT_STATUS_MAP[editingCurrentStatus] || [])
+    : [];
+
   return (
     <div className="app-page">
       <ResponsiveNavbar
@@ -441,9 +445,9 @@ export default function AdminDashboard() {
                 <select
                   value={workflowForm.status}
                   onChange={(e) => setWorkflowForm((prev) => ({ ...prev, status: e.target.value }))}
-                  disabled={((NEXT_STATUS_MAP[editingCurrentStatus] || []).length === 0)}
+                  disabled={availableNextStatuses.length === 0}
                 >
-                  {(NEXT_STATUS_MAP[editingCurrentStatus] || []).map((status) => (
+                  {availableNextStatuses.map((status) => (
                     <option key={status} value={status}>{STATUS_LABELS[status]}</option>
                   ))}
                 </select>
@@ -478,7 +482,7 @@ export default function AdminDashboard() {
               <button
                 className="btn btn-success btn-sm"
                 onClick={() => updateBookingStatus(editingBookingId)}
-                disabled={((NEXT_STATUS_MAP[editingCurrentStatus] || []).length === 0)}
+                disabled={availableNextStatuses.length === 0}
               >
                 Save Workflow
               </button>
@@ -493,7 +497,7 @@ export default function AdminDashboard() {
                 Cancel
               </button>
             </div>
-            {(NEXT_STATUS_MAP[editingCurrentStatus] || []).length === 0 && (
+            {availableNextStatuses.length === 0 && (
               <p style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: 12 }}>
                 This booking is already completed. No further workflow transitions are available.
               </p>
@@ -596,7 +600,7 @@ export default function AdminDashboard() {
                           <td className="mono" style={{ fontSize: 11 }}>{u.phone}</td>
                           <td style={{ fontSize: 12 }}>{u.company || '—'}</td>
                           <td><span style={{ background: u.role === 'super_admin' ? '#e67e22' : u.role === 'admin' ? 'var(--primary)' : 'var(--border)', color: '#ffffff', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{u.role.toUpperCase()}</span></td>
-                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
                           <td>
                             {u.id !== user?.id && (
                               <button
