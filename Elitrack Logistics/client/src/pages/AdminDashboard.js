@@ -1,6 +1,6 @@
 import { faBox, faChartBar, faHourglassEnd, faMoneyBill, faTruck, faUsers } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import api from '../api';
 import ResponsiveNavbar from '../components/ResponsiveNavbar';
@@ -80,6 +80,32 @@ export default function AdminDashboard() {
     queryKey: queryKeys.admin.notifications,
     queryFn: fetchAdminNotifications,
     enabled: isNotificationsTab,
+  });
+
+  const updateBookingStatusMutation = useMutation({
+    mutationFn: async ({ id, payload }) => {
+      await api.patch(`/bookings/${id}/status`, payload);
+    },
+  });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, status }) => {
+      await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
+    },
+  });
+
+  const removeUserMutation = useMutation({
+    mutationFn: async (targetUser) => {
+      await api.delete(`/admin/users/${targetUser.id}`);
+      return targetUser;
+    },
+  });
+
+  const createAdminMutation = useMutation({
+    mutationFn: async (payload) => {
+      await api.post('/admin/create-admin', payload);
+      return payload;
+    },
   });
 
   const [stats, setStats] = useState(null);
@@ -227,24 +253,27 @@ export default function AdminDashboard() {
     }
 
     try {
-      await api.patch(`/bookings/${id}/status`, {
-        status: workflowForm.status,
-        dispatcher_name: workflowForm.dispatcher_name,
-        eta: workflowForm.eta || null,
-        status_notes: workflowForm.status_notes,
+      await updateBookingStatusMutation.mutateAsync({
+        id,
+        payload: {
+          status: workflowForm.status,
+          dispatcher_name: workflowForm.dispatcher_name,
+          eta: workflowForm.eta || null,
+          status_notes: workflowForm.status_notes,
+        },
       });
       setEditingBookingId(null);
       setEditingCurrentStatus(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.bookingsAll });
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (error) {
-      setWorkflowError(error?.response?.data?.error || 'Failed to update booking workflow.');
+      setWorkflowError(getApiErrorMessage(error, 'Failed to update booking workflow.'));
     }
   };
 
   const updatePayment = async (id, status) => {
     try {
-      await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
+      await updatePaymentMutation.mutateAsync({ id, status });
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.transactions });
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (error) {
@@ -255,12 +284,12 @@ export default function AdminDashboard() {
   const removeUser = async (u) => {
     if (!window.confirm(`Are you sure you want to permanently remove user "${u.full_name || u.email}"? This action cannot be undone.`)) return;
     try {
-      await api.delete(`/admin/users/${u.id}`);
+      await removeUserMutation.mutateAsync(u);
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
     } catch (err) {
-      alert(err?.response?.data?.error || 'Failed to remove user.');
+      alert(getApiErrorMessage(err, 'Failed to remove user.'));
     }
   };
 
@@ -269,7 +298,7 @@ export default function AdminDashboard() {
     setCreateAdminError('');
     setCreateAdminSuccess('');
     try {
-      await api.post('/admin/create-admin', createAdminForm);
+      await createAdminMutation.mutateAsync(createAdminForm);
       setCreateAdminSuccess(`Admin account created for ${createAdminForm.email}.`);
       setCreateAdminForm({ email: '', password: '' });
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
