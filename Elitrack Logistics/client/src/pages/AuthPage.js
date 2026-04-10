@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { GoogleLogin } from '@react-oauth/google';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 
@@ -25,7 +26,7 @@ export default function AuthPage() {
     try {
       // Send the token to your backend
       console.log('[SEND] Sending token to backend...');
-      const response = await fetch('http://localhost:5000/api/auth/google', {
+      const response = await fetch(buildApiUrl('/auth/google'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: credentialResponse.credential }),

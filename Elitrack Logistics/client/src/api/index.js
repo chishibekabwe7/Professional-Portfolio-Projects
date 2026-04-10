@@ -3,6 +3,47 @@ import axios from 'axios';
 const API_CACHE_PREFIX = 'tl_api_cache_v1:';
 const API_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
+const parseBoolean = (value, fallback) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  }
+
+  return fallback;
+};
+
+const USE_NEST_API = parseBoolean(
+  process.env.REACT_APP_USE_NEST_API ?? process.env.USE_NEST_API,
+  true
+);
+
+const EXPRESS_API_BASE_URL = process.env.REACT_APP_EXPRESS_API_URL || '/api';
+const NEST_API_BASE_URL = process.env.REACT_APP_NEST_API_URL || 'http://localhost:4001';
+
+const resolveApiBaseUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  return USE_NEST_API ? NEST_API_BASE_URL : EXPRESS_API_BASE_URL;
+};
+
+const API_BASE_URL = resolveApiBaseUrl().replace(/\/+$/, '');
+
+export const buildApiUrl = (path) => {
+  const endpoint = String(path || '');
+
+  if (/^https?:\/\//i.test(endpoint)) {
+    return endpoint;
+  }
+
+  const normalizedPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+};
+
 const getCacheKey = (config) => {
   const url = config.url || '';
   const params = config.params ? JSON.stringify(config.params) : '';
@@ -52,7 +93,7 @@ const notifyApiStatus = (eventName, message) => {
 };
 
 const api = axios.create({ 
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: API_BASE_URL,
   withCredentials: true 
 });
 
