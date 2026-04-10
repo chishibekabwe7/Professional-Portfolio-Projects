@@ -25,6 +25,11 @@ export interface Booking {
   booking_ref?: string;
   vehicle_id?: number;
   status: string;
+  full_name?: string;
+  email?: string;
+  truck_type?: string;
+  units?: number | string;
+  days?: number | string;
   hub?: string;
   total_amount?: number | string;
   dispatcher_name?: string;
@@ -47,6 +52,10 @@ export interface Transaction {
   booking_id: number;
   booking_ref?: string;
   status: string;
+  full_name?: string;
+  email?: string;
+  truck_type?: string;
+  payment_method?: string;
   amount?: number | string;
   [key: string]: unknown;
 }
@@ -54,6 +63,10 @@ export interface Transaction {
 export interface NotificationEvent {
   id: number;
   status: string;
+  created_at?: string;
+  booking_ref?: string;
+  full_name?: string;
+  email?: string;
   channel?: string;
   event_type?: string;
   provider?: string;

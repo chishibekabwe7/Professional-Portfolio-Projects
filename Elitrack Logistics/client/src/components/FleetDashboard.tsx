@@ -1,3 +1,4 @@
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import {
     faBoxesStacked,
     faCarSide,
@@ -9,8 +10,19 @@ import {
     faWaveSquare,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import type { Vehicle } from '../types/models';
 
-const CATEGORY_ICON_MAP = {
+type FleetDashboardProps = {
+  vehicles: Vehicle[];
+  loading: boolean;
+  deletingVehicleId: number | null;
+  onAddVehicle: () => void;
+  onViewTracking: (vehicle: Vehicle) => void;
+  onEditVehicle: (vehicle: Vehicle) => void;
+  onRemoveVehicle: (vehicle: Vehicle) => void;
+};
+
+const CATEGORY_ICON_MAP: Record<string, IconProp> = {
   truck: faTruck,
   van: faVanShuttle,
   suv: faCarSide,
@@ -18,7 +30,7 @@ const CATEGORY_ICON_MAP = {
   other: faBoxesStacked,
 };
 
-const toLabel = (value) => {
+const toLabel = (value?: string | null): string => {
   if (!value) return 'Other';
   const normalized = String(value).replace(/_/g, ' ').trim();
   return normalized.charAt(0).toUpperCase() + normalized.slice(1);
@@ -32,7 +44,7 @@ export default function FleetDashboard({
   onViewTracking,
   onEditVehicle,
   onRemoveVehicle,
-}) {
+}: FleetDashboardProps) {
   if (loading) {
     return (
       <div className="card fade-up">

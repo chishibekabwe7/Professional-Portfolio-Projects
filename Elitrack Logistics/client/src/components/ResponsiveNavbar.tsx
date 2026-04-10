@@ -1,6 +1,24 @@
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useState } from 'react';
 import ThemeToggle from './ThemeToggle';
+
+type NavbarTab = {
+  key: string;
+  label: string;
+  icon: IconProp;
+};
+
+type ResponsiveNavbarProps = {
+  brand: string;
+  subtitle: string;
+  userLabel?: string;
+  roleLabel?: string;
+  tabs: NavbarTab[];
+  activeTab: string;
+  onTabChange: (tabKey: string) => void;
+  onLogout: () => void;
+};
 
 /**
  * Shared responsive navbar used by dashboard screens.
@@ -15,7 +33,7 @@ export default function ResponsiveNavbar({
   activeTab,
   onTabChange,
   onLogout,
-}) {
+}: ResponsiveNavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {

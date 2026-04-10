@@ -1,9 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import type { ApiError } from '../types/api';
+import type { Vehicle } from '../types/models';
 import { VEHICLE_CATEGORY_OPTIONS } from './VehicleCategory';
 
-const STANDARD_CATEGORIES = VEHICLE_CATEGORY_OPTIONS.map((item) => item.key);
+const STANDARD_CATEGORIES = VEHICLE_CATEGORY_OPTIONS.map((item) => String(item.key));
 
-const buildInitialState = (initialCategory, initialVehicle) => {
+type VehicleFormState = {
+  category: string;
+  custom_category: string;
+  vehicle_name: string;
+  plate_number: string;
+  tracking_enabled: boolean;
+};
+
+type AddVehicleProps = {
+  initialCategory?: string;
+  initialVehicle?: Vehicle | null;
+  submitting: boolean;
+  onSubmit: (payload: VehicleFormState) => Promise<unknown>;
+  onCancel: () => void;
+};
+
+const buildInitialState = (initialCategory?: string, initialVehicle?: Vehicle | null): VehicleFormState => {
   if (!initialVehicle) {
     return {
       category: initialCategory || 'truck',
@@ -32,7 +50,7 @@ export default function AddVehicle({
   submitting,
   onSubmit,
   onCancel,
-}) {
+}: AddVehicleProps) {
   const [form, setForm] = useState(buildInitialState(initialCategory, initialVehicle));
   const [formError, setFormError] = useState('');
 
@@ -41,11 +59,11 @@ export default function AddVehicle({
     setFormError('');
   }, [initialCategory, initialVehicle]);
 
-  const handleChange = (key, value) => {
+  const handleChange = (key: keyof VehicleFormState, value: VehicleFormState[keyof VehicleFormState]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const submit = async (event) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError('');
 
@@ -75,7 +93,8 @@ export default function AddVehicle({
     try {
       await onSubmit(payload);
     } catch (error) {
-      setFormError(error.userMessage || error.response?.data?.error || 'Could not save vehicle.');
+      const apiError = error as ApiError;
+      setFormError(apiError.userMessage || apiError.response?.data?.error || 'Could not save vehicle.');
     }
   };
 

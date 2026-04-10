@@ -1,11 +1,13 @@
 import { faBox, faChartBar, faHourglassEnd, faMoneyBill, faTruck, faUsers } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import api from '../api';
 import ResponsiveNavbar from '../components/ResponsiveNavbar';
 import { useAuth } from '../context/AuthContext';
 import { queryKeys } from '../queryKeys';
+import type { ApiError } from '../types/api';
+import type { AdminStats, AuthUser, Booking, NotificationEvent, Transaction } from '../types/models';
 
 const ADMIN_TABS = [
   { key: 'overview', label: 'Overview', icon: faChartBar },
@@ -15,31 +17,31 @@ const ADMIN_TABS = [
   { key: 'notifications', label: 'Notifications', icon: faTruck },
 ];
 
-const getApiErrorMessage = (error, fallback) => (
-  error?.userMessage || error?.response?.data?.error || fallback
+const getApiErrorMessage = (error: unknown, fallback: string): string => (
+  (error as ApiError)?.userMessage || (error as ApiError)?.response?.data?.error || fallback
 );
 
-const fetchAdminStats = async () => {
+const fetchAdminStats = async (): Promise<AdminStats> => {
   const { data } = await api.get('/admin/stats');
   return data || {};
 };
 
-const fetchAllBookings = async () => {
+const fetchAllBookings = async (): Promise<Booking[]> => {
   const { data } = await api.get('/bookings/all');
   return Array.isArray(data) ? data : [];
 };
 
-const fetchAdminUsers = async () => {
+const fetchAdminUsers = async (): Promise<AuthUser[]> => {
   const { data } = await api.get('/admin/users');
   return Array.isArray(data) ? data : [];
 };
 
-const fetchAdminTransactions = async () => {
+const fetchAdminTransactions = async (): Promise<Transaction[]> => {
   const { data } = await api.get('/admin/transactions');
   return Array.isArray(data) ? data : [];
 };
 
-const fetchAdminNotifications = async () => {
+const fetchAdminNotifications = async (): Promise<NotificationEvent[]> => {
   const { data } = await api.get('/admin/notifications');
   return Array.isArray(data) ? data : [];
 };
@@ -63,7 +65,7 @@ type UpdatePaymentVariables = {
 
 type AdminUser = {
   id: number;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type CreateAdminPayload = {
@@ -135,14 +137,14 @@ export default function AdminDashboard() {
     },
   });
 
-  const [stats, setStats] = useState(null);
-  const [bookings, setBookings] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
   const [apiError, setApiError] = useState('');
-  const [editingBookingId, setEditingBookingId] = useState(null);
-  const [editingCurrentStatus, setEditingCurrentStatus] = useState(null);
+  const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
+  const [editingCurrentStatus, setEditingCurrentStatus] = useState<string | null>(null);
   const [workflowError, setWorkflowError] = useState('');
   const [workflowForm, setWorkflowForm] = useState({
     status: 'approved',
@@ -164,15 +166,15 @@ export default function AdminDashboard() {
     || (isNotificationsTab && notificationsQuery.isFetching)
   );
 
-  const STATUS_OPTIONS = ['pending_review', 'approved', 'dispatched', 'in_transit', 'completed'];
-  const NEXT_STATUS_MAP = {
+  const STATUS_OPTIONS: string[] = ['pending_review', 'approved', 'dispatched', 'in_transit', 'completed'];
+  const NEXT_STATUS_MAP: Record<string, string[]> = {
     pending_review: ['approved'],
     approved: ['dispatched'],
     dispatched: ['in_transit'],
     in_transit: ['completed'],
     completed: [],
   };
-  const STATUS_LABELS = {
+  const STATUS_LABELS: Record<string, string> = {
     pending_review: 'Pending Review',
     approved: 'Approved',
     dispatched: 'Dispatched',
@@ -181,8 +183,8 @@ export default function AdminDashboard() {
     pending: 'Pending Review',
     active: 'In Transit',
   };
-  const normalizeStatus = (status) => (status === 'pending' ? 'pending_review' : status === 'active' ? 'in_transit' : status);
-  const formatHubLocation = (hub) => {
+  const normalizeStatus = (status: string): string => (status === 'pending' ? 'pending_review' : status === 'active' ? 'in_transit' : status);
+  const formatHubLocation = (hub?: string | null): string => {
     if (!hub) return '—';
     const lowerHub = String(hub).toLowerCase();
     if (lowerHub === 'kitwe') return 'Kitwe Hub (Copperbelt)';
@@ -252,7 +254,7 @@ export default function AdminDashboard() {
     setApiError(getApiErrorMessage(notificationsQuery.error, 'Could not load notifications.'));
   }, [notificationsQuery.isError, notificationsQuery.error]);
 
-  const openWorkflowForm = (booking) => {
+  const openWorkflowForm = (booking: Booking): void => {
     const currentStatus = normalizeStatus(booking.status);
     const nextStatuses = NEXT_STATUS_MAP[currentStatus] || [];
     setEditingBookingId(booking.id);
@@ -266,7 +268,7 @@ export default function AdminDashboard() {
     });
   };
 
-  const updateBookingStatus = async (id) => {
+  const updateBookingStatus = async (id: number): Promise<void> => {
     setWorkflowError('');
 
     const needsDispatchDetails = ['dispatched', 'in_transit'].includes(workflowForm.status);
@@ -298,7 +300,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const updatePayment = async (id, status) => {
+  const updatePayment = async (id: number, status: string): Promise<void> => {
     try {
       await updatePaymentMutation.mutateAsync({ id, status });
       await queryClient.invalidateQueries({ queryKey: queryKeys.admin.transactions });
@@ -308,7 +310,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const removeUser = async (u) => {
+  const removeUser = async (u: AuthUser): Promise<void> => {
     if (!window.confirm(`Are you sure you want to permanently remove user "${u.full_name || u.email}"? This action cannot be undone.`)) return;
     try {
       await removeUserMutation.mutateAsync(u);
@@ -320,7 +322,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const submitCreateAdmin = async (e) => {
+  const submitCreateAdmin = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     setCreateAdminError('');
     setCreateAdminSuccess('');
@@ -366,8 +368,8 @@ export default function AdminDashboard() {
                   { label: 'Total Clients', value: stats.total_users, icon: faUsers },
                   { label: 'Total Bookings', value: stats.total_bookings, icon: faBox },
                   { label: 'Active Convoys', value: stats.active_bookings, icon: faTruck },
-                  { label: 'Revenue (Paid)', value: `K${parseInt(stats.total_revenue).toLocaleString()}`, icon: faMoneyBill },
-                  { label: 'Pending Revenue', value: `K${parseInt(stats.pending_revenue).toLocaleString()}`, icon: faHourglassEnd },
+                  { label: 'Revenue (Paid)', value: `K${Number(stats.total_revenue || 0).toLocaleString()}`, icon: faMoneyBill },
+                  { label: 'Pending Revenue', value: `K${Number(stats.pending_revenue || 0).toLocaleString()}`, icon: faHourglassEnd },
                 ].map(s => (
                   <div className="stat-card" key={s.label}>
                     <div style={{ fontSize: 24, marginBottom: 8, color: 'var(--primary)' }}><FontAwesomeIcon icon={s.icon} /></div>
@@ -412,7 +414,7 @@ export default function AdminDashboard() {
                           <td style={{ fontSize: 11, maxWidth: 220 }}>{formatHubLocation(b.hub)}</td>
                           <td style={{ textAlign: 'center' }}>{b.units}</td>
                           <td style={{ textAlign: 'center' }}>{b.days}</td>
-                          <td className="mono" style={{ fontWeight: 700, color: 'var(--primary)' }}>K{parseInt(b.total_amount).toLocaleString()}</td>
+                          <td className="mono" style={{ fontWeight: 700, color: 'var(--primary)' }}>K{Number(b.total_amount || 0).toLocaleString()}</td>
                           <td><span className={`badge badge-${b.status}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
                           <td style={{ fontSize: 12 }}>{b.dispatcher_name || '—'}</td>
                           <td style={{ fontSize: 12 }}>{b.eta ? new Date(b.eta).toLocaleString() : '—'}</td>
@@ -521,7 +523,7 @@ export default function AdminDashboard() {
                           <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{t.booking_ref}</td>
                           <td style={{ fontSize: 12 }}>{t.full_name || t.email}</td>
                           <td style={{ fontSize: 11 }}>{t.truck_type}</td>
-                          <td className="mono" style={{ fontWeight: 700, color: '#27ae60' }}>K{parseInt(t.amount).toLocaleString()}</td>
+                          <td className="mono" style={{ fontWeight: 700, color: '#27ae60' }}>K{Number(t.amount || 0).toLocaleString()}</td>
                           <td style={{ fontSize: 11 }}>{t.payment_method}</td>
                           <td><span className={`badge badge-${t.status}`}>{t.status}</span></td>
                           <td>
@@ -631,7 +633,7 @@ export default function AdminDashboard() {
                     <tbody>
                       {notifications.map((n) => (
                         <tr key={n.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(n.created_at).toLocaleString()}</td>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{n.created_at ? new Date(n.created_at).toLocaleString() : '—'}</td>
                           <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{n.booking_ref || '—'}</td>
                           <td style={{ fontSize: 12 }}>{n.full_name || n.email || '—'}</td>
                           <td style={{ fontSize: 11, textTransform: 'uppercase' }}>{n.channel}</td>

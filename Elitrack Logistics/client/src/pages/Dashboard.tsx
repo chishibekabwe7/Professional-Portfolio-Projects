@@ -16,8 +16,10 @@ import VehicleCategory, { CATEGORY_BASE_RATE } from '../components/VehicleCatego
 import VehicleTracking from '../components/VehicleTracking';
 import { useAuth } from '../context/AuthContext';
 import { queryKeys } from '../queryKeys';
+import type { ApiError } from '../types/api';
+import type { Booking, Vehicle } from '../types/models';
 
-const HUBS = {
+const HUBS: Record<string, { coords: [number, number]; label: string }> = {
   kitwe: { coords: [-12.8167, 28.2], label: 'Kitwe Hub (Copperbelt)' },
   ndola: { coords: [-12.9667, 28.6333], label: 'Ndola Industrial' },
   solwezi: { coords: [-12.1833, 26.4], label: 'Solwezi (Kansanshi/Sentinel)' },
@@ -33,7 +35,7 @@ const SEC_TIERS = [
   { value: 15000, label: 'Diamond: Full Convoy Security (+K15,000)' },
 ];
 
-const STATUS_LABELS = {
+const STATUS_LABELS: Record<string, string> = {
   pending_review: 'Pending Review',
   approved: 'Approved',
   dispatched: 'Dispatched',
@@ -66,31 +68,31 @@ type VehicleMutationPayload = Record<string, unknown> & {
   custom_category?: string;
 };
 
-const parseInteger = (value, fallback = 0) => {
+const parseInteger = (value: number | string, fallback = 0): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const fetchMyFleet = async () => {
+const fetchMyFleet = async (): Promise<Vehicle[]> => {
   const { data } = await api.get('/vehicles');
   return Array.isArray(data) ? data : [];
 };
 
-const fetchMyBookings = async () => {
+const fetchMyBookings = async (): Promise<Booking[]> => {
   const { data } = await api.get('/bookings/mine');
   return Array.isArray(data) ? data : [];
 };
 
-const getApiErrorMessage = (error, fallback) => (
-  error?.userMessage || error?.response?.data?.error || fallback
+const getApiErrorMessage = (error: unknown, fallback: string): string => (
+  (error as ApiError)?.userMessage || (error as ApiError)?.response?.data?.error || fallback
 );
 
-const formatHubLabel = (hub) => {
+const formatHubLabel = (hub?: string | null): string => {
   const normalized = String(hub || '').toLowerCase();
   return HUBS[normalized]?.label || hub || 'Unknown';
 };
 
-const resolveVehicleRate = (vehicle) => {
+const resolveVehicleRate = (vehicle?: Vehicle | null): number => {
   if (!vehicle) return 0;
 
   const category = String(vehicle.category || 'other').toLowerCase();
@@ -144,11 +146,11 @@ export default function Dashboard() {
     },
   });
 
-  const [fleet, setFleet] = useState([]);
-  const [deletingVehicleId, setDeletingVehicleId] = useState(null);
+  const [fleet, setFleet] = useState<Vehicle[]>([]);
+  const [deletingVehicleId, setDeletingVehicleId] = useState<number | null>(null);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   const loadingFleet = fleetQuery.isPending;
   const loadingBookings = shouldLoadBookings && bookingsQuery.isFetching;
@@ -157,8 +159,8 @@ export default function Dashboard() {
 
   const [selectedCategory, setSelectedCategory] = useState('truck');
   const [showVehicleForm, setShowVehicleForm] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState(null);
-  const [trackingVehicle, setTrackingVehicle] = useState(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [trackingVehicle, setTrackingVehicle] = useState<Vehicle | null>(null);
 
   const [bookingForm, setBookingForm] = useState<BookingFormState>({
     vehicle_id: '',
@@ -197,12 +199,12 @@ export default function Dashboard() {
     ) || null;
   }, [bookings, selectedTrackingVehicle]);
 
-  const showToast = (message) => {
+  const showToast = (message: string): void => {
     setToast(message);
     setTimeout(() => setToast(''), 3500);
   };
 
-  const applyFleetResult = (vehicles) => {
+  const applyFleetResult = (vehicles: Vehicle[]): void => {
     const normalizedFleet = Array.isArray(vehicles) ? vehicles : [];
     setFleet(normalizedFleet);
 
@@ -226,7 +228,7 @@ export default function Dashboard() {
       };
     });
 
-    setTrackingVehicle((previous) => {
+    setTrackingVehicle((previous: Vehicle | null) => {
       if (!previous) return normalizedFleet[0];
       const matchedVehicle = normalizedFleet.find((vehicle) => vehicle.id === Number(previous.id));
       return matchedVehicle || normalizedFleet[0];
@@ -257,7 +259,7 @@ export default function Dashboard() {
     setApiError(getApiErrorMessage(bookingsQuery.error, 'Could not load bookings right now.'));
   }, [bookingsQuery.isError, bookingsQuery.error]);
 
-  const saveVehicle = async (payload) => {
+  const saveVehicle = async (payload: VehicleMutationPayload) => {
     try {
       const normalizedPayload = {
         ...payload,
@@ -288,7 +290,7 @@ export default function Dashboard() {
     }
   };
 
-  const removeVehicle = async (vehicle) => {
+  const removeVehicle = async (vehicle: Vehicle) => {
     if (!window.confirm(`Remove ${vehicle.vehicle_name} from your fleet?`)) return;
 
     setDeletingVehicleId(vehicle.id);

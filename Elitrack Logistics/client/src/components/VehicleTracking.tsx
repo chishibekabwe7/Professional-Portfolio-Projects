@@ -8,8 +8,9 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
+import type { Booking, Vehicle } from '../types/models';
 
 // Ensure map markers load correctly when Leaflet is bundled by React.
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -28,7 +29,13 @@ const HUB_COORDS: Record<string, Coordinate> = {
   chingola: [-12.5333, 27.85],
 };
 
-function FlyToPosition({ center }: { center: Coordinate | null }) {
+type VehicleTrackingProps = {
+  vehicle: Vehicle;
+  lastBookedHub?: string;
+  bookingMeta?: Booking | null;
+};
+
+function FlyToPosition({ center }: { center: Coordinate | null }): null {
   const map = useMap();
 
   useEffect(() => {
@@ -45,7 +52,7 @@ const seededOffset = (seed: string, maxDelta: number): number => {
   return ((hash % 100) / 100 - 0.5) * maxDelta;
 };
 
-export default function VehicleTracking({ vehicle, lastBookedHub, bookingMeta }) {
+export default function VehicleTracking({ vehicle, lastBookedHub, bookingMeta }: VehicleTrackingProps): ReactElement {
   const [speed, setSpeed] = useState(0);
   const [route, setRoute] = useState<Coordinate[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);

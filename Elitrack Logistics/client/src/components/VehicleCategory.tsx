@@ -1,3 +1,4 @@
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import {
     faBoxesStacked,
     faCarSide,
@@ -7,7 +8,22 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
-export const VEHICLE_CATEGORY_OPTIONS = [
+export type VehicleCategoryKey = 'truck' | 'van' | 'suv' | 'motorbike' | 'other';
+
+type VehicleCategoryOption = {
+  key: VehicleCategoryKey;
+  label: string;
+  icon: IconProp;
+  blurb: string;
+};
+
+type VehicleCategoryProps = {
+  selectedCategory: string;
+  onSelectCategory: (category: VehicleCategoryKey) => void;
+  onContinue: () => void;
+};
+
+export const VEHICLE_CATEGORY_OPTIONS: VehicleCategoryOption[] = [
   {
     key: 'truck',
     label: 'Trucks',
@@ -40,7 +56,7 @@ export const VEHICLE_CATEGORY_OPTIONS = [
   },
 ];
 
-export const CATEGORY_BASE_RATE = {
+export const CATEGORY_BASE_RATE: Record<string, number> = {
   truck: 11500,
   van: 7000,
   suv: 5500,
@@ -48,7 +64,7 @@ export const CATEGORY_BASE_RATE = {
   other: 4500,
 };
 
-export default function VehicleCategory({ selectedCategory, onSelectCategory, onContinue }) {
+export default function VehicleCategory({ selectedCategory, onSelectCategory, onContinue }: VehicleCategoryProps) {
   return (
     <div className="card fleet-category-shell fade-up">
       <div className="section-label">Vehicle Categories</div>
