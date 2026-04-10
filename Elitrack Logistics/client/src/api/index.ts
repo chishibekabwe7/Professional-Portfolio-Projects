@@ -1,9 +1,21 @@
-import axios from 'axios';
+import axios, {
+    type AxiosRequestHeaders,
+    type AxiosResponse,
+    type InternalAxiosRequestConfig,
+} from 'axios';
+import type { ApiError, ApiErrorPayload } from '../types/api';
 
 const API_CACHE_PREFIX = 'tl_api_cache_v1:';
 const API_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-const parseBoolean = (value, fallback) => {
+type ApiStatusEvent = 'api-offline' | 'api-online';
+
+type CachedApiEntry = {
+  savedAt: number;
+  data: unknown;
+};
+
+const parseBoolean = (value: unknown, fallback: boolean): boolean => {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return value === 1;
   if (typeof value === 'string') {
@@ -25,8 +37,8 @@ const NEST_API_BASE_URL = process.env.REACT_APP_NEST_API_URL || 'http://localhos
 const NORMALIZED_EXPRESS_API_BASE_URL = EXPRESS_API_BASE_URL.replace(/\/+$/, '');
 const NORMALIZED_NEST_API_BASE_URL = NEST_API_BASE_URL.replace(/\/+$/, '');
 
-const isAdminEndpoint = (endpoint) => {
-  if (typeof endpoint !== 'string' || endpoint.length === 0) {
+const isAdminEndpoint = (endpoint: string): boolean => {
+  if (endpoint.length === 0) {
     return false;
   }
 
@@ -38,7 +50,7 @@ const isAdminEndpoint = (endpoint) => {
   return normalizedPath === '/admin' || normalizedPath.startsWith('/admin/');
 };
 
-const resolveApiBaseUrl = () => {
+const resolveApiBaseUrl = (): string => {
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
@@ -48,7 +60,7 @@ const resolveApiBaseUrl = () => {
 
 const API_BASE_URL = resolveApiBaseUrl().replace(/\/+$/, '');
 
-export const buildApiUrl = (path) => {
+export const buildApiUrl = (path: string): string => {
   const endpoint = String(path || '');
 
   if (/^https?:\/\//i.test(endpoint)) {
@@ -63,20 +75,20 @@ export const buildApiUrl = (path) => {
   return `${targetBaseUrl}${normalizedPath}`;
 };
 
-const getCacheKey = (config) => {
+const getCacheKey = (config: InternalAxiosRequestConfig): string => {
   const url = config.url || '';
   const params = config.params ? JSON.stringify(config.params) : '';
   return `${API_CACHE_PREFIX}${url}?${params}`;
 };
 
-const readCache = (key) => {
+const readCache = (key?: string): unknown | null => {
   if (!key) return null;
 
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw) as CachedApiEntry;
     if (!parsed?.savedAt || typeof parsed.data === 'undefined') return null;
 
     if (Date.now() - parsed.savedAt > API_CACHE_TTL_MS) {
@@ -90,7 +102,7 @@ const readCache = (key) => {
   }
 };
 
-const writeCache = (key, data) => {
+const writeCache = (key: string | undefined, data: unknown): void => {
   if (!key) return;
 
   try {
@@ -106,19 +118,23 @@ const writeCache = (key, data) => {
   }
 };
 
-const notifyApiStatus = (eventName, message) => {
+const notifyApiStatus = (eventName: ApiStatusEvent, message: string): void => {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(eventName, { detail: { message } }));
 };
 
-const api = axios.create({ 
+const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true 
+  withCredentials: true,
 });
 
-api.interceptors.request.use(cfg => {
+api.interceptors.request.use((cfg) => {
   const token = localStorage.getItem('tl_token');
-  if (token) cfg.headers.Authorization = `Bearer ${token}`;
+
+  if (token) {
+    cfg.headers = cfg.headers ?? ({} as AxiosRequestHeaders);
+    cfg.headers.Authorization = `Bearer ${token}`;
+  }
 
   if (isAdminEndpoint(cfg.url || '')) {
     cfg.baseURL = NORMALIZED_NEST_API_BASE_URL;
@@ -140,8 +156,8 @@ api.interceptors.response.use(
     notifyApiStatus('api-online', '');
     return response;
   },
-  (error) => {
-    const config = error.config || {};
+  (error: ApiError) => {
+    const config = (error.config || {}) as InternalAxiosRequestConfig;
     const method = (config.method || 'get').toLowerCase();
 
     if (!error.response) {
@@ -149,14 +165,17 @@ api.interceptors.response.use(
 
       if (cached !== null) {
         notifyApiStatus('api-offline', 'You are offline. Showing recently cached data.');
-        return Promise.resolve({
+
+        const cachedResponse: AxiosResponse = {
           data: cached,
           status: 200,
           statusText: 'OK (cache)',
           headers: { 'x-cache': 'HIT' },
           config,
           request: null,
-        });
+        };
+
+        return Promise.resolve(cachedResponse);
       }
 
       error.userMessage = 'Cannot reach the server. Check your internet connection and try again.';
@@ -168,7 +187,8 @@ api.interceptors.response.use(
       error.userMessage = 'Server error. Please try again in a moment.';
       notifyApiStatus('api-offline', error.userMessage);
     } else {
-      error.userMessage = error.response.data?.error || 'Request failed. Please try again.';
+      const responseData = error.response.data as ApiErrorPayload | undefined;
+      error.userMessage = responseData?.error || 'Request failed. Please try again.';
     }
 
     return Promise.reject(error);

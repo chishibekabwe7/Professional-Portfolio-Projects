@@ -1,9 +1,27 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+    type ReactNode,
+} from 'react';
 
 const THEME_KEY = 'tl_theme';
-const ThemeContext = createContext(null);
+type ThemeMode = 'light' | 'dark';
 
-const getInitialTheme = () => {
+type ThemeContextValue = {
+  theme: ThemeMode;
+  toggleTheme: () => void;
+};
+
+type ThemeProviderProps = {
+  children: ReactNode;
+};
+
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+
+const getInitialTheme = (): ThemeMode => {
   if (typeof window === 'undefined') {
     return 'light';
   }
@@ -17,10 +35,10 @@ const getInitialTheme = () => {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
-export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(getInitialTheme);
+export function ThemeProvider({ children }: ThemeProviderProps) {
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
 
-  const toggleTheme = () => {
+  const toggleTheme = (): void => {
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'));
   };
 
@@ -36,7 +54,7 @@ export function ThemeProvider({ children }) {
     document.body.classList.add(theme);
   }, [theme]);
 
-  const value = useMemo(() => ({ theme, toggleTheme }), [theme]);
+  const value = useMemo<ThemeContextValue>(() => ({ theme, toggleTheme }), [theme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
