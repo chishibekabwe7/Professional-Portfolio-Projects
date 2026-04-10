@@ -1,11 +1,12 @@
 import {
-  faBroadcastTower,
-  faCalendarCheck,
-  faClipboard,
-  faLocationDot,
-  faWarehouse,
+    faBroadcastTower,
+    faCalendarCheck,
+    faClipboard,
+    faLocationDot,
+    faWarehouse,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../api';
 import AddVehicle from '../components/AddVehicle';
@@ -14,6 +15,7 @@ import ResponsiveNavbar from '../components/ResponsiveNavbar';
 import VehicleCategory, { CATEGORY_BASE_RATE } from '../components/VehicleCategory';
 import VehicleTracking from '../components/VehicleTracking';
 import { useAuth } from '../context/AuthContext';
+import { queryKeys } from '../queryKeys';
 
 const HUBS = {
   kitwe: { coords: [-12.8167, 28.2], label: 'Kitwe Hub (Copperbelt)' },
@@ -55,6 +57,20 @@ const parseInteger = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const fetchMyFleet = async () => {
+  const { data } = await api.get('/vehicles');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchMyBookings = async () => {
+  const { data } = await api.get('/bookings/mine');
+  return Array.isArray(data) ? data : [];
+};
+
+const getApiErrorMessage = (error, fallback) => (
+  error?.userMessage || error?.response?.data?.error || fallback
+);
+
 const formatHubLabel = (hub) => {
   const normalized = String(hub || '').toLowerCase();
   return HUBS[normalized]?.label || hub || 'Unknown';
@@ -69,18 +85,33 @@ const resolveVehicleRate = (vehicle) => {
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
   const firstFleetLoadRef = useRef(true);
 
   const [tab, setTab] = useState('fleet');
+  const shouldLoadBookings = tab === 'bookings' || tab === 'track';
+
+  const fleetQuery = useQuery({
+    queryKey: queryKeys.vehicles.mine,
+    queryFn: fetchMyFleet,
+  });
+
+  const bookingsQuery = useQuery({
+    queryKey: queryKeys.bookings.mine,
+    queryFn: fetchMyBookings,
+    enabled: shouldLoadBookings,
+  });
+
   const [fleet, setFleet] = useState([]);
-  const [loadingFleet, setLoadingFleet] = useState(true);
-  const [loadingBookings, setLoadingBookings] = useState(false);
   const [savingVehicle, setSavingVehicle] = useState(false);
   const [deletingVehicleId, setDeletingVehicleId] = useState(null);
   const [submittingBooking, setSubmittingBooking] = useState(false);
   const [apiError, setApiError] = useState('');
   const [toast, setToast] = useState('');
   const [bookings, setBookings] = useState([]);
+
+  const loadingFleet = fleetQuery.isPending;
+  const loadingBookings = shouldLoadBookings && bookingsQuery.isFetching;
 
   const [selectedCategory, setSelectedCategory] = useState('truck');
   const [showVehicleForm, setShowVehicleForm] = useState(false);
@@ -160,49 +191,29 @@ export default function Dashboard() {
     });
   };
 
-  const loadFleet = async (silent = false) => {
-    if (!silent) {
-      setLoadingFleet(true);
-    }
-
-    try {
-      setApiError('');
-      const { data } = await api.get('/vehicles');
-      applyFleetResult(data);
-    } catch (error) {
-      setFleet([]);
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load your fleet.');
-    } finally {
-      if (!silent) {
-        setLoadingFleet(false);
-      }
-    }
-  };
-
-  const loadBookings = async () => {
-    setLoadingBookings(true);
-
-    try {
-      setApiError('');
-      const { data } = await api.get('/bookings/mine');
-      setBookings(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setBookings([]);
-      setApiError(error.userMessage || error.response?.data?.error || 'Could not load bookings right now.');
-    } finally {
-      setLoadingBookings(false);
-    }
-  };
+  useEffect(() => {
+    if (!fleetQuery.isSuccess) return;
+    setApiError('');
+    applyFleetResult(fleetQuery.data);
+  }, [fleetQuery.isSuccess, fleetQuery.data]);
 
   useEffect(() => {
-    loadFleet();
-  }, []);
+    if (!fleetQuery.isError) return;
+    setFleet([]);
+    setApiError(getApiErrorMessage(fleetQuery.error, 'Could not load your fleet.'));
+  }, [fleetQuery.isError, fleetQuery.error]);
 
   useEffect(() => {
-    if (tab === 'bookings' || tab === 'track') {
-      loadBookings();
-    }
-  }, [tab]);
+    if (!bookingsQuery.isSuccess) return;
+    setApiError('');
+    setBookings(Array.isArray(bookingsQuery.data) ? bookingsQuery.data : []);
+  }, [bookingsQuery.isSuccess, bookingsQuery.data]);
+
+  useEffect(() => {
+    if (!bookingsQuery.isError) return;
+    setBookings([]);
+    setApiError(getApiErrorMessage(bookingsQuery.error, 'Could not load bookings right now.'));
+  }, [bookingsQuery.isError, bookingsQuery.error]);
 
   const saveVehicle = async (payload) => {
     setSavingVehicle(true);
@@ -225,9 +236,9 @@ export default function Dashboard() {
 
       setShowVehicleForm(false);
       setEditingVehicle(null);
-      await loadFleet(true);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.mine });
     } catch (error) {
-      const message = error.userMessage || error.response?.data?.error || 'Vehicle save failed.';
+      const message = getApiErrorMessage(error, 'Vehicle save failed.');
       setApiError(message);
       showToast(message);
       throw error;
@@ -243,10 +254,10 @@ export default function Dashboard() {
     try {
       await api.delete(`/vehicles/${vehicle.id}`);
       showToast('Vehicle removed from fleet.');
-      await loadFleet(true);
-      await loadBookings();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.mine });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.mine });
     } catch (error) {
-      const message = error.userMessage || error.response?.data?.error || 'Failed to remove vehicle.';
+      const message = getApiErrorMessage(error, 'Failed to remove vehicle.');
       setApiError(message);
       showToast(message);
     } finally {
@@ -292,9 +303,9 @@ export default function Dashboard() {
       setTrackingVehicle(selectedBookingVehicle);
       showToast(`Booking created for ${selectedBookingVehicle.vehicle_name} from ${selectedHubLabel}.`);
       setTab('track');
-      await loadBookings();
+      await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.mine });
     } catch (error) {
-      const message = error.userMessage || error.response?.data?.error || 'Unknown booking error.';
+      const message = getApiErrorMessage(error, 'Unknown booking error.');
       setApiError(message);
       showToast(`Booking failed: ${message}`);
     } finally {
