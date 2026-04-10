@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
@@ -20,6 +20,8 @@ export interface VehiclesServiceResult {
 
 @Injectable()
 export class VehiclesService {
+	private readonly logger = new Logger(VehiclesService.name);
+
 	constructor(private readonly prisma: PrismaService) {}
 
 	async createVehicle(
@@ -35,15 +37,23 @@ export class VehiclesService {
 		}
 
 		try {
-			const createdVehicle = await this.prisma.vehicles.create({
-				data: {
-					user_id: userId,
-					category: parsed.category,
-					vehicle_name: parsed.vehicleName,
-					plate_number: parsed.plateNumber,
-					tracking_enabled: parsed.trackingEnabled,
-				},
-			});
+			this.logger.log(`[createVehicle] userId=${userId} starting create`);
+			const createdVehicle = await this.prisma.executeQuery(
+				'VehiclesService.createVehicle.vehicles.create',
+				() =>
+					this.prisma.vehicles.create({
+						data: {
+							user_id: userId,
+							category: parsed.category,
+							vehicle_name: parsed.vehicleName,
+							plate_number: parsed.plateNumber,
+							tracking_enabled: parsed.trackingEnabled,
+						},
+					}),
+			);
+			this.logger.log(
+				`[createVehicle] userId=${userId} created vehicleId=${createdVehicle.id}`,
+			);
 
 			return {
 				statusCode: 201,
@@ -51,6 +61,9 @@ export class VehiclesService {
 			};
 		} catch (error: unknown) {
 			if (this.isUniquePlateConstraintError(error)) {
+				this.logger.warn(
+					`[createVehicle] Duplicate plate for userId=${userId}: ${parsed.plateNumber}`,
+				);
 				return {
 					statusCode: 409,
 					body: {
@@ -59,6 +72,10 @@ export class VehiclesService {
 					},
 				};
 			}
+
+			this.logger.error(
+				`[createVehicle] Failed for userId=${userId}: ${this.getErrorMessage(error)}`,
+			);
 
 			return {
 				statusCode: 500,
@@ -69,16 +86,25 @@ export class VehiclesService {
 
 	async getVehicles(userId: number): Promise<VehiclesServiceResult> {
 		try {
-			const vehicles = await this.prisma.vehicles.findMany({
-				where: { user_id: userId },
-				orderBy: { created_at: 'desc' },
-			});
+			this.logger.log(`[getVehicles] userId=${userId} loading vehicles`);
+			const vehicles = await this.prisma.executeQuery(
+				'VehiclesService.getVehicles.vehicles.findMany',
+				() =>
+					this.prisma.vehicles.findMany({
+						where: { user_id: userId },
+						orderBy: { created_at: 'desc' },
+					}),
+			);
+			this.logger.log(`[getVehicles] userId=${userId} loaded ${vehicles.length} vehicles`);
 
 			return {
 				statusCode: 200,
 				body: vehicles,
 			};
 		} catch (error: unknown) {
+			this.logger.error(
+				`[getVehicles] Failed for userId=${userId}: ${this.getErrorMessage(error)}`,
+			);
 			return {
 				statusCode: 500,
 				body: { error: this.getErrorMessage(error) },
@@ -113,19 +139,33 @@ export class VehiclesService {
 				return accessError;
 			}
 
-			await this.prisma.vehicles.update({
-				where: { id: vehicleId },
-				data: {
-					category: parsed.category,
-					vehicle_name: parsed.vehicleName,
-					plate_number: parsed.plateNumber,
-					tracking_enabled: parsed.trackingEnabled,
-				},
-			});
+			this.logger.log(
+				`[updateVehicle] userId=${userId} updating vehicleId=${vehicleId}`,
+			);
+			await this.prisma.executeQuery(
+				'VehiclesService.updateVehicle.vehicles.update',
+				() =>
+					this.prisma.vehicles.update({
+						where: { id: vehicleId },
+						data: {
+							category: parsed.category,
+							vehicle_name: parsed.vehicleName,
+							plate_number: parsed.plateNumber,
+							tracking_enabled: parsed.trackingEnabled,
+						},
+					}),
+			);
 
-			const updatedVehicle = await this.prisma.vehicles.findUnique({
-				where: { id: vehicleId },
-			});
+			const updatedVehicle = await this.prisma.executeQuery(
+				'VehiclesService.updateVehicle.vehicles.findUnique',
+				() =>
+					this.prisma.vehicles.findUnique({
+						where: { id: vehicleId },
+					}),
+			);
+			this.logger.log(
+				`[updateVehicle] userId=${userId} updated vehicleId=${vehicleId}`,
+			);
 
 			return {
 				statusCode: 200,
@@ -133,6 +173,9 @@ export class VehiclesService {
 			};
 		} catch (error: unknown) {
 			if (this.isUniquePlateConstraintError(error)) {
+				this.logger.warn(
+					`[updateVehicle] Duplicate plate for userId=${userId}: ${parsed.plateNumber}`,
+				);
 				return {
 					statusCode: 409,
 					body: {
@@ -141,6 +184,12 @@ export class VehiclesService {
 					},
 				};
 			}
+
+			this.logger.error(
+				`[updateVehicle] Failed for userId=${userId}, vehicleId=${vehicleId}: ${this.getErrorMessage(
+					error,
+				)}`,
+			);
 
 			return {
 				statusCode: 500,
@@ -167,15 +216,30 @@ export class VehiclesService {
 				return accessError;
 			}
 
-			await this.prisma.vehicles.delete({
-				where: { id: vehicleId },
-			});
+			this.logger.log(
+				`[deleteVehicle] userId=${userId} deleting vehicleId=${vehicleId}`,
+			);
+			await this.prisma.executeQuery(
+				'VehiclesService.deleteVehicle.vehicles.delete',
+				() =>
+					this.prisma.vehicles.delete({
+						where: { id: vehicleId },
+					}),
+			);
+			this.logger.log(
+				`[deleteVehicle] userId=${userId} deleted vehicleId=${vehicleId}`,
+			);
 
 			return {
 				statusCode: 200,
 				body: { success: true },
 			};
 		} catch (error: unknown) {
+			this.logger.error(
+				`[deleteVehicle] Failed for userId=${userId}, vehicleId=${vehicleId}: ${this.getErrorMessage(
+					error,
+				)}`,
+			);
 			return {
 				statusCode: 500,
 				body: { error: this.getErrorMessage(error) },
@@ -187,13 +251,17 @@ export class VehiclesService {
 		vehicleId: number,
 		userId: number,
 	): Promise<VehiclesServiceResult | null> {
-		const vehicle = await this.prisma.vehicles.findUnique({
-			where: { id: vehicleId },
-			select: {
-				id: true,
-				user_id: true,
-			},
-		});
+		const vehicle = await this.prisma.executeQuery(
+			'VehiclesService.validateVehicleOwnership.vehicles.findUnique',
+			() =>
+				this.prisma.vehicles.findUnique({
+					where: { id: vehicleId },
+					select: {
+						id: true,
+						user_id: true,
+					},
+				}),
+		);
 
 		if (!vehicle) {
 			return {

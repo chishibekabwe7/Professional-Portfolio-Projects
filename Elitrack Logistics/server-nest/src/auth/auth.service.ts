@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { Prisma } from '../generated/prisma/client';
@@ -31,6 +31,8 @@ export interface AuthServiceResult {
 
 @Injectable()
 export class AuthService {
+	private readonly logger = new Logger(AuthService.name);
+
 	constructor(
 		private readonly jwtService: JwtService,
 		private readonly prisma: PrismaService,
@@ -49,17 +51,21 @@ export class AuthService {
 		const password = String(payload.password);
 
 		try {
+			this.logger.log(`[register] Preparing user creation for ${email}`);
 			const hashedPassword = await bcrypt.hash(password, 12);
-			await this.prisma.users.create({
-				data: {
-					email,
-					password: hashedPassword,
-					role: users_role.user,
-					phone: payload.phone || null,
-					full_name: payload.full_name || '',
-					company: payload.company || '',
-				},
-			});
+			await this.prisma.executeQuery('AuthService.register.users.create', () =>
+				this.prisma.users.create({
+					data: {
+						email,
+						password: hashedPassword,
+						role: users_role.user,
+						phone: payload.phone || null,
+						full_name: payload.full_name || '',
+						company: payload.company || '',
+					},
+				}),
+			);
+			this.logger.log(`[register] User creation completed for ${email}`);
 
 			return {
 				statusCode: 200,
@@ -73,11 +79,16 @@ export class AuthService {
 				error instanceof Prisma.PrismaClientKnownRequestError &&
 				error.code === 'P2002'
 			) {
+				this.logger.warn(`[register] Duplicate email attempted: ${email}`);
 				return {
 					statusCode: 409,
 					body: { error: 'Email already registered' },
 				};
 			}
+
+			this.logger.error(
+				`[register] Failed for ${email}: ${this.getErrorMessage(error)}`,
+			);
 
 			return {
 				statusCode: 500,
@@ -99,19 +110,23 @@ export class AuthService {
 		const password = String(payload.password);
 
 		try {
-			const user = await this.prisma.users.findUnique({
-				where: { email },
-				select: {
-					id: true,
-					email: true,
-					password: true,
-					role: true,
-					full_name: true,
-					company: true,
-				},
-			});
+			this.logger.log(`[login] Looking up account for ${email}`);
+			const user = await this.prisma.executeQuery('AuthService.login.users.findUnique', () =>
+				this.prisma.users.findUnique({
+					where: { email },
+					select: {
+						id: true,
+						email: true,
+						password: true,
+						role: true,
+						full_name: true,
+						company: true,
+					},
+				}),
+			);
 
 			if (!user) {
+				this.logger.warn(`[login] User not found for ${email}`);
 				return {
 					statusCode: 401,
 					body: { error: 'Invalid credentials' },
@@ -120,6 +135,7 @@ export class AuthService {
 
 			const passwordMatches = await bcrypt.compare(password, user.password);
 			if (!passwordMatches) {
+				this.logger.warn(`[login] Invalid password for ${email}`);
 				return {
 					statusCode: 401,
 					body: { error: 'Invalid credentials' },
@@ -133,6 +149,7 @@ export class AuthService {
 			};
 
 			const token = await this.jwtService.signAsync(tokenPayload);
+			this.logger.log(`[login] Successful login for userId=${user.id}`);
 
 			return {
 				statusCode: 200,
@@ -148,6 +165,9 @@ export class AuthService {
 				},
 			};
 		} catch (error: unknown) {
+			this.logger.error(
+				`[login] Failed for ${email}: ${this.getErrorMessage(error)}`,
+			);
 			return {
 				statusCode: 500,
 				body: { error: this.getErrorMessage(error) },
