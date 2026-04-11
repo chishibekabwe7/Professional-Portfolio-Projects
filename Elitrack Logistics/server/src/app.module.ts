@@ -5,6 +5,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { ShipmentsModule } from './shipments/shipments.module';
+import { TcpModule } from './tcp/tcp.module';
 import { UsersModule } from './users/users.module';
 import { VehiclesModule } from './vehicles/vehicles.module';
 
@@ -17,6 +18,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     BookingsModule,
     AdminModule,
     ShipmentsModule,
+    TcpModule,
   ],
   controllers: [HealthController],
 })
