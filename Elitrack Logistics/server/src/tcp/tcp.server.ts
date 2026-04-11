@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Socket, createServer, Server as NetServer } from 'net';
+import { createServer, Server as NetServer, Socket } from 'net';
 import { Gt06LocationData, Gt06Parser } from './gt06.parser';
 
 @Injectable()

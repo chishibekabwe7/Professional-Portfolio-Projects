@@ -162,11 +162,27 @@ model users {
 }
 
 model TrackerDevice {
-  id        Int      @id @default(autoincrement())
-  imei      String   @unique
-  label     String
-  ownerId   String
-  createdAt DateTime @default(now())
+  id         Int           @id @default(autoincrement())
+  imei       String        @unique
+  label      String
+  ownerId    String
+  isActive   Boolean       @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime      @default(now())
+  locations  LocationLog[]
+}
+
+model LocationLog {
+  id         Int           @id @default(autoincrement())
+  deviceId   String
+  latitude   Float
+  longitude  Float
+  speed      Int           @default(0)
+  altitude   Float         @default(0)
+  recordedAt DateTime      @default(now())
+  device     TrackerDevice @relation(fields: [deviceId], references: [imei])
+
+  @@index([deviceId, recordedAt])
 }
 
 enum users_role {
