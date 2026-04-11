@@ -56,6 +56,41 @@ function MapUpdater({ currentPosition }: MapUpdaterProps): null {
   return null;
 }
 
+function ExternalFlyToHandler(): null {
+  const map = useMap();
+
+  useEffect(() => {
+    const onFlyTo = (event: Event): void => {
+      const customEvent = event as CustomEvent<{
+        lat: number;
+        lng: number;
+        zoom?: number;
+      }>;
+
+      const lat = Number(customEvent.detail?.lat);
+      const lng = Number(customEvent.detail?.lng);
+      const zoom = Number(customEvent.detail?.zoom);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return;
+      }
+
+      map.flyTo([lat, lng], Number.isFinite(zoom) ? zoom : map.getZoom(), {
+        animate: true,
+        duration: 1,
+      });
+    };
+
+    window.addEventListener('elitrack:fly-to', onFlyTo as EventListener);
+
+    return () => {
+      window.removeEventListener('elitrack:fly-to', onFlyTo as EventListener);
+    };
+  }, [map]);
+
+  return null;
+}
+
 const formatTime = (date: Date | null): string => {
   if (!date) {
     return '--:--:--';
@@ -118,6 +153,7 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
         )}
 
         <MapUpdater currentPosition={currentPosition} />
+        <ExternalFlyToHandler />
         <GeofenceLayer deviceId={deviceId} />
       </MapContainer>
 

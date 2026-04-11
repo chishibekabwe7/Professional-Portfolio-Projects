@@ -30,6 +30,21 @@ type GeofenceAlertEvent = {
   triggeredAt: Date;
 };
 
+type SpeedAlertEvent = {
+  speed: number;
+  limit: number;
+  lat: number;
+  lng: number;
+  triggeredAt: Date;
+};
+
+type IdleAlertEvent = {
+  duration: number;
+  lat: number;
+  lng: number;
+  triggeredAt: Date;
+};
+
 type UseTrackerOptions = {
   loadHistory?: boolean;
   trackLocation?: boolean;
@@ -53,6 +68,8 @@ export function useTracker(deviceId: string, options: UseTrackerOptions = {}) {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [latestGeofenceAlert, setLatestGeofenceAlert] = useState<GeofenceAlertEvent | null>(null);
+  const [latestSpeedAlert, setLatestSpeedAlert] = useState<SpeedAlertEvent | null>(null);
+  const [latestIdleAlert, setLatestIdleAlert] = useState<IdleAlertEvent | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -158,6 +175,48 @@ export function useTracker(deviceId: string, options: UseTrackerOptions = {}) {
       });
     });
 
+    socket.on('speedAlert', (data: {
+      speed: number;
+      limit: number;
+      lat: number;
+      lng: number;
+      triggeredAt: string | Date;
+    }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const normalizedDate = new Date(data.triggeredAt);
+
+      setLatestSpeedAlert({
+        speed: Number(data.speed),
+        limit: Number(data.limit),
+        lat: Number(data.lat),
+        lng: Number(data.lng),
+        triggeredAt: Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate,
+      });
+    });
+
+    socket.on('idleAlert', (data: {
+      duration: number;
+      lat: number;
+      lng: number;
+      triggeredAt: string | Date;
+    }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const normalizedDate = new Date(data.triggeredAt);
+
+      setLatestIdleAlert({
+        duration: Number(data.duration),
+        lat: Number(data.lat),
+        lng: Number(data.lng),
+        triggeredAt: Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate,
+      });
+    });
+
     return () => {
       isMounted = false;
       socket.emit('unsubscribeFromTracker', { deviceId });
@@ -171,5 +230,7 @@ export function useTracker(deviceId: string, options: UseTrackerOptions = {}) {
     isConnected,
     lastUpdated,
     latestGeofenceAlert,
+    latestSpeedAlert,
+    latestIdleAlert,
   };
 }

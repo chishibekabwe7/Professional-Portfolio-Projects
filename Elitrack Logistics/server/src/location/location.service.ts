@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { LocationLog, TrackerDevice } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TcpGpsServer } from '../tcp/tcp.server';
+import { AlertService } from './alert.service';
 import { GeofenceService } from './geofence.service';
 import { LocationGateway, LocationUpdatePayload } from './location.gateway';
 
@@ -18,6 +19,7 @@ export class LocationService {
     private readonly prisma: PrismaService,
     private readonly locationGateway: LocationGateway,
     private readonly geofenceService: GeofenceService,
+    private readonly alertService: AlertService,
     @Inject(forwardRef(() => TcpGpsServer))
     private readonly tcpGpsServer: TcpGpsServer,
   ) {}
@@ -58,6 +60,8 @@ export class LocationService {
     );
 
     await this.geofenceService.checkGeofences(imei, data.latitude, data.longitude);
+    await this.alertService.checkSpeed(imei, data.speed, data.latitude, data.longitude);
+    await this.alertService.checkIdle(imei, data.speed, data.latitude, data.longitude);
 
     this.lastSaveMap.set(imei, now);
   }

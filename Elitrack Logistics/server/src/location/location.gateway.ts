@@ -22,6 +22,19 @@ export interface GeofenceAlertPayload {
   triggeredAt: Date;
 }
 
+export interface SpeedAlertPayload {
+  speed: number;
+  limit: number;
+  lat: number;
+  lng: number;
+}
+
+export interface IdleAlertPayload {
+  duration: number;
+  lat: number;
+  lng: number;
+}
+
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/tracking',
@@ -70,6 +83,22 @@ export class LocationGateway
     this.server.to(`tracker:${imei}`).emit('geofenceAlert', {
       imei,
       ...alert,
+    });
+  }
+
+  emitSpeedAlert(imei: string, alert: SpeedAlertPayload): void {
+    this.server.to(`tracker:${imei}`).emit('speedAlert', {
+      imei,
+      ...alert,
+      triggeredAt: new Date(),
+    });
+  }
+
+  emitIdleAlert(imei: string, alert: IdleAlertPayload): void {
+    this.server.to(`tracker:${imei}`).emit('idleAlert', {
+      imei,
+      ...alert,
+      triggeredAt: new Date(),
     });
   }
 }

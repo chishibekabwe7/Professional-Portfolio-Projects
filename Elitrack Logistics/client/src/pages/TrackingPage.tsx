@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { AlertFeed } from '../components/AlertFeed';
 import { TrackingMap } from '../components/TrackingMap';
 
 export default function TrackingPage() {
@@ -53,6 +54,7 @@ export default function TrackingPage() {
       </button>
 
       <TrackingMap deviceId={deviceId} height="100vh" />
+      <AlertFeed deviceId={deviceId} />
     </div>
   );
 }

@@ -223,6 +223,37 @@ model GeofenceAlert {
   @@index([deviceImei, triggeredAt])
 }
 
+model SpeedAlert {
+  id          Int      @id @default(autoincrement())
+  deviceImei  String
+  speed       Int
+  limitKmh    Int
+  latitude    Float
+  longitude   Float
+  triggeredAt DateTime @default(now())
+
+  @@index([deviceImei, triggeredAt])
+}
+
+model IdleAlert {
+  id              Int      @id @default(autoincrement())
+  deviceImei      String
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationSeconds Int      @default(0)
+  latitude        Float
+  longitude       Float
+
+  @@index([deviceImei, startedAt])
+}
+
+model DeviceSettings {
+  id                   Int    @id @default(autoincrement())
+  deviceImei           String @unique
+  speedLimitKmh        Int    @default(80)
+  idleThresholdMinutes Int    @default(5)
+}
+
 enum users_role {
   super_admin
   admin

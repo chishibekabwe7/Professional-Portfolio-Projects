@@ -1,11 +1,12 @@
 import {
     Body,
     Controller,
-  Delete,
+    Delete,
     Get,
     Param,
-  ParseIntPipe,
+    ParseIntPipe,
     Post,
+    Put,
     Query,
     Req,
     UnauthorizedException,
@@ -13,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { JwtTokenPayload } from '../auth/auth.service';
+import { AlertService } from './alert.service';
 import { GeofenceService } from './geofence.service';
 import { LocationService } from './location.service';
 
@@ -32,12 +34,18 @@ interface CreateGeofenceBody {
   radiusMeters: number;
 }
 
+interface UpdateDeviceSettingsBody {
+  speedLimitKmh?: number;
+  idleThresholdMinutes?: number;
+}
+
 @Controller('locations')
 @UseGuards(AuthGuard)
 export class LocationController {
   constructor(
     private readonly locationService: LocationService,
     private readonly geofenceService: GeofenceService,
+    private readonly alertService: AlertService,
   ) {}
 
   @Get('devices')
@@ -135,6 +143,48 @@ export class LocationController {
     @Query('limit') limit?: string,
   ) {
     return this.geofenceService.getAlerts(deviceId, this.toPositiveAlertLimit(limit));
+  }
+
+  @Get(':deviceId/alerts/speed')
+  async getSpeedAlerts(
+    @Param('deviceId') deviceId: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.alertService.getRecentSpeedAlerts(
+      deviceId,
+      this.toPositiveAlertLimit(limit),
+    );
+  }
+
+  @Get(':deviceId/alerts/idle')
+  async getIdleAlerts(
+    @Param('deviceId') deviceId: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.alertService.getRecentIdleAlerts(
+      deviceId,
+      this.toPositiveAlertLimit(limit),
+    );
+  }
+
+  @Put(':deviceId/settings')
+  async updateDeviceSettings(
+    @Param('deviceId') deviceId: string,
+    @Body() body: UpdateDeviceSettingsBody,
+  ) {
+    return this.alertService.updateSettings(deviceId, {
+      ...(body.speedLimitKmh !== undefined
+        ? { speedLimitKmh: Number(body.speedLimitKmh) }
+        : {}),
+      ...(body.idleThresholdMinutes !== undefined
+        ? { idleThresholdMinutes: Number(body.idleThresholdMinutes) }
+        : {}),
+    });
+  }
+
+  @Get(':deviceId/settings')
+  async getDeviceSettings(@Param('deviceId') deviceId: string) {
+    return this.alertService.getSettings(deviceId);
   }
 
   private getUserId(req: AuthenticatedRequest): number {
