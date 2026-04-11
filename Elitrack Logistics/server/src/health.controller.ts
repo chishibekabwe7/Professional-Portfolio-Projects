@@ -12,6 +12,16 @@ export class HealthController {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  @Get()
+  getRoot(): object {
+    return {
+      app: 'Elitrack Logistics API',
+      status: 'running',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+    };
+  }
+
   @Get('health')
   getHealth() {
     return { status: 'ok' };

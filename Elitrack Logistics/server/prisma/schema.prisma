@@ -54,7 +54,6 @@ model bookings {
   created_at          DateTime?             @default(now()) @db.Timestamp(0)
   updated_at          DateTime?             @default(now()) @db.Timestamp(0)
   users               users                 @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bookings_ibfk_1")
-  vehicles            vehicles?             @relation(fields: [vehicle_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   fleet_telemetry     fleet_telemetry[]
   notification_events notification_events[]
   transactions        transactions[]
@@ -64,19 +63,17 @@ model bookings {
 }
 
 model vehicles {
-  id               Int        @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   user_id          Int
-  category         String     @default("other") @db.VarChar(60)
-  vehicle_name     String     @db.VarChar(120)
-  plate_number     String     @db.VarChar(30)
-  tracking_enabled Boolean    @default(true)
-  created_at       DateTime?  @default(now()) @db.Timestamp(0)
-  users            users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  bookings         bookings[]
+  category         String    @default("other") @db.VarChar(60)
+  vehicle_name     String    @db.VarChar(120)
+  plate_number     String    @db.VarChar(30)
+  tracking_enabled Boolean   @default(true)
+  created_at       DateTime? @default(now()) @db.Timestamp(0)
 
   @@unique([user_id, plate_number], map: "uniq_user_plate")
   @@index([user_id], map: "idx_vehicles_user_id")
-  @@index([user_id, created_at], map: "idx_vehicles_user_created_at")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_vehicles_user_created_at")
 }
 
 model fleet_telemetry {
@@ -155,136 +152,9 @@ model users {
   admin_audit_logs      admin_audit_logs[]
   audit_logs            audit_logs[]
   bookings              bookings[]
-  vehicles              vehicles[]
   notification_events   notification_events[]
   password_reset_tokens password_reset_tokens[]
   transactions          transactions[]
-}
-
-model TrackerDevice {
-  id         Int           @id @default(autoincrement())
-  imei       String        @unique
-  label      String
-  ownerId    String
-  isActive   Boolean       @default(true)
-  lastSeenAt DateTime?
-  createdAt  DateTime      @default(now())
-  locations  LocationLog[]
-}
-
-model LocationLog {
-  id         Int           @id @default(autoincrement())
-  deviceId   String
-  latitude   Float
-  longitude  Float
-  speed      Int           @default(0)
-  altitude   Float         @default(0)
-  recordedAt DateTime      @default(now())
-  device     TrackerDevice @relation(fields: [deviceId], references: [imei])
-
-  @@index([deviceId, recordedAt])
-}
-
-model EngineCommand {
-  id          Int      @id @default(autoincrement())
-  deviceImei  String
-  action      String
-  requestedBy String
-  success     Boolean
-  sentAt      DateTime @default(now())
-
-  @@index([deviceImei, sentAt])
-}
-
-model Geofence {
-  id           Int             @id @default(autoincrement())
-  deviceImei   String
-  name         String
-  centerLat    Float
-  centerLng    Float
-  radiusMeters Int
-  isActive     Boolean         @default(true)
-  createdAt    DateTime        @default(now())
-  alerts       GeofenceAlert[]
-
-  @@index([deviceImei])
-}
-
-model GeofenceAlert {
-  id          Int      @id @default(autoincrement())
-  geofenceId  Int
-  deviceImei  String
-  type        String
-  latitude    Float
-  longitude   Float
-  triggeredAt DateTime @default(now())
-  geofence    Geofence @relation(fields: [geofenceId], references: [id])
-
-  @@index([deviceImei, triggeredAt])
-}
-
-model SpeedAlert {
-  id          Int      @id @default(autoincrement())
-  deviceImei  String
-  speed       Int
-  limitKmh    Int
-  latitude    Float
-  longitude   Float
-  triggeredAt DateTime @default(now())
-
-  @@index([deviceImei, triggeredAt])
-}
-
-model IdleAlert {
-  id              Int      @id @default(autoincrement())
-  deviceImei      String
-  startedAt       DateTime
-  endedAt         DateTime?
-  durationSeconds Int      @default(0)
-  latitude        Float
-  longitude       Float
-
-  @@index([deviceImei, startedAt])
-}
-
-model DeviceSettings {
-  id                   Int    @id @default(autoincrement())
-  deviceImei           String @unique
-  speedLimitKmh        Int    @default(80)
-  idleThresholdMinutes Int    @default(5)
-}
-
-model Trip {
-  id           Int      @id @default(autoincrement())
-  deviceImei   String
-  startedAt    DateTime
-  endedAt      DateTime?
-  distanceKm   Float    @default(0)
-  durationSecs Int      @default(0)
-  avgSpeedKmh  Float    @default(0)
-  maxSpeedKmh  Float    @default(0)
-  startLat     Float
-  startLng     Float
-  endLat       Float?
-  endLng       Float?
-  isComplete   Boolean  @default(false)
-
-  @@index([deviceImei, startedAt])
-}
-
-model DailyScore {
-  id              Int      @id @default(autoincrement())
-  deviceImei      String
-  date            DateTime
-  score           Int
-  speedViolations Int      @default(0)
-  idleMinutes     Int      @default(0)
-  totalKm         Float    @default(0)
-  totalTrips      Int      @default(0)
-  harshEvents     Int      @default(0)
-
-  @@unique([deviceImei, date])
-  @@index([deviceImei, date])
 }
 
 enum users_role {
