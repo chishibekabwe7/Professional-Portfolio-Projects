@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { LocationLog, TrackerDevice } from '../generated/prisma/client';
-import { LocationGateway, LocationUpdatePayload } from './location.gateway';
 import { PrismaService } from '../prisma/prisma.service';
+import { LocationGateway, LocationUpdatePayload } from './location.gateway';
 
 type TrackerDeviceWithLatestLocation = TrackerDevice & {
   locations: LocationLog[];
