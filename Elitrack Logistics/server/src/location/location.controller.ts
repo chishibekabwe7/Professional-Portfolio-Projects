@@ -2,6 +2,7 @@ import {
     Body,
     Controller,
     Delete,
+    ForbiddenException,
     Get,
     Param,
     ParseIntPipe,
@@ -17,6 +18,7 @@ import { JwtTokenPayload } from '../auth/auth.service';
 import { AlertService } from './alert.service';
 import { GeofenceService } from './geofence.service';
 import { LocationService } from './location.service';
+import { TripService } from './trip.service';
 
 interface AuthenticatedRequest {
   user?: JwtTokenPayload;
@@ -46,6 +48,7 @@ export class LocationController {
     private readonly locationService: LocationService,
     private readonly geofenceService: GeofenceService,
     private readonly alertService: AlertService,
+    private readonly tripService: TripService,
   ) {}
 
   @Get('devices')
@@ -187,6 +190,34 @@ export class LocationController {
     return this.alertService.getSettings(deviceId);
   }
 
+  @Get(':deviceId/trips')
+  async getTrips(
+    @Param('deviceId') deviceId: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = this.toPositiveTripLimit(limit);
+    return this.tripService.getTrips(deviceId, parsedLimit);
+  }
+
+  @Get(':deviceId/trips/:tripId/replay')
+  async getTripReplay(
+    @Param('deviceId') deviceId: string,
+    @Param('tripId', ParseIntPipe) tripId: number,
+  ) {
+    const trip = await this.tripService.getTripById(tripId);
+
+    if (trip.deviceImei !== deviceId) {
+      throw new ForbiddenException('Trip does not belong to this device');
+    }
+
+    const locations = await this.tripService.getTripLocations(tripId);
+
+    return {
+      trip,
+      locations,
+    };
+  }
+
   private getUserId(req: AuthenticatedRequest): number {
     const userId = req.user?.id;
 
@@ -218,6 +249,19 @@ export class LocationController {
     const parsed = Number(rawLimit);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return 50;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  private toPositiveTripLimit(rawLimit?: string): number {
+    if (!rawLimit) {
+      return 30;
+    }
+
+    const parsed = Number(rawLimit);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 30;
     }
 
     return Math.floor(parsed);

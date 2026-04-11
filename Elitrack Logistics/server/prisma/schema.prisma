@@ -254,6 +254,24 @@ model DeviceSettings {
   idleThresholdMinutes Int    @default(5)
 }
 
+model Trip {
+  id           Int      @id @default(autoincrement())
+  deviceImei   String
+  startedAt    DateTime
+  endedAt      DateTime?
+  distanceKm   Float    @default(0)
+  durationSecs Int      @default(0)
+  avgSpeedKmh  Float    @default(0)
+  maxSpeedKmh  Float    @default(0)
+  startLat     Float
+  startLng     Float
+  endLat       Float?
+  endLng       Float?
+  isComplete   Boolean  @default(false)
+
+  @@index([deviceImei, startedAt])
+}
+
 enum users_role {
   super_admin
   admin

@@ -8,6 +8,7 @@ import {
     WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { Trip } from '../generated/prisma/client';
 
 export interface LocationUpdatePayload {
   latitude: number;
@@ -33,6 +34,10 @@ export interface IdleAlertPayload {
   duration: number;
   lat: number;
   lng: number;
+}
+
+export interface TripCompletedPayload {
+  trip: Trip;
 }
 
 @WebSocketGateway({
@@ -98,6 +103,14 @@ export class LocationGateway
     this.server.to(`tracker:${imei}`).emit('idleAlert', {
       imei,
       ...alert,
+      triggeredAt: new Date(),
+    });
+  }
+
+  emitTripCompleted(imei: string, trip: Trip): void {
+    this.server.to(`tracker:${imei}`).emit('tripCompleted', {
+      imei,
+      trip,
       triggeredAt: new Date(),
     });
   }
