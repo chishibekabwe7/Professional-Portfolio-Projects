@@ -16,6 +16,12 @@ export interface LocationUpdatePayload {
   timestamp: Date;
 }
 
+export interface GeofenceAlertPayload {
+  geofenceName: string;
+  type: 'entered' | 'exited';
+  triggeredAt: Date;
+}
+
 @WebSocketGateway({
   cors: { origin: '*' },
   namespace: '/tracking',
@@ -57,6 +63,13 @@ export class LocationGateway
     this.server.to(`tracker:${imei}`).emit('locationUpdate', {
       imei,
       ...data,
+    });
+  }
+
+  emitGeofenceAlert(imei: string, alert: GeofenceAlertPayload): void {
+    this.server.to(`tracker:${imei}`).emit('geofenceAlert', {
+      imei,
+      ...alert,
     });
   }
 }

@@ -1,8 +1,10 @@
 import {
     Body,
     Controller,
+  Delete,
     Get,
     Param,
+  ParseIntPipe,
     Post,
     Query,
     Req,
@@ -11,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { JwtTokenPayload } from '../auth/auth.service';
+import { GeofenceService } from './geofence.service';
 import { LocationService } from './location.service';
 
 interface AuthenticatedRequest {
@@ -22,10 +25,20 @@ interface RegisterDeviceBody {
   label: string;
 }
 
+interface CreateGeofenceBody {
+  name: string;
+  centerLat: number;
+  centerLng: number;
+  radiusMeters: number;
+}
+
 @Controller('locations')
 @UseGuards(AuthGuard)
 export class LocationController {
-  constructor(private readonly locationService: LocationService) {}
+  constructor(
+    private readonly locationService: LocationService,
+    private readonly geofenceService: GeofenceService,
+  ) {}
 
   @Get('devices')
   async getDevices(@Req() req: AuthenticatedRequest) {
@@ -85,6 +98,45 @@ export class LocationController {
     };
   }
 
+  @Post(':deviceId/geofences')
+  async createGeofence(
+    @Param('deviceId') deviceId: string,
+    @Body() body: CreateGeofenceBody,
+  ) {
+    return this.geofenceService.createGeofence({
+      deviceImei: deviceId,
+      name: body.name,
+      centerLat: Number(body.centerLat),
+      centerLng: Number(body.centerLng),
+      radiusMeters: Math.floor(Number(body.radiusMeters)),
+    });
+  }
+
+  @Get(':deviceId/geofences')
+  async getGeofences(@Param('deviceId') deviceId: string) {
+    return this.geofenceService.getGeofencesForDevice(deviceId);
+  }
+
+  @Delete(':deviceId/geofences/:id')
+  async deleteGeofence(
+    @Param('id', ParseIntPipe) geofenceId: number,
+  ) {
+    await this.geofenceService.deleteGeofence(geofenceId);
+
+    return {
+      success: true,
+      id: geofenceId,
+    };
+  }
+
+  @Get(':deviceId/geofences/alerts')
+  async getGeofenceAlerts(
+    @Param('deviceId') deviceId: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.geofenceService.getAlerts(deviceId, this.toPositiveAlertLimit(limit));
+  }
+
   private getUserId(req: AuthenticatedRequest): number {
     const userId = req.user?.id;
 
@@ -103,6 +155,19 @@ export class LocationController {
     const parsed = Number(rawLimit);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return 500;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  private toPositiveAlertLimit(rawLimit?: string): number {
+    if (!rawLimit) {
+      return 50;
+    }
+
+    const parsed = Number(rawLimit);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 50;
     }
 
     return Math.floor(parsed);

@@ -24,6 +24,17 @@ type SocketLocationUpdate = {
   speed: number;
 };
 
+type GeofenceAlertEvent = {
+  geofenceName: string;
+  type: 'entered' | 'exited';
+  triggeredAt: Date;
+};
+
+type UseTrackerOptions = {
+  loadHistory?: boolean;
+  trackLocation?: boolean;
+};
+
 const MAX_HISTORY_POINTS = 1000;
 
 const SOCKET_BASE_URL =
@@ -34,11 +45,14 @@ const SOCKET_BASE_URL =
 
 const SOCKET_NAMESPACE_URL = `${SOCKET_BASE_URL.replace(/\/+$/, '')}/tracking`;
 
-export function useTracker(deviceId: string) {
+export function useTracker(deviceId: string, options: UseTrackerOptions = {}) {
+  const loadHistory = options.loadHistory ?? true;
+  const trackLocation = options.trackLocation ?? true;
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const [history, setHistory] = useState<TrackerPoint[]>([]);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [latestGeofenceAlert, setLatestGeofenceAlert] = useState<GeofenceAlertEvent | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -64,7 +78,9 @@ export function useTracker(deviceId: string) {
       }
     };
 
-    void fetchHistory();
+    if (loadHistory) {
+      void fetchHistory();
+    }
 
     const socket = io(SOCKET_NAMESPACE_URL, {
       transports: ['websocket'],
@@ -89,6 +105,10 @@ export function useTracker(deviceId: string) {
     });
 
     socket.on('locationUpdate', (data: SocketLocationUpdate) => {
+      if (!trackLocation) {
+        return;
+      }
+
       if (!isMounted) {
         return;
       }
@@ -120,12 +140,36 @@ export function useTracker(deviceId: string) {
       setLastUpdated(new Date());
     });
 
+    socket.on('geofenceAlert', (data: {
+      geofenceName: string;
+      type: 'entered' | 'exited';
+      triggeredAt: string | Date;
+    }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const normalizedDate = new Date(data.triggeredAt);
+
+      setLatestGeofenceAlert({
+        geofenceName: data.geofenceName,
+        type: data.type,
+        triggeredAt: Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate,
+      });
+    });
+
     return () => {
       isMounted = false;
       socket.emit('unsubscribeFromTracker', { deviceId });
       socket.disconnect();
     };
-  }, [deviceId]);
+  }, [deviceId, loadHistory, trackLocation]);
 
-  return { currentPosition, history, isConnected, lastUpdated };
+  return {
+    currentPosition,
+    history,
+    isConnected,
+    lastUpdated,
+    latestGeofenceAlert,
+  };
 }

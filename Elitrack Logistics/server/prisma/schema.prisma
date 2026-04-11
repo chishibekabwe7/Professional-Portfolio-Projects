@@ -196,6 +196,33 @@ model EngineCommand {
   @@index([deviceImei, sentAt])
 }
 
+model Geofence {
+  id           Int             @id @default(autoincrement())
+  deviceImei   String
+  name         String
+  centerLat    Float
+  centerLng    Float
+  radiusMeters Int
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  alerts       GeofenceAlert[]
+
+  @@index([deviceImei])
+}
+
+model GeofenceAlert {
+  id          Int      @id @default(autoincrement())
+  geofenceId  Int
+  deviceImei  String
+  type        String
+  latitude    Float
+  longitude   Float
+  triggeredAt DateTime @default(now())
+  geofence    Geofence @relation(fields: [geofenceId], references: [id])
+
+  @@index([deviceImei, triggeredAt])
+}
+
 enum users_role {
   super_admin
   admin

@@ -5,6 +5,7 @@ import { getJwtConfig } from '../auth/jwt.config';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TcpModule } from '../tcp/tcp.module';
 import { LocationController } from './location.controller';
+import { GeofenceService } from './geofence.service';
 import { LocationGateway } from './location.gateway';
 import { LocationService } from './location.service';
 
@@ -24,7 +25,7 @@ const jwtConfig = getJwtConfig();
     }),
   ],
   controllers: [LocationController],
-  providers: [LocationGateway, LocationService, AuthGuard],
-  exports: [LocationGateway, LocationService],
+  providers: [LocationGateway, LocationService, GeofenceService, AuthGuard],
+  exports: [LocationGateway, LocationService, GeofenceService],
 })
 export class LocationModule {}

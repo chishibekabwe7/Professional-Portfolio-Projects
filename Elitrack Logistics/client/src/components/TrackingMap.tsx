@@ -14,6 +14,7 @@ import {
 } from 'react-leaflet';
 import { useTracker } from '../hooks/useTracker';
 import { EngineControl } from './EngineControl';
+import { GeofenceLayer } from './GeofenceLayer';
 import './TrackingMap.css';
 
 type TrackingMapProps = {
@@ -117,6 +118,7 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
         )}
 
         <MapUpdater currentPosition={currentPosition} />
+        <GeofenceLayer deviceId={deviceId} />
       </MapContainer>
 
       <div className="tracking-status-bar">
