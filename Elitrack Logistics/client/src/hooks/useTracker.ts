@@ -27,6 +27,7 @@ type SocketLocationUpdate = {
 const MAX_HISTORY_POINTS = 1000;
 
 const SOCKET_BASE_URL =
+  process.env.REACT_APP_WS_URL ||
   process.env.REACT_APP_API_URL ||
   process.env.REACT_APP_NEST_API_URL ||
   'http://localhost:3001';

@@ -8,6 +8,8 @@ import { AuthProvider } from './context/AuthContext';
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AuthPage = lazy(() => import('./pages/AuthPage'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const DeviceList = lazy(() => import('./pages/DeviceList'));
+const TrackingPage = lazy(() => import('./pages/TrackingPage'));
 
 type ApiStatusEventDetail = {
   message?: string;
@@ -69,6 +71,12 @@ export default function App() {
               } />
               <Route path="/admin" element={
                 <ProtectedRoute allowedRoles={['admin', 'super_admin']}><AdminDashboard /></ProtectedRoute>
+              } />
+              <Route path="/devices" element={
+                <ProtectedRoute><DeviceList /></ProtectedRoute>
+              } />
+              <Route path="/track/:deviceId" element={
+                <ProtectedRoute><TrackingPage /></ProtectedRoute>
               } />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

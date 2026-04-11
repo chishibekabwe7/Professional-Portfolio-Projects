@@ -2,18 +2,18 @@ import L, { type DivIcon } from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo } from 'react';
 import {
-  MapContainer,
-  Marker,
-  Popup,
-  Polyline,
-  TileLayer,
-  useMap,
+    MapContainer,
+    Marker,
+    Polyline,
+    Popup,
+    TileLayer,
+    useMap,
 } from 'react-leaflet';
 import { useTracker } from '../hooks/useTracker';
 import './TrackingMap.css';
-import 'leaflet/dist/leaflet.css';
 
 type TrackingMapProps = {
   deviceId: string;
