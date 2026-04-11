@@ -6,6 +6,7 @@ import {
 } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationGateway } from './location.gateway';
+import { ScoreService } from './score.service';
 
 type IdleSessionState = {
   startedAt: Date;
@@ -17,10 +18,12 @@ type IdleSessionState = {
 export class AlertService {
   private readonly lastSpeedAlertMap = new Map<string, number>();
   private readonly idleStartMap = new Map<string, IdleSessionState>();
+  private readonly idleScoreMinuteMap = new Map<string, number>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly locationGateway: LocationGateway,
+    private readonly scoreService: ScoreService,
   ) {}
 
   async checkSpeed(
@@ -31,12 +34,13 @@ export class AlertService {
   ): Promise<void> {
     const settings = await this.getSettings(imei);
     const speedLimitKmh = settings.speedLimitKmh ?? 80;
+    const now = new Date();
 
     if (speedKmh <= speedLimitKmh) {
       return;
     }
 
-    const nowMs = Date.now();
+    const nowMs = now.getTime();
     const lastAlertMs = this.lastSpeedAlertMap.get(imei) ?? 0;
 
     if (nowMs - lastAlertMs < 60000) {
@@ -62,6 +66,8 @@ export class AlertService {
       lng,
     });
 
+    await this.scoreService.recordEvent(imei, 'speed_violation', now);
+
     this.lastSpeedAlertMap.set(imei, nowMs);
   }
 
@@ -81,6 +87,7 @@ export class AlertService {
           lat,
           lng,
         });
+        this.idleScoreMinuteMap.set(imei, 0);
         return;
       }
 
@@ -90,6 +97,19 @@ export class AlertService {
 
       if (durationSeconds < thresholdMinutes * 60) {
         return;
+      }
+
+      const overThresholdMinutes = Math.floor(
+        (durationSeconds - thresholdMinutes * 60) / 60,
+      );
+      const lastRecordedOverThresholdMinutes = this.idleScoreMinuteMap.get(imei) ?? 0;
+
+      if (overThresholdMinutes > lastRecordedOverThresholdMinutes) {
+        for (let minute = lastRecordedOverThresholdMinutes; minute < overThresholdMinutes; minute += 1) {
+          await this.scoreService.recordEvent(imei, 'idle', now);
+        }
+
+        this.idleScoreMinuteMap.set(imei, overThresholdMinutes);
       }
 
       const existingAlert = await this.prisma.executeQuery(
@@ -156,6 +176,7 @@ export class AlertService {
     );
 
     this.idleStartMap.set(imei, null);
+    this.idleScoreMinuteMap.delete(imei);
   }
 
   async updateSettings(

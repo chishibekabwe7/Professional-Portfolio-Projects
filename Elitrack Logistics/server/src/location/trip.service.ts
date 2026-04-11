@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { LocationLog, Trip } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocationGateway } from './location.gateway';
+import { ScoreService } from './score.service';
 
 type ActiveTripState = {
   tripId: number;
@@ -24,6 +25,7 @@ export class TripService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly locationGateway: LocationGateway,
+    private readonly scoreService: ScoreService,
   ) {}
 
   async processLocation(
@@ -153,6 +155,12 @@ export class TripService {
 
       this.activeTripMap.delete(imei);
       this.lastTripPersistMap.delete(imei);
+
+      await this.scoreService.recordTripSummary(
+        imei,
+        completedTrip.endedAt ?? endedAt,
+        completedTrip.distanceKm,
+      );
 
       this.locationGateway.emitTripCompleted(imei, completedTrip);
     }

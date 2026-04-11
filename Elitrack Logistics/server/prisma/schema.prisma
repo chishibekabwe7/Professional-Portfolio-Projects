@@ -272,6 +272,21 @@ model Trip {
   @@index([deviceImei, startedAt])
 }
 
+model DailyScore {
+  id              Int      @id @default(autoincrement())
+  deviceImei      String
+  date            DateTime
+  score           Int
+  speedViolations Int      @default(0)
+  idleMinutes     Int      @default(0)
+  totalKm         Float    @default(0)
+  totalTrips      Int      @default(0)
+  harshEvents     Int      @default(0)
+
+  @@unique([deviceImei, date])
+  @@index([deviceImei, date])
+}
+
 enum users_role {
   super_admin
   admin

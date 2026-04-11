@@ -51,6 +51,26 @@
   white-space: nowrap;
 }
 
+.tracking-score-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1300;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.tracking-score-overlay__label {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.86);
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .tracking-marker-wrapper {
   background: transparent;
   border: 0;

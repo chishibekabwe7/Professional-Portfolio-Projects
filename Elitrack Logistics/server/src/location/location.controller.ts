@@ -18,6 +18,7 @@ import { JwtTokenPayload } from '../auth/auth.service';
 import { AlertService } from './alert.service';
 import { GeofenceService } from './geofence.service';
 import { LocationService } from './location.service';
+import { ScoreService } from './score.service';
 import { TripService } from './trip.service';
 
 interface AuthenticatedRequest {
@@ -48,6 +49,7 @@ export class LocationController {
     private readonly locationService: LocationService,
     private readonly geofenceService: GeofenceService,
     private readonly alertService: AlertService,
+    private readonly scoreService: ScoreService,
     private readonly tripService: TripService,
   ) {}
 
@@ -55,6 +57,19 @@ export class LocationController {
   async getDevices(@Req() req: AuthenticatedRequest) {
     const userId = this.getUserId(req);
     return this.locationService.getAllDevices(String(userId));
+  }
+
+  @Get('fleet/scores')
+  async getFleetScores(@Req() req: AuthenticatedRequest) {
+    const userId = this.getUserId(req);
+    const devices = await this.locationService.getAllDevices(String(userId));
+    const imeis = devices.map((device) => device.imei);
+    const scoreMap = await this.scoreService.getAllDevicesLatestScore(imeis);
+
+    return devices.map((device) => ({
+      device,
+      score: scoreMap.get(device.imei) ?? null,
+    }));
   }
 
   @Get(':deviceId/history')
@@ -190,6 +205,19 @@ export class LocationController {
     return this.alertService.getSettings(deviceId);
   }
 
+  @Get(':deviceId/score/today')
+  async getTodayScore(@Param('deviceId') deviceId: string) {
+    return this.scoreService.getTodayScore(deviceId);
+  }
+
+  @Get(':deviceId/score/history')
+  async getScoreHistory(
+    @Param('deviceId') deviceId: string,
+    @Query('days') days?: string,
+  ) {
+    return this.scoreService.getDailyScores(deviceId, this.toPositiveScoreDays(days));
+  }
+
   @Get(':deviceId/trips')
   async getTrips(
     @Param('deviceId') deviceId: string,
@@ -260,6 +288,19 @@ export class LocationController {
     }
 
     const parsed = Number(rawLimit);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return 30;
+    }
+
+    return Math.floor(parsed);
+  }
+
+  private toPositiveScoreDays(rawDays?: string): number {
+    if (!rawDays) {
+      return 30;
+    }
+
+    const parsed = Number(rawDays);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return 30;
     }

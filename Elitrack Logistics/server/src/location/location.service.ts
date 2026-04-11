@@ -5,6 +5,7 @@ import { TcpGpsServer } from '../tcp/tcp.server';
 import { AlertService } from './alert.service';
 import { GeofenceService } from './geofence.service';
 import { LocationGateway, LocationUpdatePayload } from './location.gateway';
+import { ScoreService } from './score.service';
 import { TripService } from './trip.service';
 
 type TrackerDeviceWithLatestLocation = TrackerDevice & {
@@ -21,6 +22,7 @@ export class LocationService {
     private readonly locationGateway: LocationGateway,
     private readonly geofenceService: GeofenceService,
     private readonly alertService: AlertService,
+    private readonly scoreService: ScoreService,
     private readonly tripService: TripService,
     @Inject(forwardRef(() => TcpGpsServer))
     private readonly tcpGpsServer: TcpGpsServer,
@@ -38,6 +40,8 @@ export class LocationService {
       speed: data.speed,
       timestamp: data.timestamp,
     });
+
+    await this.scoreService.checkHarshBrake(imei, data.speed, data.timestamp);
 
     const now = Date.now();
     const lastSavedAt = this.lastSaveMap.get(imei) ?? 0;

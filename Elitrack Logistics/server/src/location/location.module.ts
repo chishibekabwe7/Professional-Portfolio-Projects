@@ -9,6 +9,7 @@ import { GeofenceService } from './geofence.service';
 import { LocationController } from './location.controller';
 import { LocationGateway } from './location.gateway';
 import { LocationService } from './location.service';
+import { ScoreService } from './score.service';
 import { TripService } from './trip.service';
 
 const jwtConfig = getJwtConfig();
@@ -27,7 +28,7 @@ const jwtConfig = getJwtConfig();
     }),
   ],
   controllers: [LocationController],
-  providers: [LocationGateway, LocationService, GeofenceService, AlertService, TripService, AuthGuard],
-  exports: [LocationGateway, LocationService, GeofenceService, AlertService, TripService],
+  providers: [LocationGateway, LocationService, GeofenceService, AlertService, ScoreService, TripService, AuthGuard],
+  exports: [LocationGateway, LocationService, GeofenceService, AlertService, ScoreService, TripService],
 })
 export class LocationModule {}

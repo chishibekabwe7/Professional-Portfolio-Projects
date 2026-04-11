@@ -12,9 +12,11 @@ import {
     TileLayer,
     useMap,
 } from 'react-leaflet';
+import api from '../api';
 import { useTracker } from '../hooks/useTracker';
 import { EngineControl } from './EngineControl';
 import { GeofenceLayer } from './GeofenceLayer';
+import { ScoreBadge } from './ScoreBadge';
 import './TrackingMap.css';
 
 type TrackingMapProps = {
@@ -43,6 +45,10 @@ type PlaybackMapUpdaterProps = {
 };
 
 type PlaybackSpeed = 1 | 2 | 5;
+
+type TodayScoreResponse = {
+  score?: number;
+} | null;
 
 const PLAYBACK_SPEED_OPTIONS: PlaybackSpeed[] = [1, 2, 5];
 
@@ -163,12 +169,43 @@ const formatTime = (date: Date | null): string => {
 
 export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
   const { currentPosition, history, isConnected, lastUpdated } = useTracker(deviceId);
+  const [todayScore, setTodayScore] = useState<number>(100);
   const [playbackLocations, setPlaybackLocations] = useState<ReplayPoint[] | null>(null);
   const [playbackIndex, setPlaybackIndex] = useState<number>(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
   const [isPlaybackPlaying, setIsPlaybackPlaying] = useState<boolean>(false);
 
   const isPlaybackMode = Boolean(playbackLocations && playbackLocations.length > 0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchTodayScore = async (): Promise<void> => {
+      try {
+        const response = await api.get<TodayScoreResponse>(`/locations/${deviceId}/score/today`);
+        const rawScore = Number(response.data?.score ?? 100);
+
+        if (!isMounted || !Number.isFinite(rawScore)) {
+          return;
+        }
+
+        setTodayScore(Math.max(0, Math.min(100, Math.round(rawScore))));
+      } catch (error) {
+        console.error('Failed to load today score:', error);
+      }
+    };
+
+    void fetchTodayScore();
+
+    const timer = window.setInterval(() => {
+      void fetchTodayScore();
+    }, 60000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(timer);
+    };
+  }, [deviceId]);
 
   useEffect(() => {
     const onTripPlayback = (event: Event): void => {
@@ -359,6 +396,11 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
 
       {!isPlaybackMode && (
         <>
+          <div className="tracking-score-overlay">
+            <ScoreBadge score={todayScore} size="lg" />
+            <span className="tracking-score-overlay__label">Driver Score</span>
+          </div>
+
           <div className="tracking-status-bar">
             <span className={`tracking-badge ${isConnected ? 'is-live' : 'is-offline'}`}>
               {isConnected ? 'LIVE' : 'OFFLINE'}
