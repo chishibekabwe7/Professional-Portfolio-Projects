@@ -19,12 +19,15 @@
     "@nestjs/core": "^11.1.18",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.18",
+    "@nestjs/platform-socket.io": "^11.1.18",
+    "@nestjs/websockets": "^11.1.18",
     "@prisma/adapter-mariadb": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "bcrypt": "^6.0.0",
     "google-auth-library": "^10.6.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

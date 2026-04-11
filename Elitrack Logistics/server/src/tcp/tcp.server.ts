@@ -1,13 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createServer, Server as NetServer, Socket } from 'net';
-import { Gt06LocationData, Gt06Parser } from './gt06.parser';
-
-@Injectable()
-export class LocationGateway {
-  handleDeviceUpdate(_imei: string, _data: Gt06LocationData): void {
-    // Intentionally no-op until websocket/location broadcasting is wired.
-  }
-}
+import { LocationGateway } from '../location/location.gateway';
+import { LocationService } from '../location/location.service';
+import { Gt06Parser } from './gt06.parser';
 
 @Injectable()
 export class TcpGpsServer {
@@ -15,7 +10,10 @@ export class TcpGpsServer {
   private readonly socketImeiMap = new Map<Socket, string>();
   private server: NetServer | null = null;
 
-  constructor(private readonly locationGateway: LocationGateway) {}
+  constructor(
+    private readonly locationGateway: LocationGateway,
+    private readonly locationService: LocationService,
+  ) {}
 
   start(port = 5000): void {
     if (this.server) {
@@ -85,7 +83,11 @@ export class TcpGpsServer {
       }
 
       const data = Gt06Parser.parseLocationPacket(buf);
-      this.locationGateway.handleDeviceUpdate(imei, data);
+      this.locationGateway.broadcast(imei, data);
+      void this.locationService.handleDeviceUpdate(imei, data).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to handle device update for IMEI ${imei}: ${message}`);
+      });
       return;
     }
 

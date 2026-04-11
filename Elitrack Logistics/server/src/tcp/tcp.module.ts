@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { LocationGateway, TcpGpsServer } from './tcp.server';
+import { LocationModule } from '../location/location.module';
+import { TcpGpsServer } from './tcp.server';
 
 @Module({
-  providers: [TcpGpsServer, LocationGateway],
+  imports: [LocationModule],
+  providers: [TcpGpsServer],
   exports: [TcpGpsServer],
 })
 export class TcpModule {}

@@ -3,6 +3,7 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { HealthController } from './health.controller';
+import { LocationModule } from './location/location.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ShipmentsModule } from './shipments/shipments.module';
 import { TcpModule } from './tcp/tcp.module';
@@ -16,6 +17,7 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     UsersModule,
     VehiclesModule,
     BookingsModule,
+    LocationModule,
     AdminModule,
     ShipmentsModule,
     TcpModule,
