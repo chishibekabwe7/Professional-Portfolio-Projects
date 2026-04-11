@@ -161,6 +161,14 @@ model users {
   transactions          transactions[]
 }
 
+model TrackerDevice {
+  id        Int      @id @default(autoincrement())
+  imei      String   @unique
+  label     String
+  ownerId   String
+  createdAt DateTime @default(now())
+}
+
 enum users_role {
   super_admin
   admin
