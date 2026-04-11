@@ -51,6 +51,12 @@
   white-space: nowrap;
 }
 
+.tracking-status-item.is-address {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .tracking-score-overlay {
   position: absolute;
   top: 12px;

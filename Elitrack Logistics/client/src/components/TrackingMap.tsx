@@ -14,6 +14,7 @@ import {
 } from 'react-leaflet';
 import api from '../api';
 import { useTracker } from '../hooks/useTracker';
+import { reverseGeocode } from '../utils/geocode';
 import { EngineControl } from './EngineControl';
 import { GeofenceLayer } from './GeofenceLayer';
 import { ScoreBadge } from './ScoreBadge';
@@ -170,6 +171,7 @@ const formatTime = (date: Date | null): string => {
 export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
   const { currentPosition, history, isConnected, lastUpdated } = useTracker(deviceId);
   const [todayScore, setTodayScore] = useState<number>(100);
+  const [currentAddress, setCurrentAddress] = useState<string>('Location unavailable');
   const [playbackLocations, setPlaybackLocations] = useState<ReplayPoint[] | null>(null);
   const [playbackIndex, setPlaybackIndex] = useState<number>(0);
   const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
@@ -206,6 +208,31 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
       window.clearInterval(timer);
     };
   }, [deviceId]);
+
+  useEffect(() => {
+    if (!currentPosition) {
+      setCurrentAddress('Location unavailable');
+      return;
+    }
+
+    let isMounted = true;
+
+    const resolveAddress = async (): Promise<void> => {
+      const address = await reverseGeocode(currentPosition.lat, currentPosition.lng);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setCurrentAddress(address);
+    };
+
+    void resolveAddress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPosition?.lat, currentPosition?.lng]);
 
   useEffect(() => {
     const onTripPlayback = (event: Event): void => {
@@ -367,6 +394,7 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
           <Marker position={markerPosition} icon={liveIcon}>
             <Popup>
               <div>Device: {deviceId}</div>
+              <div>Address: {currentAddress}</div>
               <div>Speed: {currentPosition.speed} km/h</div>
               <div>Last update: {formatTime(lastUpdated)}</div>
             </Popup>
@@ -408,6 +436,7 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
             <span className="tracking-status-item">
               Speed: {currentPosition?.speed ?? 0} km/h
             </span>
+            <span className="tracking-status-item is-address">@ {currentAddress}</span>
             <span className="tracking-status-item">
               Updated: {formatTime(lastUpdated)}
             </span>
