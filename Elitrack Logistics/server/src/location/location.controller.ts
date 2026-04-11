@@ -55,6 +55,36 @@ export class LocationController {
     });
   }
 
+  @Post(':deviceId/engine/cut')
+  async cutEngine(
+    @Param('deviceId') deviceId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = this.getUserId(req);
+    return this.locationService.cutEngine(deviceId, String(userId));
+  }
+
+  @Post(':deviceId/engine/restore')
+  async restoreEngine(
+    @Param('deviceId') deviceId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = this.getUserId(req);
+    return this.locationService.restoreEngine(deviceId, String(userId));
+  }
+
+  @Get(':deviceId/engine/status')
+  async getEngineStatus(@Param('deviceId') deviceId: string) {
+    const status = await this.locationService.getEngineStatus(deviceId);
+    const latestMeta = await this.locationService.getLatestEngineCommandMeta(deviceId);
+
+    return {
+      status,
+      lastActionAt: latestMeta.sentAt,
+      requestedBy: latestMeta.requestedBy,
+    };
+  }
+
   private getUserId(req: AuthenticatedRequest): number {
     const userId = req.user?.id;
 

@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from '../auth/auth.guard';
 import { getJwtConfig } from '../auth/jwt.config';
 import { PrismaModule } from '../prisma/prisma.module';
+import { TcpModule } from '../tcp/tcp.module';
 import { LocationController } from './location.controller';
 import { LocationGateway } from './location.gateway';
 import { LocationService } from './location.service';
@@ -12,6 +13,7 @@ const jwtConfig = getJwtConfig();
 @Module({
   imports: [
     PrismaModule,
+    forwardRef(() => TcpModule),
     JwtModule.register({
       secret: jwtConfig.secret,
       signOptions: {

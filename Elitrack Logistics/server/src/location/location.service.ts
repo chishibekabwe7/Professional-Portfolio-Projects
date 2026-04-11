@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { LocationLog, TrackerDevice } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { TcpGpsServer } from '../tcp/tcp.server';
 import { LocationGateway, LocationUpdatePayload } from './location.gateway';
 
 type TrackerDeviceWithLatestLocation = TrackerDevice & {
@@ -15,6 +16,8 @@ export class LocationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly locationGateway: LocationGateway,
+    @Inject(forwardRef(() => TcpGpsServer))
+    private readonly tcpGpsServer: TcpGpsServer,
   ) {}
 
   async handleDeviceUpdate(
@@ -108,5 +111,105 @@ export class LocationService {
           },
         }),
     );
+  }
+
+  async cutEngine(
+    imei: string,
+    requestedBy: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const success = this.tcpGpsServer.sendCutEngine(imei);
+
+    await this.prisma.executeQuery('LocationService.cutEngine.engineCommand.create', () =>
+      this.prisma.engineCommand.create({
+        data: {
+          deviceImei: imei,
+          action: 'cut',
+          requestedBy,
+          success,
+        },
+      }),
+    );
+
+    if (!success) {
+      return { success: false, message: 'Device offline' };
+    }
+
+    return { success: true, message: 'Engine cut command sent' };
+  }
+
+  async restoreEngine(
+    imei: string,
+    requestedBy: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const success = this.tcpGpsServer.sendRestoreEngine(imei);
+
+    await this.prisma.executeQuery('LocationService.restoreEngine.engineCommand.create', () =>
+      this.prisma.engineCommand.create({
+        data: {
+          deviceImei: imei,
+          action: 'restored',
+          requestedBy,
+          success,
+        },
+      }),
+    );
+
+    if (!success) {
+      return { success: false, message: 'Device offline' };
+    }
+
+    return { success: true, message: 'Engine restore command sent' };
+  }
+
+  async getEngineStatus(imei: string): Promise<'cut' | 'restored' | 'unknown'> {
+    const latestCommand = await this.prisma.executeQuery(
+      'LocationService.getEngineStatus.engineCommand.findFirst',
+      () =>
+        this.prisma.engineCommand.findFirst({
+          where: { deviceImei: imei },
+          orderBy: { sentAt: 'desc' },
+        }),
+    );
+
+    if (!latestCommand) {
+      return 'unknown';
+    }
+
+    if (latestCommand.action === 'cut') {
+      return 'cut';
+    }
+
+    if (latestCommand.action === 'restored') {
+      return 'restored';
+    }
+
+    return 'unknown';
+  }
+
+  async getLatestEngineCommandMeta(imei: string): Promise<{
+    requestedBy: string | null;
+    sentAt: Date | null;
+  }> {
+    const latestCommand = await this.prisma.executeQuery(
+      'LocationService.getLatestEngineCommandMeta.engineCommand.findFirst',
+      () =>
+        this.prisma.engineCommand.findFirst({
+          where: { deviceImei: imei },
+          orderBy: { sentAt: 'desc' },
+          select: {
+            requestedBy: true,
+            sentAt: true,
+          },
+        }),
+    );
+
+    if (!latestCommand) {
+      return {
+        requestedBy: null,
+        sentAt: null,
+      };
+    }
+
+    return latestCommand;
   }
 }

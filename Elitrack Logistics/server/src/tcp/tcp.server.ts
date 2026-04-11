@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger } from '@nestjs/common';
 import { createServer, Server as NetServer, Socket } from 'net';
 import { LocationGateway } from '../location/location.gateway';
 import { LocationService } from '../location/location.service';
@@ -12,6 +12,7 @@ export class TcpGpsServer {
 
   constructor(
     private readonly locationGateway: LocationGateway,
+    @Inject(forwardRef(() => LocationService))
     private readonly locationService: LocationService,
   ) {}
 
@@ -31,6 +32,32 @@ export class TcpGpsServer {
     this.server.listen(port, () => {
       this.logger.log(`GT06 TCP server listening on port ${port}`);
     });
+  }
+
+  sendCutEngine(imei: string): boolean {
+    const socket = this.findSocketByImei(imei);
+
+    if (!socket || !socket.writable) {
+      return false;
+    }
+
+    const packet = this.buildRelayControlPacket(0x79, 0x79);
+    socket.write(packet);
+    this.logger.log(`ENGINE CUT command sent to IMEI: ${imei}`);
+    return true;
+  }
+
+  sendRestoreEngine(imei: string): boolean {
+    const socket = this.findSocketByImei(imei);
+
+    if (!socket || !socket.writable) {
+      return false;
+    }
+
+    const packet = this.buildRelayControlPacket(0x79, 0x78);
+    socket.write(packet);
+    this.logger.log(`ENGINE RESTORE command sent to IMEI: ${imei}`);
+    return true;
   }
 
   private handleConnection(socket: Socket): void {
@@ -99,5 +126,76 @@ export class TcpGpsServer {
   private normalizeImei(rawImei: string): string {
     const normalized = rawImei.replace(/^0+/, '');
     return normalized.length > 0 ? normalized : rawImei;
+  }
+
+  private findSocketByImei(imei: string): Socket | null {
+    for (const [socket, mappedImei] of this.socketImeiMap.entries()) {
+      if (mappedImei === imei) {
+        return socket;
+      }
+    }
+
+    return null;
+  }
+
+  private buildRelayControlPacket(relayByte1: number, relayByte2: number): Buffer {
+    const protocolNumber = 0x80;
+    const commandHeader = Buffer.from([0x00, 0x01]);
+
+    // NOTE: ST-901AL relay-control payload bytes after 0x79 0x79 / 0x79 0x78
+    // are GT06-vendor specific and should be verified against your exact manual.
+    const relayPayload = Buffer.from([
+      relayByte1,
+      relayByte2,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+    ]);
+
+    const commandData = Buffer.concat([commandHeader, relayPayload]);
+    const packetLength = 1 + commandData.length + 2;
+
+    const crcInput = Buffer.concat([
+      Buffer.from([packetLength, protocolNumber]),
+      commandData,
+    ]);
+    const crc = this.crc16X25(crcInput);
+
+    return Buffer.from([
+      0x78,
+      0x78,
+      packetLength,
+      protocolNumber,
+      ...commandData,
+      (crc >> 8) & 0xff,
+      crc & 0xff,
+      0x0d,
+      0x0a,
+    ]);
+  }
+
+  private crc16X25(data: Buffer): number {
+    let crc = 0xffff;
+
+    for (const byte of data) {
+      crc ^= byte;
+
+      for (let i = 0; i < 8; i += 1) {
+        const lsbSet = (crc & 0x0001) !== 0;
+        crc >>= 1;
+
+        if (lsbSet) {
+          crc ^= 0x8408;
+        }
+      }
+    }
+
+    crc ^= 0xffff;
+    return crc & 0xffff;
   }
 }

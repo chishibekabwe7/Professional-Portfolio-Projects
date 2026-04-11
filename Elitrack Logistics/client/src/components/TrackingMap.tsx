@@ -13,6 +13,7 @@ import {
     useMap,
 } from 'react-leaflet';
 import { useTracker } from '../hooks/useTracker';
+import { EngineControl } from './EngineControl';
 import './TrackingMap.css';
 
 type TrackingMapProps = {
@@ -129,6 +130,8 @@ export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
           Updated: {formatTime(lastUpdated)}
         </span>
       </div>
+
+      <EngineControl deviceId={deviceId} isDeviceOnline={isConnected} />
     </div>
   );
 }

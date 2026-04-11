@@ -185,6 +185,17 @@ model LocationLog {
   @@index([deviceId, recordedAt])
 }
 
+model EngineCommand {
+  id          Int      @id @default(autoincrement())
+  deviceImei  String
+  action      String
+  requestedBy String
+  success     Boolean
+  sentAt      DateTime @default(now())
+
+  @@index([deviceImei, sentAt])
+}
+
 enum users_role {
   super_admin
   admin

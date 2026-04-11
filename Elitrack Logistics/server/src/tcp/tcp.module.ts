@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { LocationModule } from '../location/location.module';
 import { TcpGpsServer } from './tcp.server';
 
 @Module({
-  imports: [LocationModule],
+  imports: [forwardRef(() => LocationModule)],
   providers: [TcpGpsServer],
   exports: [TcpGpsServer],
 })
