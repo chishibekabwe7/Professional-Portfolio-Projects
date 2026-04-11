@@ -5,7 +5,7 @@ import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
 import './index.css';
 import { queryClient } from './queryClient';
-import { registerServiceWorker } from './serviceWorkerRegistration';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 import './tailwind.css';
 
 const rootElement = document.getElementById('root');
@@ -25,4 +25,4 @@ root.render(
 	</React.StrictMode>
 );
 
-registerServiceWorker();
+serviceWorkerRegistration.register();
