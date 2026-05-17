@@ -120,6 +120,7 @@ model password_reset_tokens {
   users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "password_reset_tokens_ibfk_1")
 
   @@index([token], map: "idx_token")
+  @@index([user_id], map: "idx_user_reset_token")
   @@index([user_id, expires_at], map: "idx_user_expires")
 }
 
@@ -155,6 +156,9 @@ model users {
   notification_events   notification_events[]
   password_reset_tokens password_reset_tokens[]
   transactions          transactions[]
+
+  @@index([email], map: "idx_users_email_lookup")
+  @@index([created_at], map: "idx_users_created_at")
 }
 
 enum users_role {

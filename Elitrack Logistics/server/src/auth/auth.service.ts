@@ -34,6 +34,15 @@ export interface AuthServiceResult {
 	body: unknown;
 }
 
+type AuthUserRecord = {
+	id: number;
+	email: string;
+	password: string;
+	role: users_role;
+	full_name: string | null;
+	company: string | null;
+};
+
 @Injectable()
 export class AuthService {
 	private readonly logger = new Logger(AuthService.name);
@@ -59,7 +68,7 @@ export class AuthService {
 		try {
 			this.logger.log(`[register] Preparing user creation for ${email}`);
 			const hashedPassword = await bcrypt.hash(password, 12);
-			await this.prisma.executeQuery('AuthService.register.users.create', () =>
+			await this.prisma.executeQueryWithRetry('AuthService.register.users.create', () =>
 				this.prisma.users.create({
 					data: {
 						email,
@@ -117,18 +126,9 @@ export class AuthService {
 
 		try {
 			this.logger.log(`[login] Looking up account for ${email}`);
-			const user = await this.prisma.executeQuery('AuthService.login.users.findUnique', () =>
-				this.prisma.users.findUnique({
-					where: { email },
-					select: {
-						id: true,
-						email: true,
-						password: true,
-						role: true,
-						full_name: true,
-						company: true,
-					},
-				}),
+			const user = await this.findUserByEmail(
+				'AuthService.login.users.findUnique',
+				email,
 			);
 
 			if (!user) {
@@ -196,17 +196,9 @@ export class AuthService {
 			const profile = await this.googleOAuthStrategy.verifyIdToken(token);
 			this.logger.log(`[googleAuth] Google profile verified for ${profile.email}`);
 
-			let user = await this.prisma.executeQuery('AuthService.googleAuth.users.findUnique', () =>
-				this.prisma.users.findUnique({
-					where: { email: profile.email },
-					select: {
-						id: true,
-						email: true,
-						role: true,
-						full_name: true,
-						company: true,
-					},
-				}),
+			let user = await this.findUserByEmail(
+				'AuthService.googleAuth.users.findUnique',
+				profile.email,
 			);
 
 			if (!user) {
@@ -216,7 +208,7 @@ export class AuthService {
 				);
 
 				try {
-					user = await this.prisma.executeQuery('AuthService.googleAuth.users.create', () =>
+					user = await this.prisma.executeQueryWithRetry('AuthService.googleAuth.users.create', () =>
 						this.prisma.users.create({
 							data: {
 								email: profile.email,
@@ -243,19 +235,9 @@ export class AuthService {
 							`[googleAuth] Duplicate email race while creating ${profile.email}; retrying lookup.`,
 						);
 
-						user = await this.prisma.executeQuery(
+						user = await this.findUserByEmail(
 							'AuthService.googleAuth.users.findUnique.retry',
-							() =>
-								this.prisma.users.findUnique({
-									where: { email: profile.email },
-									select: {
-										id: true,
-										email: true,
-										role: true,
-										full_name: true,
-										company: true,
-									},
-								}),
+							profile.email,
 						);
 					} else {
 						throw error;
@@ -364,6 +346,27 @@ export class AuthService {
 		}
 
 		return null;
+	}
+
+	private async findUserByEmail(
+		label: string,
+		email: string,
+	): Promise<AuthUserRecord | null> {
+		const user = await this.prisma.executeQueryWithRetry(label, () =>
+			this.prisma.users.findUnique({
+				where: { email },
+				select: {
+					id: true,
+					email: true,
+					password: true,
+					role: true,
+					full_name: true,
+					company: true,
+				},
+			}),
+		);
+
+		return user as AuthUserRecord | null;
 	}
 
 	private isEmail(value: string): boolean {
