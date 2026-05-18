@@ -220,6 +220,7 @@ export class AuthService {
 							select: {
 								id: true,
 								email: true,
+								password: true,
 								role: true,
 								full_name: true,
 								company: true,
