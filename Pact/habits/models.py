@@ -37,7 +37,7 @@ class Friendship(models.Model):
                 name="unique_friend_request_pair",
             ),
             models.CheckConstraint(
-                check=~Q(requester=F("addressee")),
+                condition=~Q(requester=F("addressee")),
                 name="friendship_distinct_users",
             ),
         ]

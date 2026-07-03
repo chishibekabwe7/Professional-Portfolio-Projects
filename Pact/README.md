@@ -1,4 +1,4 @@
-# Pact — Habits, Witnessed.
+# Pact, Habits Witnessed.
 
 **CS50W Final Project**
 Author: Chishibe Kabwe
