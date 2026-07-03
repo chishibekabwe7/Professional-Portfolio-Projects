@@ -6,6 +6,10 @@ from . import views
 
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
+    path("pacts/new/", views.pact_create, name="pact_create"),
+    path("pacts/<int:pact_id>/", views.pact_detail, name="pact_detail"),
+    path("pacts/<int:pact_id>/edit/", views.pact_edit, name="pact_edit"),
+    path("pacts/<int:pact_id>/delete/", views.pact_delete, name="pact_delete"),
     path("register/", views.register, name="register"),
     path(
         "login/",

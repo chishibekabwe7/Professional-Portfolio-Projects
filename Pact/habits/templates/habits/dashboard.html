@@ -4,33 +4,37 @@
 
 {% block content %}
 <div class="row g-4">
-  <div class="col-12">
-    <div class="p-4 p-md-5 bg-white rounded-4 shadow-sm">
-      <h1 class="h3 mb-2">Welcome, {{ user.username }}</h1>
-      <p class="text-muted mb-0">Your friends and their active pacts are listed below.</p>
+  <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+      <h1 class="h3 mb-1">Pact Dashboard</h1>
+      <p class="text-muted mb-0">Review the pacts you own and the ones you witness.</p>
     </div>
+    <a class="btn btn-primary" href="{% url 'pact_create' %}">Create Pact</a>
   </div>
 
   <div class="col-12 col-lg-6">
     <div class="card shadow-sm h-100">
-      <div class="card-header bg-white">
-        <h2 class="h5 mb-0">My Active Pacts</h2>
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Pacts I Own</h2>
+        <span class="badge text-bg-secondary">{{ owned_pacts|length }}</span>
       </div>
       <div class="card-body">
-        {% if my_active_pacts %}
+        {% if owned_pacts %}
           <div class="list-group list-group-flush">
-            {% for pact in my_active_pacts %}
-              <div class="list-group-item px-0">
-                <div class="fw-semibold">{{ pact.title }}</div>
-                <div class="text-muted small">{{ pact.get_frequency_display }}</div>
-                {% if pact.description %}
-                  <div class="small mt-2">{{ pact.description }}</div>
-                {% endif %}
-              </div>
+            {% for pact in owned_pacts %}
+              <a href="{% url 'pact_detail' pact.id %}" class="list-group-item list-group-item-action px-0">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <div class="fw-semibold">{{ pact.title }}</div>
+                    <div class="text-muted small">{{ pact.get_frequency_display }}{% if not pact.is_active %} · Inactive{% endif %}</div>
+                  </div>
+                  <span class="badge text-bg-light">Owned</span>
+                </div>
+              </a>
             {% endfor %}
           </div>
         {% else %}
-          <p class="mb-0 text-muted">You do not have any active pacts yet.</p>
+          <p class="mb-0 text-muted">You do not own any pacts yet.</p>
         {% endif %}
       </div>
     </div>
@@ -38,43 +42,27 @@
 
   <div class="col-12 col-lg-6">
     <div class="card shadow-sm h-100">
-      <div class="card-header bg-white">
-        <h2 class="h5 mb-0">Accepted Friends and Their Active Pacts</h2>
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">Pacts I Witness</h2>
+        <span class="badge text-bg-secondary">{{ witnessed_pacts|length }}</span>
       </div>
       <div class="card-body">
-        {% if friends_with_pacts %}
-          <div class="accordion" id="friendsAccordion">
-            {% for entry in friends_with_pacts %}
-              <div class="accordion-item">
-                <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                  <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ forloop.counter }}">
-                    @{{ entry.friend.username }}
-                  </button>
-                </h2>
-                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#friendsAccordion">
-                  <div class="accordion-body">
-                    {% if entry.active_pacts %}
-                      <ul class="list-unstyled mb-0">
-                        {% for pact in entry.active_pacts %}
-                          <li class="mb-3">
-                            <div class="fw-semibold">{{ pact.title }}</div>
-                            <div class="text-muted small">{{ pact.get_frequency_display }}</div>
-                            {% if pact.description %}
-                              <div class="small mt-1">{{ pact.description }}</div>
-                            {% endif %}
-                          </li>
-                        {% endfor %}
-                      </ul>
-                    {% else %}
-                      <p class="mb-0 text-muted">No active pacts.</p>
-                    {% endif %}
+        {% if witnessed_pacts %}
+          <div class="list-group list-group-flush">
+            {% for pact in witnessed_pacts %}
+              <a href="{% url 'pact_detail' pact.id %}" class="list-group-item list-group-item-action px-0">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                  <div>
+                    <div class="fw-semibold">{{ pact.title }}</div>
+                    <div class="text-muted small">by @{{ pact.owner.username }} · {{ pact.get_frequency_display }}</div>
                   </div>
+                  <span class="badge text-bg-info">Witness</span>
                 </div>
-              </div>
+              </a>
             {% endfor %}
           </div>
         {% else %}
-          <p class="mb-0 text-muted">You do not have any accepted friends yet.</p>
+          <p class="mb-0 text-muted">You are not witnessing any pacts yet.</p>
         {% endif %}
       </div>
     </div>

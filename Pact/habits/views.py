@@ -4,10 +4,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from .forms import PactForm
 from .models import Friendship, Pact, Profile
 
 
@@ -31,20 +33,15 @@ def register(request):
 
 @login_required
 def dashboard(request):
-    friendships = Friendship.objects.filter(status=Friendship.Status.ACCEPTED).filter(
-        Q(requester=request.user) | Q(addressee=request.user)
-    ).select_related("requester", "addressee")
-
-    friends_with_pacts = []
-    for friendship in friendships:
-        friend = friendship.other_user(request.user)
-        if friend is None:
-            continue
-        active_pacts = friend.pacts.filter(is_active=True).prefetch_related("witnesses")
-        friends_with_pacts.append({"friend": friend, "active_pacts": active_pacts})
-
-    my_active_pacts = (
-        Pact.objects.filter(owner=request.user, is_active=True)
+    owned_pacts = (
+        Pact.objects.filter(owner=request.user)
+        .prefetch_related("witnesses")
+        .order_by("-created_at")
+    )
+    witnessed_pacts = (
+        Pact.objects.filter(witnesses=request.user)
+        .exclude(owner=request.user)
+        .select_related("owner")
         .prefetch_related("witnesses")
         .order_by("-created_at")
     )
@@ -53,10 +50,79 @@ def dashboard(request):
         request,
         "habits/dashboard.html",
         {
-            "friends_with_pacts": friends_with_pacts,
-            "my_active_pacts": my_active_pacts,
+            "owned_pacts": owned_pacts,
+            "witnessed_pacts": witnessed_pacts,
         },
     )
+
+
+@login_required
+def pact_create(request):
+    accepted_friends = Friendship.accepted_friends_for(request.user)
+
+    if request.method == "POST":
+        form = PactForm(request.POST, accepted_friends=accepted_friends)
+        if form.is_valid():
+            pact = form.save(commit=False)
+            pact.owner = request.user
+            pact.save()
+            form.save_m2m()
+            messages.success(request, "Pact created successfully.")
+            return redirect("pact_detail", pact_id=pact.id)
+    else:
+        form = PactForm(accepted_friends=accepted_friends)
+
+    return render(request, "habits/pact_form.html", {"form": form, "mode": "Create"})
+
+
+@login_required
+def pact_detail(request, pact_id):
+    pact = get_object_or_404(Pact.objects.prefetch_related("witnesses", "checkins"), pk=pact_id)
+
+    return render(
+        request,
+        "habits/pact_detail.html",
+        {
+            "pact": pact,
+            "is_owner": pact.owner_id == request.user.id,
+        },
+    )
+
+
+@login_required
+def pact_edit(request, pact_id):
+    pact = get_object_or_404(Pact, pk=pact_id)
+    if pact.owner_id != request.user.id:
+        messages.error(request, "You can only edit your own pacts.")
+        return redirect("pact_detail", pact_id=pact.id)
+
+    accepted_friends = Friendship.accepted_friends_for(request.user)
+
+    if request.method == "POST":
+        form = PactForm(request.POST, instance=pact, accepted_friends=accepted_friends)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Pact updated successfully.")
+            return redirect("pact_detail", pact_id=pact.id)
+    else:
+        form = PactForm(instance=pact, accepted_friends=accepted_friends)
+
+    return render(request, "habits/pact_form.html", {"form": form, "mode": "Edit", "pact": pact})
+
+
+@login_required
+def pact_delete(request, pact_id):
+    pact = get_object_or_404(Pact, pk=pact_id)
+    if pact.owner_id != request.user.id:
+        messages.error(request, "You can only delete your own pacts.")
+        return redirect("pact_detail", pact_id=pact.id)
+
+    if request.method == "POST":
+        pact.delete()
+        messages.success(request, "Pact deleted successfully.")
+        return redirect("dashboard")
+
+    return render(request, "habits/pact_confirm_delete.html", {"pact": pact})
 
 
 @login_required

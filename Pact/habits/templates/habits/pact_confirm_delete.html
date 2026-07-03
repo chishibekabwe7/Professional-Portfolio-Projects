@@ -1,0 +1,21 @@
+{% extends "habits/layout.html" %}
+
+{% block title %}Delete Pact | Pact{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card shadow-sm border-danger">
+      <div class="card-body p-4 p-md-5">
+        <h1 class="h4 mb-3">Delete Pact</h1>
+        <p class="mb-4">Are you sure you want to delete <strong>{{ pact.title }}</strong>? This cannot be undone.</p>
+        <form method="post" class="d-flex gap-2">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Delete Pact</button>
+          <a href="{% url 'pact_detail' pact.id %}" class="btn btn-outline-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

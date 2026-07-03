@@ -1,0 +1,49 @@
+{% extends "habits/layout.html" %}
+
+{% block title %}{{ mode }} Pact | Pact{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4 p-md-5">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
+          <div>
+            <h1 class="h3 mb-1">{{ mode }} Pact</h1>
+            <p class="text-muted mb-0">Choose witnesses from your accepted friends only.</p>
+          </div>
+          {% if pact %}
+            <a href="{% url 'pact_detail' pact.id %}" class="btn btn-outline-secondary">Back to Detail</a>
+          {% else %}
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
+          {% endif %}
+        </div>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% for field in form %}
+            <div class="mb-3">
+              {% if field.name == 'is_active' %}
+                <div class="form-check">
+                  {{ field }}
+                  <label for="{{ field.id_for_label }}" class="form-check-label">{{ field.label }}</label>
+                </div>
+              {% else %}
+                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                {{ field }}
+              {% endif %}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% if field.errors %}
+                <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary">Save Pact</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
