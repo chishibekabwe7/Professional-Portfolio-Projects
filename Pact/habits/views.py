@@ -3,14 +3,14 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.db.models import Q
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import PactForm
-from .models import Friendship, Pact, Profile
+from .forms import CheckInForm, PactForm, VerificationActionForm
+from .models import CheckIn, Friendship, Pact, Profile, Verification
 
 
 def register(request):
@@ -78,6 +78,12 @@ def pact_create(request):
 @login_required
 def pact_detail(request, pact_id):
     pact = get_object_or_404(Pact.objects.prefetch_related("witnesses", "checkins"), pk=pact_id)
+    checkins = (
+        pact.checkins.with_lazy_expiration()
+        .select_related("submitted_by")
+        .prefetch_related("verifications")
+        .order_by("-timestamp")
+    )
 
     return render(
         request,
@@ -85,6 +91,7 @@ def pact_detail(request, pact_id):
         {
             "pact": pact,
             "is_owner": pact.owner_id == request.user.id,
+            "checkins": checkins,
         },
     )
 
@@ -123,6 +130,80 @@ def pact_delete(request, pact_id):
         return redirect("dashboard")
 
     return render(request, "habits/pact_confirm_delete.html", {"pact": pact})
+
+
+@login_required
+def checkin_create(request, pact_id):
+    pact = get_object_or_404(Pact.objects.prefetch_related("witnesses"), pk=pact_id)
+    if pact.owner_id != request.user.id:
+        raise PermissionDenied("Only the pact owner can submit check-ins.")
+
+    if request.method == "POST":
+        form = CheckInForm(request.POST, request.FILES)
+        if form.is_valid():
+            check_in = form.save(commit=False)
+            check_in.pact = pact
+            check_in.submitted_by = request.user
+            check_in.status = CheckIn.Status.PENDING
+            check_in.save()
+            messages.success(request, "Check-in submitted and waiting for verification.")
+            return redirect("pact_detail", pact_id=pact.id)
+    else:
+        form = CheckInForm()
+
+    return render(request, "habits/checkin_form.html", {"form": form, "pact": pact})
+
+
+@login_required
+def verification_inbox(request):
+    pending_checkins = (
+        CheckIn.objects.pending_for_witness(request.user)
+        .select_related("pact", "submitted_by", "pact__owner")
+        .order_by("-timestamp")
+    )
+
+    return render(
+        request,
+        "habits/verification_inbox.html",
+        {
+            "pending_checkins": pending_checkins,
+            "verification_form": VerificationActionForm(),
+        },
+    )
+
+
+@login_required
+@require_POST
+def respond_to_checkin(request, check_in_id):
+    check_in = get_object_or_404(
+        CheckIn.objects.pending_for_witness(request.user),
+        pk=check_in_id,
+    )
+    form = VerificationActionForm(request.POST)
+
+    if not form.is_valid():
+        messages.error(request, "Please choose approve or reject and try again.")
+        return redirect("verification_inbox")
+
+    if Verification.objects.filter(check_in=check_in, witness=request.user).exists():
+        messages.info(request, "You have already responded to this check-in.")
+        return redirect("verification_inbox")
+
+    decision = form.cleaned_data["decision"]
+    comment = form.cleaned_data.get("comment", "")
+
+    Verification.objects.create(
+        check_in=check_in,
+        witness=request.user,
+        decision=decision,
+        comment=comment,
+    )
+    check_in.status = CheckIn.Status.VERIFIED if decision == Verification.Decision.APPROVE else CheckIn.Status.REJECTED
+    check_in.save(update_fields=["status"])
+
+    action_label = "approved" if decision == Verification.Decision.APPROVE else "rejected"
+    messages.success(request, f"Check-in {action_label} successfully.")
+    return redirect("verification_inbox")
 
 
 @login_required

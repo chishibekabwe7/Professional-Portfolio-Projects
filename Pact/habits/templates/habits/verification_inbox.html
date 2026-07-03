@@ -1,0 +1,60 @@
+{% extends "habits/layout.html" %}
+
+{% block title %}Verification Inbox | Pact{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+    <div>
+      <h1 class="h3 mb-1">Verification Inbox</h1>
+      <p class="text-muted mb-0">Pending check-ins waiting for your review.</p>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        {% if pending_checkins %}
+          <div class="vstack gap-3">
+            {% for check_in in pending_checkins %}
+              <div class="border rounded-3 p-3 p-md-4 bg-white">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                  <div>
+                    <div class="fw-semibold">{{ check_in.pact.title }}</div>
+                    <div class="text-muted small">by @{{ check_in.submitted_by.username }} · {{ check_in.timestamp|date:"M d, Y H:i" }}</div>
+                  </div>
+                  <span class="badge text-bg-warning align-self-start">Pending</span>
+                </div>
+
+                {% if check_in.note %}
+                  <p class="mb-3">{{ check_in.note }}</p>
+                {% endif %}
+
+                {% if check_in.photo %}
+                  <div class="mb-3">
+                    <img src="{{ check_in.photo.url }}" alt="Check-in photo" class="img-fluid rounded-3">
+                  </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'respond_to_checkin' check_in.id %}" class="row g-3 align-items-end">
+                  {% csrf_token %}
+                  <div class="col-12 col-md-8">
+                    <label class="form-label" for="comment-{{ check_in.id }}">Comment (optional)</label>
+                    <textarea id="comment-{{ check_in.id }}" name="comment" rows="3" class="form-control" placeholder="Leave a quick note for the owner"></textarea>
+                  </div>
+                  <div class="col-12 col-md-4 d-flex flex-wrap gap-2">
+                    <button type="submit" name="decision" value="approve" class="btn btn-success flex-grow-1">Approve</button>
+                    <button type="submit" name="decision" value="reject" class="btn btn-outline-danger flex-grow-1">Reject</button>
+                  </div>
+                </form>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mb-0 text-muted">You have no pending check-ins to verify.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

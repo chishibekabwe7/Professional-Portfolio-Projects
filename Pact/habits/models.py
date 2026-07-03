@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.db.models import F, Q
+from django.utils import timezone
+from datetime import timedelta
 
 
 class Friendship(models.Model):
@@ -98,6 +100,50 @@ class Pact(models.Model):
     def __str__(self):
         return self.title
 
+    def frequency_window(self):
+        if self.frequency == self.Frequency.DAILY:
+            return timedelta(days=1)
+        if self.frequency == self.Frequency.WEEKLY:
+            return timedelta(days=7)
+        raise ValueError(f"Unsupported frequency: {self.frequency}")
+
+
+class CheckInQuerySet(models.QuerySet):
+    def _stale_pending_ids(self, now=None):
+        now = now or timezone.now()
+        stale_ids = []
+
+        for check_in in self.select_related("pact").filter(status=self.model.Status.PENDING):
+            if check_in.is_expired(now=now):
+                stale_ids.append(check_in.id)
+
+        return stale_ids
+
+    def with_lazy_expiration(self, now=None):
+        stale_ids = self._stale_pending_ids(now=now)
+        if stale_ids:
+            self.model.objects.filter(id__in=stale_ids).update(status=self.model.Status.EXPIRED)
+        return self
+
+    def for_pact(self, pact, now=None):
+        return self.filter(pact=pact).with_lazy_expiration(now=now)
+
+    def pending_for_witness(self, witness, now=None):
+        return (
+            self.filter(
+                pact__witnesses=witness,
+                status=self.model.Status.PENDING,
+            )
+            .exclude(submitted_by=witness)
+            .exclude(verifications__witness=witness)
+            .distinct()
+            .with_lazy_expiration(now=now)
+        )
+
+
+class CheckInManager(models.Manager.from_queryset(CheckInQuerySet)):
+    pass
+
 
 class CheckIn(models.Model):
     class Status(models.TextChoices):
@@ -126,6 +172,8 @@ class CheckIn(models.Model):
         db_index=True,
     )
 
+    objects = CheckInManager()
+
     class Meta:
         indexes = [
             models.Index(fields=["status"]),
@@ -137,6 +185,14 @@ class CheckIn(models.Model):
 
     def __str__(self):
         return f"{self.pact} - {self.submitted_by} - {self.timestamp:%Y-%m-%d %H:%M}"
+
+    def is_expired(self, now=None):
+        now = now or timezone.now()
+        if self.status != self.Status.PENDING:
+            return False
+        if not self.timestamp or not self.pact_id:
+            return False
+        return now - self.timestamp > self.pact.frequency_window()
 
 
 class Verification(models.Model):

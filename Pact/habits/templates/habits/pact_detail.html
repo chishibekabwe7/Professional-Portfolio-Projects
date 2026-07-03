@@ -15,6 +15,9 @@
           </div>
           <div class="d-flex flex-wrap gap-2">
             <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Back</a>
+            {% if pact.owner_id == user.id %}
+              <a href="{% url 'checkin_create' pact.id %}" class="btn btn-success">Log Check-In</a>
+            {% endif %}
             {% if is_owner %}
               <a href="{% url 'pact_edit' pact.id %}" class="btn btn-primary">Edit</a>
               <a href="{% url 'pact_delete' pact.id %}" class="btn btn-outline-danger">Delete</a>

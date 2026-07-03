@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Pact
+from .models import CheckIn, Pact, Verification
 
 
 class PactForm(forms.ModelForm):
@@ -24,3 +24,24 @@ class PactForm(forms.ModelForm):
 
         if accepted_friends is not None:
             self.fields["witnesses"].queryset = accepted_friends
+
+
+class CheckInForm(forms.ModelForm):
+    class Meta:
+        model = CheckIn
+        fields = ["note", "photo"]
+        widgets = {
+            "note": forms.Textarea(attrs={"rows": 4, "class": "form-control"}),
+            "photo": forms.ClearableFileInput(attrs={"class": "form-control"}),
+        }
+
+
+class VerificationActionForm(forms.Form):
+    decision = forms.ChoiceField(
+        choices=Verification.Decision.choices,
+        widget=forms.RadioSelect,
+    )
+    comment = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3, "class": "form-control"}),
+    )

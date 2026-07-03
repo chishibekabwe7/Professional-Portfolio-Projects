@@ -10,6 +10,13 @@ urlpatterns = [
     path("pacts/<int:pact_id>/", views.pact_detail, name="pact_detail"),
     path("pacts/<int:pact_id>/edit/", views.pact_edit, name="pact_edit"),
     path("pacts/<int:pact_id>/delete/", views.pact_delete, name="pact_delete"),
+    path("pacts/<int:pact_id>/check-ins/new/", views.checkin_create, name="checkin_create"),
+    path("verification/inbox/", views.verification_inbox, name="verification_inbox"),
+    path(
+        "verification/check-ins/<int:check_in_id>/respond/",
+        views.respond_to_checkin,
+        name="respond_to_checkin",
+    ),
     path("register/", views.register, name="register"),
     path(
         "login/",
