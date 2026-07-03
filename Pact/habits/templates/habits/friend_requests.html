@@ -1,0 +1,40 @@
+{% extends "habits/layout.html" %}
+
+{% block title %}Friend Requests | Pact{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-10">
+    <h1 class="h3 mb-4">Friend Requests</h1>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        {% if incoming_requests %}
+          <div class="list-group list-group-flush">
+            {% for friendship in incoming_requests %}
+              <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                  <div class="fw-semibold">@{{ friendship.requester.username }}</div>
+                  <div class="text-muted small">Sent {{ friendship.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div class="d-flex gap-2">
+                  <form method="post" action="{% url 'accept_friend_request' friendship.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-sm">Accept</button>
+                  </form>
+                  <form method="post" action="{% url 'reject_friend_request' friendship.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm">Reject</button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mb-0 text-muted">You have no pending friend requests.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
