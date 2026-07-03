@@ -1,6 +1,11 @@
+{% load static %}
 {% extends "habits/layout.html" %}
 
 {% block title %}{{ pact.title }} | Pact{% endblock %}
+
+{% block extra_js %}
+  <script defer src="{% static 'habits/streaks.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="row g-4">
@@ -61,7 +66,33 @@
         <h2 class="h5 mb-0">Check-in History</h2>
       </div>
       <div class="card-body">
-        <p class="text-muted mb-0">Check-in history will appear here after the logging workflow is added.</p>
+        <div class="d-flex flex-column gap-3" id="streak-summary" data-api-url="{% url 'pact_checkins_api' pact.id %}">
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="stat-card">
+                <div class="stat-label">Current streak</div>
+                <div class="stat-value" data-streak-current>0</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card">
+                <div class="stat-label">Longest streak</div>
+                <div class="stat-value" data-streak-longest>0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="heatmap-scroll">
+            <div class="heatmap-legend mb-2">
+              <span><i class="legend-swatch status-none"></i> None</span>
+              <span><i class="legend-swatch status-pending"></i> Pending</span>
+              <span><i class="legend-swatch status-verified"></i> Verified</span>
+              <span><i class="legend-swatch status-rejected"></i> Rejected</span>
+              <span><i class="legend-swatch status-expired"></i> Expired</span>
+            </div>
+            <div id="heatmap-grid" class="heatmap-grid" aria-label="Check-in heatmap"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

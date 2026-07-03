@@ -3,14 +3,17 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from datetime import timedelta
 
 from .forms import CheckInForm, PactForm, VerificationActionForm
 from .models import CheckIn, Friendship, Pact, Profile, Verification
+from .services import calculate_streak
 
 
 def register(request):
@@ -162,6 +165,33 @@ def verification_inbox(request):
         .order_by("-timestamp")
     )
 
+
+@login_required
+def verification_inbox_api(request):
+    pending_checkins = (
+        CheckIn.objects.pending_for_witness(request.user)
+        .select_related("pact", "submitted_by", "pact__owner")
+        .order_by("-timestamp")
+    )
+
+    checkins = []
+    for check_in in pending_checkins:
+        checkins.append(
+            {
+                "id": check_in.id,
+                "pact_id": check_in.pact_id,
+                "pact_title": check_in.pact.title,
+                "owner_username": check_in.pact.owner.username,
+                "submitted_by_username": check_in.submitted_by.username,
+                "timestamp": check_in.timestamp.isoformat(),
+                "note": check_in.note,
+                "photo_url": check_in.photo.url if check_in.photo else None,
+                "status": check_in.status,
+            }
+        )
+
+    return JsonResponse({"checkins": checkins})
+
     return render(
         request,
         "habits/verification_inbox.html",
@@ -204,6 +234,48 @@ def respond_to_checkin(request, check_in_id):
     action_label = "approved" if decision == Verification.Decision.APPROVE else "rejected"
     messages.success(request, f"Check-in {action_label} successfully.")
     return redirect("verification_inbox")
+
+
+@login_required
+@require_POST
+def respond_to_checkin_api(request, check_in_id):
+    check_in = get_object_or_404(
+        CheckIn.objects.pending_for_witness(request.user),
+        pk=check_in_id,
+    )
+    form = VerificationActionForm(request.POST)
+
+    if not form.is_valid():
+        return JsonResponse({"error": "decision is required"}, status=400)
+
+    if Verification.objects.filter(check_in=check_in, witness=request.user).exists():
+        return JsonResponse({"error": "already responded"}, status=409)
+
+    decision = form.cleaned_data["decision"]
+    comment = form.cleaned_data.get("comment", "")
+
+    verification = Verification.objects.create(
+        check_in=check_in,
+        witness=request.user,
+        decision=decision,
+        comment=comment,
+    )
+    check_in.status = CheckIn.Status.VERIFIED if decision == Verification.Decision.APPROVE else CheckIn.Status.REJECTED
+    check_in.save(update_fields=["status"])
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "check_in": {
+                "id": check_in.id,
+                "status": check_in.status,
+            },
+            "verification": {
+                "id": verification.id,
+                "decision": verification.decision,
+            },
+        }
+    )
 
 
 @login_required
@@ -296,3 +368,68 @@ def reject_friend_request(request, friendship_id):
     friendship.delete()
     messages.success(request, f"Friend request from {requester_name} rejected.")
     return redirect("friend_requests")
+
+
+@login_required
+def pact_checkins_api(request, pact_id):
+    pact = get_object_or_404(Pact, pk=pact_id)
+    if pact.owner_id != request.user.id and not pact.witnesses.filter(id=request.user.id).exists():
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    checkins = list(
+        pact.checkins.with_lazy_expiration().select_related("submitted_by").order_by("-timestamp")
+    )
+    summary = calculate_streak(pact, checkins=sorted(checkins, key=lambda check_in: check_in.timestamp))
+
+    today = timezone.localdate()
+    start_date = today - timedelta(days=89)
+    checkins_by_day = {}
+    status_rank = {
+        CheckIn.Status.VERIFIED: 4,
+        CheckIn.Status.PENDING: 3,
+        CheckIn.Status.REJECTED: 2,
+        CheckIn.Status.EXPIRED: 1,
+    }
+
+    for check_in in checkins:
+        day_key = timezone.localtime(check_in.timestamp).date().isoformat()
+        current = checkins_by_day.get(day_key)
+        if current is None or status_rank[check_in.status] > status_rank[current]:
+            checkins_by_day[day_key] = check_in.status
+
+    days = []
+    current_date = start_date
+    while current_date <= today:
+        iso_date = current_date.isoformat()
+        days.append(
+            {
+                "date": iso_date,
+                "status": checkins_by_day.get(iso_date, "no_check_in"),
+            }
+        )
+        current_date += timedelta(days=1)
+
+    return JsonResponse(
+        {
+            "pact": {
+                "id": pact.id,
+                "title": pact.title,
+                "frequency": pact.frequency,
+                "current_streak": summary.current_streak,
+                "longest_streak": summary.longest_streak,
+            },
+            "range": {
+                "start_date": start_date.isoformat(),
+                "end_date": today.isoformat(),
+            },
+            "days": days,
+            "checkins": [
+                {
+                    "id": check_in.id,
+                    "timestamp": check_in.timestamp.isoformat(),
+                    "status": check_in.status,
+                }
+                for check_in in checkins
+            ],
+        }
+    )

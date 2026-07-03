@@ -12,11 +12,18 @@ urlpatterns = [
     path("pacts/<int:pact_id>/delete/", views.pact_delete, name="pact_delete"),
     path("pacts/<int:pact_id>/check-ins/new/", views.checkin_create, name="checkin_create"),
     path("verification/inbox/", views.verification_inbox, name="verification_inbox"),
+    path("verification/inbox/api/", views.verification_inbox_api, name="verification_inbox_api"),
     path(
         "verification/check-ins/<int:check_in_id>/respond/",
         views.respond_to_checkin,
         name="respond_to_checkin",
     ),
+    path(
+        "verification/check-ins/<int:check_in_id>/respond/api/",
+        views.respond_to_checkin_api,
+        name="respond_to_checkin_api",
+    ),
+    path("pacts/<int:pact_id>/check-ins/api/", views.pact_checkins_api, name="pact_checkins_api"),
     path("register/", views.register, name="register"),
     path(
         "login/",
