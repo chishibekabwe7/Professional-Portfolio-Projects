@@ -1,0 +1,208 @@
+
+================ LOG SESSION START ================
+[2026-05-05 23:39:39] Logger session initialized.
+===================================================
+[2026-05-05 23:39:39][INFO] System startup: logger initialized.
+[2026-05-05 23:39:39][INFO] System startup: memory manager initialized.
+[2026-05-05 23:39:39][INFO] System startup: resource manager initialized.
+[2026-05-05 23:39:39][INFO] System action: exit requested by user.
+
+================ LOG SESSION START ================
+[2026-05-07 01:34:17] Logger session initialized.
+===================================================
+[2026-05-07 01:34:17][INFO] System startup: logger initialized.
+[2026-05-07 01:34:17][INFO] System startup: memory manager initialized.
+[2026-05-07 01:34:17][INFO] System startup: resource manager initialized.
+[2026-05-07 01:35:36][INFO] GUI action: launched Raylib dashboard.
+
+================ LOG SESSION START ================
+[2026-06-19 21:46:26] Logger session initialized.
+===================================================
+[2026-06-19 21:46:26][INFO] System startup: logger initialized.
+[2026-06-19 21:46:26][INFO] System startup: memory manager initialized.
+[2026-06-19 21:46:26][INFO] System startup: resource manager initialized.
+
+================ LOG SESSION START ================
+[2026-06-19 21:47:59] Logger session initialized.
+===================================================
+[2026-06-19 21:47:59][INFO] System startup: logger initialized.
+[2026-06-19 21:47:59][INFO] System startup: memory manager initialized.
+[2026-06-19 21:47:59][INFO] System startup: resource manager initialized.
+[2026-06-19 21:48:11][INFO] Demo scenario: started automated presentation workflow.
+[2026-06-19 21:48:11][INFO] Demo scenario: memory subsystem reinitialized for clean allocation baseline.
+[2026-06-19 21:48:11][INFO] Demo scenario: created 5 emergency processes with mixed types and priorities.
+[2026-06-19 21:48:11][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:11][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:11][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:11][WARNING] Demo scenario: memory allocation failed for one process using first_fit.
+[2026-06-19 21:48:11][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:11][MEMORY] Snapshot begin
+  Block 00 | Start=  0MB | Size= 48MB | [USED:1]
+  Block 01 | Start= 48MB | Size= 16MB | [FREE]
+  Block 02 | Start= 64MB | Size= 64MB | [USED:2]
+  Block 03 | Start=128MB | Size= 32MB | [USED:3]
+  Block 04 | Start=160MB | Size= 24MB | [USED:5]
+  Block 05 | Start=184MB | Size=  8MB | [FREE]
+  Block 06 | Start=192MB | Size= 64MB | [FREE]
+  Block 07 | Start=256MB | Size= 64MB | [FREE]
+  Block 08 | Start=320MB | Size= 64MB | [FREE]
+  Block 09 | Start=384MB | Size= 64MB | [FREE]
+  Block 10 | Start=448MB | Size= 64MB | [FREE]
+  Fragmentation estimate: 24 MB
+[MEMORY] Snapshot end
+[2026-06-19 21:48:11][SCHEDULER] avg_wait=9.80 avg_turnaround=14.80 cpu_util=100.00%
+[2026-06-19 21:48:11][INFO] Demo scenario: ran Priority Scheduling and captured metrics.
+[2026-06-19 21:48:11][INFO] Demo scenario: sent two IPC messages through pipe communication.
+[2026-06-19 21:48:11][INFO] Demo scenario: Banker's algorithm safety check returned SAFE.
+[2026-06-19 21:48:11][INFO] Demo scenario: printing full system log for presentation review.
+[2026-06-19 21:48:11][INFO] System action: completed live demo scenario run.
+[2026-06-19 21:48:13][INFO] Demo scenario: started automated presentation workflow.
+[2026-06-19 21:48:13][INFO] Demo scenario: memory subsystem reinitialized for clean allocation baseline.
+[2026-06-19 21:48:13][INFO] Demo scenario: created 5 emergency processes with mixed types and priorities.
+[2026-06-19 21:48:13][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:13][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:13][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:13][WARNING] Demo scenario: memory allocation failed for one process using first_fit.
+[2026-06-19 21:48:13][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:48:13][MEMORY] Snapshot begin
+  Block 00 | Start=  0MB | Size= 48MB | [USED:1]
+  Block 01 | Start= 48MB | Size= 16MB | [FREE]
+  Block 02 | Start= 64MB | Size= 64MB | [USED:2]
+  Block 03 | Start=128MB | Size= 32MB | [USED:3]
+  Block 04 | Start=160MB | Size= 24MB | [USED:5]
+  Block 05 | Start=184MB | Size=  8MB | [FREE]
+  Block 06 | Start=192MB | Size= 64MB | [FREE]
+  Block 07 | Start=256MB | Size= 64MB | [FREE]
+  Block 08 | Start=320MB | Size= 64MB | [FREE]
+  Block 09 | Start=384MB | Size= 64MB | [FREE]
+  Block 10 | Start=448MB | Size= 64MB | [FREE]
+  Fragmentation estimate: 24 MB
+[MEMORY] Snapshot end
+[2026-06-19 21:48:13][SCHEDULER] avg_wait=9.80 avg_turnaround=14.80 cpu_util=100.00%
+[2026-06-19 21:48:13][INFO] Demo scenario: ran Priority Scheduling and captured metrics.
+[2026-06-19 21:48:13][INFO] Demo scenario: sent two IPC messages through pipe communication.
+[2026-06-19 21:48:13][INFO] Demo scenario: Banker's algorithm safety check returned SAFE.
+[2026-06-19 21:48:13][INFO] Demo scenario: printing full system log for presentation review.
+[2026-06-19 21:48:13][INFO] System action: completed live demo scenario run.
+[2026-06-19 21:57:09][INFO] Process action: created new emergency task.
+[2026-06-19 21:57:29][INFO] Demo scenario: started automated presentation workflow.
+[2026-06-19 21:57:29][INFO] Demo scenario: memory subsystem reinitialized for clean allocation baseline.
+[2026-06-19 21:57:29][INFO] Demo scenario: created 5 emergency processes with mixed types and priorities.
+[2026-06-19 21:57:29][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:29][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:29][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:29][WARNING] Demo scenario: memory allocation failed for one process using first_fit.
+[2026-06-19 21:57:29][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:29][MEMORY] Snapshot begin
+  Block 00 | Start=  0MB | Size= 48MB | [USED:1]
+  Block 01 | Start= 48MB | Size= 16MB | [FREE]
+  Block 02 | Start= 64MB | Size= 64MB | [USED:2]
+  Block 03 | Start=128MB | Size= 32MB | [USED:3]
+  Block 04 | Start=160MB | Size= 24MB | [USED:5]
+  Block 05 | Start=184MB | Size=  8MB | [FREE]
+  Block 06 | Start=192MB | Size= 64MB | [FREE]
+  Block 07 | Start=256MB | Size= 64MB | [FREE]
+  Block 08 | Start=320MB | Size= 64MB | [FREE]
+  Block 09 | Start=384MB | Size= 64MB | [FREE]
+  Block 10 | Start=448MB | Size= 64MB | [FREE]
+  Fragmentation estimate: 24 MB
+[MEMORY] Snapshot end
+[2026-06-19 21:57:29][SCHEDULER] avg_wait=9.80 avg_turnaround=14.80 cpu_util=100.00%
+[2026-06-19 21:57:29][INFO] Demo scenario: ran Priority Scheduling and captured metrics.
+[2026-06-19 21:57:29][INFO] Demo scenario: sent two IPC messages through pipe communication.
+[2026-06-19 21:57:29][INFO] Demo scenario: Banker's algorithm safety check returned SAFE.
+[2026-06-19 21:57:29][INFO] Demo scenario: printing full system log for presentation review.
+[2026-06-19 21:57:29][INFO] System action: completed live demo scenario run.
+[2026-06-19 21:57:37][INFO] Demo scenario: started automated presentation workflow.
+[2026-06-19 21:57:37][INFO] Demo scenario: memory subsystem reinitialized for clean allocation baseline.
+[2026-06-19 21:57:37][INFO] Demo scenario: created 5 emergency processes with mixed types and priorities.
+[2026-06-19 21:57:37][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:37][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:37][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:37][WARNING] Demo scenario: memory allocation failed for one process using first_fit.
+[2026-06-19 21:57:37][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:37][MEMORY] Snapshot begin
+  Block 00 | Start=  0MB | Size= 48MB | [USED:1]
+  Block 01 | Start= 48MB | Size= 16MB | [FREE]
+  Block 02 | Start= 64MB | Size= 64MB | [USED:2]
+  Block 03 | Start=128MB | Size= 32MB | [USED:3]
+  Block 04 | Start=160MB | Size= 24MB | [USED:5]
+  Block 05 | Start=184MB | Size=  8MB | [FREE]
+  Block 06 | Start=192MB | Size= 64MB | [FREE]
+  Block 07 | Start=256MB | Size= 64MB | [FREE]
+  Block 08 | Start=320MB | Size= 64MB | [FREE]
+  Block 09 | Start=384MB | Size= 64MB | [FREE]
+  Block 10 | Start=448MB | Size= 64MB | [FREE]
+  Fragmentation estimate: 24 MB
+[MEMORY] Snapshot end
+[2026-06-19 21:57:37][SCHEDULER] avg_wait=9.80 avg_turnaround=14.80 cpu_util=100.00%
+[2026-06-19 21:57:37][INFO] Demo scenario: ran Priority Scheduling and captured metrics.
+[2026-06-19 21:57:37][INFO] Demo scenario: sent two IPC messages through pipe communication.
+[2026-06-19 21:57:37][INFO] Demo scenario: Banker's algorithm safety check returned SAFE.
+[2026-06-19 21:57:37][INFO] Demo scenario: printing full system log for presentation review.
+[2026-06-19 21:57:37][INFO] System action: completed live demo scenario run.
+[2026-06-19 21:57:52][INFO] Demo scenario: started automated presentation workflow.
+[2026-06-19 21:57:52][INFO] Demo scenario: memory subsystem reinitialized for clean allocation baseline.
+[2026-06-19 21:57:52][INFO] Demo scenario: created 5 emergency processes with mixed types and priorities.
+[2026-06-19 21:57:52][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:52][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:52][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:52][WARNING] Demo scenario: memory allocation failed for one process using first_fit.
+[2026-06-19 21:57:52][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:57:52][MEMORY] Snapshot begin
+  Block 00 | Start=  0MB | Size= 48MB | [USED:1]
+  Block 01 | Start= 48MB | Size= 16MB | [FREE]
+  Block 02 | Start= 64MB | Size= 64MB | [USED:2]
+  Block 03 | Start=128MB | Size= 32MB | [USED:3]
+  Block 04 | Start=160MB | Size= 24MB | [USED:5]
+  Block 05 | Start=184MB | Size=  8MB | [FREE]
+  Block 06 | Start=192MB | Size= 64MB | [FREE]
+  Block 07 | Start=256MB | Size= 64MB | [FREE]
+  Block 08 | Start=320MB | Size= 64MB | [FREE]
+  Block 09 | Start=384MB | Size= 64MB | [FREE]
+  Block 10 | Start=448MB | Size= 64MB | [FREE]
+  Fragmentation estimate: 24 MB
+[MEMORY] Snapshot end
+[2026-06-19 21:57:52][SCHEDULER] avg_wait=9.80 avg_turnaround=14.80 cpu_util=100.00%
+[2026-06-19 21:57:52][INFO] Demo scenario: ran Priority Scheduling and captured metrics.
+[2026-06-19 21:57:52][INFO] Demo scenario: sent two IPC messages through pipe communication.
+[2026-06-19 21:57:52][INFO] Demo scenario: Banker's algorithm safety check returned SAFE.
+[2026-06-19 21:57:52][INFO] Demo scenario: printing full system log for presentation review.
+[2026-06-19 21:57:52][INFO] System action: completed live demo scenario run.
+[2026-06-19 21:58:53][INFO] Demo scenario: started automated presentation workflow.
+[2026-06-19 21:58:53][INFO] Demo scenario: memory subsystem reinitialized for clean allocation baseline.
+[2026-06-19 21:58:53][INFO] Demo scenario: created 5 emergency processes with mixed types and priorities.
+[2026-06-19 21:58:53][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:58:53][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:58:53][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:58:53][WARNING] Demo scenario: memory allocation failed for one process using first_fit.
+[2026-06-19 21:58:53][INFO] Demo scenario: memory allocation succeeded for one process using first_fit.
+[2026-06-19 21:58:53][MEMORY] Snapshot begin
+  Block 00 | Start=  0MB | Size= 48MB | [USED:1]
+  Block 01 | Start= 48MB | Size= 16MB | [FREE]
+  Block 02 | Start= 64MB | Size= 64MB | [USED:2]
+  Block 03 | Start=128MB | Size= 32MB | [USED:3]
+  Block 04 | Start=160MB | Size= 24MB | [USED:5]
+  Block 05 | Start=184MB | Size=  8MB | [FREE]
+  Block 06 | Start=192MB | Size= 64MB | [FREE]
+  Block 07 | Start=256MB | Size= 64MB | [FREE]
+  Block 08 | Start=320MB | Size= 64MB | [FREE]
+  Block 09 | Start=384MB | Size= 64MB | [FREE]
+  Block 10 | Start=448MB | Size= 64MB | [FREE]
+  Fragmentation estimate: 24 MB
+[MEMORY] Snapshot end
+[2026-06-19 21:58:53][SCHEDULER] avg_wait=9.80 avg_turnaround=14.80 cpu_util=100.00%
+[2026-06-19 21:58:53][INFO] Demo scenario: ran Priority Scheduling and captured metrics.
+[2026-06-19 21:58:53][INFO] Demo scenario: sent two IPC messages through pipe communication.
+[2026-06-19 21:58:53][INFO] Demo scenario: Banker's algorithm safety check returned SAFE.
+[2026-06-19 21:58:53][INFO] Demo scenario: printing full system log for presentation review.
+[2026-06-19 21:58:53][INFO] System action: completed live demo scenario run.
+[2026-06-19 22:01:33][INFO] GUI action: launched Raylib dashboard.
+[2026-06-19 22:01:55][INFO] System action: exit requested by user.
+
+================ LOG SESSION START ================
+[2026-06-23 22:56:49] Logger session initialized.
+===================================================
+[2026-06-23 22:56:49][INFO] System startup: logger initialized.
+[2026-06-23 22:56:49][INFO] System startup: memory manager initialized.
+[2026-06-23 22:56:49][INFO] System startup: resource manager initialized.

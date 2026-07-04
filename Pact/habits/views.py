@@ -165,6 +165,15 @@ def verification_inbox(request):
         .order_by("-timestamp")
     )
 
+    return render(
+        request,
+        "habits/verification_inbox.html",
+        {
+            "pending_checkins": pending_checkins,
+            "verification_form": VerificationActionForm(),
+        },
+    )
+
 
 @login_required
 def verification_inbox_api(request):
@@ -191,15 +200,6 @@ def verification_inbox_api(request):
         )
 
     return JsonResponse({"checkins": checkins})
-
-    return render(
-        request,
-        "habits/verification_inbox.html",
-        {
-            "pending_checkins": pending_checkins,
-            "verification_form": VerificationActionForm(),
-        },
-    )
 
 
 @login_required
