@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "EarthquakeCityMap (module3)",
+      "request": "launch",
+      "mainClass": "module3.EarthquakeCityMap",
+      "vmArgs": "--add-exports=java.desktop/sun.awt=ALL-UNNAMED --add-opens=java.desktop/sun.awt=ALL-UNNAMED",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
