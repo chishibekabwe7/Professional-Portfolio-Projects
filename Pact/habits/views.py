@@ -13,7 +13,7 @@ from datetime import timedelta
 
 from .forms import CheckInForm, PactForm, VerificationActionForm
 from .models import CheckIn, Friendship, Pact, Profile, Verification
-from .services import calculate_streak
+from .services import attach_period_checkin_statuses, build_contribution_heatmap, calculate_streak
 
 
 def register(request):
@@ -36,18 +36,20 @@ def register(request):
 
 @login_required
 def dashboard(request):
-    owned_pacts = (
+    owned_pacts = attach_period_checkin_statuses(
         Pact.objects.filter(owner=request.user)
-        .prefetch_related("witnesses")
+        .prefetch_related("witnesses", "witnesses__profile")
         .order_by("-created_at")
     )
-    witnessed_pacts = (
+    witnessed_pacts = attach_period_checkin_statuses(
         Pact.objects.filter(witnesses=request.user)
         .exclude(owner=request.user)
-        .select_related("owner")
-        .prefetch_related("witnesses")
+        .select_related("owner", "owner__profile")
+        .prefetch_related("witnesses", "witnesses__profile")
         .order_by("-created_at")
     )
+    accepted_friends = Friendship.accepted_friends_for(request.user)
+    form = PactForm(accepted_friends=accepted_friends)
 
     return render(
         request,
@@ -55,6 +57,8 @@ def dashboard(request):
         {
             "owned_pacts": owned_pacts,
             "witnessed_pacts": witnessed_pacts,
+            "form": form,
+            "mode": "Create",
         },
     )
 
@@ -380,34 +384,7 @@ def pact_checkins_api(request, pact_id):
         pact.checkins.with_lazy_expiration().select_related("submitted_by").order_by("-timestamp")
     )
     summary = calculate_streak(pact, checkins=sorted(checkins, key=lambda check_in: check_in.timestamp))
-
-    today = timezone.localdate()
-    start_date = today - timedelta(days=89)
-    checkins_by_day = {}
-    status_rank = {
-        CheckIn.Status.VERIFIED: 4,
-        CheckIn.Status.PENDING: 3,
-        CheckIn.Status.REJECTED: 2,
-        CheckIn.Status.EXPIRED: 1,
-    }
-
-    for check_in in checkins:
-        day_key = timezone.localtime(check_in.timestamp).date().isoformat()
-        current = checkins_by_day.get(day_key)
-        if current is None or status_rank[check_in.status] > status_rank[current]:
-            checkins_by_day[day_key] = check_in.status
-
-    days = []
-    current_date = start_date
-    while current_date <= today:
-        iso_date = current_date.isoformat()
-        days.append(
-            {
-                "date": iso_date,
-                "status": checkins_by_day.get(iso_date, "no_check_in"),
-            }
-        )
-        current_date += timedelta(days=1)
+    heatmap = build_contribution_heatmap(checkins, weeks=12)
 
     return JsonResponse(
         {
@@ -419,10 +396,11 @@ def pact_checkins_api(request, pact_id):
                 "longest_streak": summary.longest_streak,
             },
             "range": {
-                "start_date": start_date.isoformat(),
-                "end_date": today.isoformat(),
+                "start_date": heatmap["start_date"],
+                "end_date": heatmap["end_date"],
+                "weeks": heatmap["weeks"],
             },
-            "days": days,
+            "days": heatmap["days"],
             "checkins": [
                 {
                     "id": check_in.id,

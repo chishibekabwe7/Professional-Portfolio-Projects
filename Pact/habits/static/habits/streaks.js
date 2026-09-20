@@ -1,10 +1,18 @@
 function getStatusClass(status) {
+  // Three states only: Pact's per-day data is binary (counted / awaiting
+  // verification / nothing), so rejected, expired and empty days all share
+  // the "none" swatch rather than implying intensity levels.
   const normalized = String(status || '').toLowerCase();
   if (normalized === 'verified') return 'status-verified';
   if (normalized === 'pending') return 'status-pending';
-  if (normalized === 'rejected') return 'status-rejected';
-  if (normalized === 'expired') return 'status-expired';
   return 'status-none';
+}
+
+function getStatusLabel(status) {
+  const normalized = String(status || '').toLowerCase();
+  if (normalized === 'verified') return 'Verified';
+  if (normalized === 'pending') return 'Pending verification';
+  return 'No check-in';
 }
 
 function formatDateLabel(value) {
@@ -18,11 +26,17 @@ function renderHeatmap(container, days) {
   container.innerHTML = '';
 
   days.forEach((day) => {
-    const cell = document.createElement('button');
-    cell.type = 'button';
+    // The API pads the current week out to Saturday with in_range=false
+    // cells for future dates; skipping them keeps the trailing column short,
+    // the way contribution grids look mid-week.
+    if (day.in_range === false) {
+      return;
+    }
+    const cell = document.createElement('div');
     cell.className = `heatmap-cell ${getStatusClass(day.status)}`;
-    cell.title = `${formatDateLabel(day.date)}: ${day.status.replace('_', ' ')}`;
-    cell.setAttribute('aria-label', cell.title);
+    const label = `${formatDateLabel(day.date)}: ${getStatusLabel(day.status)}`;
+    cell.title = label;
+    cell.setAttribute('aria-label', label);
     container.appendChild(cell);
   });
 }

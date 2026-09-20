@@ -9,7 +9,7 @@
       <h1 class="h3 mb-1">Pact Dashboard</h1>
       <p class="text-muted mb-0">Review the pacts you own and the ones you witness.</p>
     </div>
-    <a class="btn btn-primary" href="{% url 'pact_create' %}">Create Pact</a>
+    <a class="btn btn-primary" href="{% url 'pact_create' %}" id="open-pact-sheet-btn" role="button" aria-haspopup="dialog">Create Pact</a>
   </div>
 
   <div class="col-12 col-lg-6">
@@ -20,17 +20,9 @@
       </div>
       <div class="card-body">
         {% if owned_pacts %}
-          <div class="list-group list-group-flush">
+          <div class="pact-card-list">
             {% for pact in owned_pacts %}
-              <a href="{% url 'pact_detail' pact.id %}" class="list-group-item list-group-item-action px-0">
-                <div class="d-flex justify-content-between align-items-start gap-3">
-                  <div>
-                    <div class="fw-semibold">{{ pact.title }}</div>
-                    <div class="text-muted small">{{ pact.get_frequency_display }}{% if not pact.is_active %} · Inactive{% endif %}</div>
-                  </div>
-                  <span class="badge text-bg-light">Owned</span>
-                </div>
-              </a>
+              {% include "habits/_pact_card.html" with pact=pact can_check_in=True avatar_users=pact.witnesses.all %}
             {% endfor %}
           </div>
         {% else %}
@@ -48,17 +40,9 @@
       </div>
       <div class="card-body">
         {% if witnessed_pacts %}
-          <div class="list-group list-group-flush">
+          <div class="pact-card-list">
             {% for pact in witnessed_pacts %}
-              <a href="{% url 'pact_detail' pact.id %}" class="list-group-item list-group-item-action px-0">
-                <div class="d-flex justify-content-between align-items-start gap-3">
-                  <div>
-                    <div class="fw-semibold">{{ pact.title }}</div>
-                    <div class="text-muted small">by @{{ pact.owner.username }} · {{ pact.get_frequency_display }}</div>
-                  </div>
-                  <span class="badge text-bg-info">Witness</span>
-                </div>
-              </a>
+              {% include "habits/_pact_card.html" with pact=pact can_check_in=False avatar_users=pact.witnesses.all %}
             {% endfor %}
           </div>
         {% else %}
@@ -68,4 +52,8 @@
     </div>
   </div>
 </div>
+
+{% if form %}
+  {% include "habits/_pact_form_sheet.html" with is_standalone=False is_open=False %}
+{% endif %}
 {% endblock %}

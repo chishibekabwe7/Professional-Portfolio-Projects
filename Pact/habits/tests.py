@@ -526,3 +526,39 @@ class VerificationInboxAPITests(TestCase):
         response = self.fetch_inbox(self.witness_a)
         ids = {item["id"] for item in response.json()["checkins"]}
         self.assertNotIn(self.checkin_a.id, ids)
+
+
+@override_settings(**FAST_HASHERS)
+class BottomSheetAndGlassTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="testuser", password="password")
+        self.client.force_login(self.user)
+
+    def test_dashboard_renders_bottom_sheet_and_trigger(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="open-pact-sheet-btn"')
+        self.assertContains(response, 'id="pactSheetOverlay"')
+        self.assertContains(response, 'id="pactBottomSheet"')
+        self.assertContains(response, "NEW PACT")
+        self.assertContains(response, "btn-pact-submit")
+        self.assertContains(response, "bottom-sheet glass")
+
+    def test_pact_create_renders_bottom_sheet(self):
+        response = self.client.get(reverse("pact_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="pactSheetOverlay"')
+        self.assertContains(response, 'id="pactBottomSheet"')
+        self.assertContains(response, "NEW PACT")
+        self.assertContains(response, "btn-pact-submit")
+        self.assertContains(response, 'data-standalone="true"')
+
+    def test_pact_edit_renders_bottom_sheet(self):
+        pact = Pact.objects.create(owner=self.user, title="Morning Walk", frequency=Pact.Frequency.DAILY)
+        response = self.client.get(reverse("pact_edit", args=[pact.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="pactSheetOverlay"')
+        self.assertContains(response, 'id="pactBottomSheet"')
+        self.assertContains(response, "EDIT PACT")
+        self.assertContains(response, "btn-pact-submit")
+        self.assertContains(response, 'data-standalone="true"')

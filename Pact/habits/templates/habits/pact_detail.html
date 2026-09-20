@@ -83,14 +83,16 @@
           </div>
 
           <div class="heatmap-scroll">
-            <div class="heatmap-legend mb-2">
-              <span><i class="legend-swatch status-none"></i> None</span>
-              <span><i class="legend-swatch status-pending"></i> Pending</span>
-              <span><i class="legend-swatch status-verified"></i> Verified</span>
-              <span><i class="legend-swatch status-rejected"></i> Rejected</span>
-              <span><i class="legend-swatch status-expired"></i> Expired</span>
+            <div class="heatmap-card">
+              <div id="heatmap-grid" class="heatmap-grid" role="img" aria-label="Check-in history heatmap"></div>
+              <div class="heatmap-legend">
+                <span class="heatmap-legend__label">Less</span>
+                <span class="legend-swatch status-none" aria-hidden="true"></span>
+                <span class="legend-swatch status-pending" aria-hidden="true"></span>
+                <span class="legend-swatch status-verified" aria-hidden="true"></span>
+                <span class="heatmap-legend__label">More</span>
+              </div>
             </div>
-            <div id="heatmap-grid" class="heatmap-grid" aria-label="Check-in heatmap"></div>
           </div>
         </div>
       </div>
