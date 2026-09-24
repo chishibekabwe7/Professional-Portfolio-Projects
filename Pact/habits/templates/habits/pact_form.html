@@ -1,0 +1,8 @@
+{% extends "habits/layout.html" %}
+
+{% block title %}{{ mode }} Pact | Pact{% endblock %}
+
+{% block content %}
+{% include "habits/_pact_form_sheet.html" with is_standalone=True is_open=True %}
+{% endblock %}
+

@@ -1,0 +1,188 @@
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import api from '../api';
+import { getCachedReverseGeocode } from './geocode';
+
+type TodayScoreResponse = {
+  score?: number;
+} | null;
+
+export type Trip = {
+  id: number;
+  deviceImei: string;
+  startedAt: string | Date;
+  endedAt?: string | Date | null;
+  distanceKm: number;
+  durationSecs: number;
+  avgSpeedKmh: number;
+  maxSpeedKmh: number;
+};
+
+export type LocationLog = {
+  recordedAt: string | Date;
+  latitude: number;
+  longitude: number;
+  speed?: number;
+};
+
+const formatFilenameDate = (value: string | Date): string => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'unknown-date';
+  }
+
+  return date.toISOString().slice(0, 10);
+};
+
+const formatDateTime = (value: string | Date): string => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const formatDuration = (durationSecs: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(durationSecs));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+};
+
+const escapeCsv = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+
+const triggerDownload = (blob: Blob, fileName: string): void => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 2000);
+};
+
+const fetchTodayScore = async (imei: string): Promise<number | null> => {
+  try {
+    const response = await api.get<TodayScoreResponse>(`/locations/${imei}/score/today`);
+    const score = Number(response.data?.score);
+
+    if (!Number.isFinite(score)) {
+      return null;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+  } catch (error) {
+    return null;
+  }
+};
+
+export function exportTripCSV(trip: Trip, locations: LocationLog[]): void {
+  const headers = ['Timestamp', 'Latitude', 'Longitude', 'Speed (km/h)', 'Address'];
+
+  const rows = locations.map((point) => {
+    const latitude = Number(point.latitude);
+    const longitude = Number(point.longitude);
+    const speed = Number.isFinite(Number(point.speed)) ? Number(point.speed) : 0;
+    const address =
+      Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? getCachedReverseGeocode(latitude, longitude) ?? ''
+        : '';
+
+    return [
+      formatDateTime(point.recordedAt),
+      Number.isFinite(latitude) ? latitude.toFixed(6) : '',
+      Number.isFinite(longitude) ? longitude.toFixed(6) : '',
+      speed.toFixed(0),
+      address,
+    ];
+  });
+
+  const csvBody = [headers, ...rows]
+    .map((row) => row.map((value) => escapeCsv(String(value))).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvBody], { type: 'text/csv;charset=utf-8;' });
+  const fileName = `elitrack-trip-${trip.id}-${formatFilenameDate(trip.startedAt)}.csv`;
+
+  triggerDownload(blob, fileName);
+}
+
+export async function exportTripPDF(
+  trip: Trip,
+  locations: LocationLog[],
+  deviceLabel: string,
+): Promise<void> {
+  const todayScore = await fetchTodayScore(trip.deviceImei);
+
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  doc.setFontSize(14);
+  doc.text('ELITRACK LOGISTICS - TRIP REPORT', 14, 15);
+
+  doc.setFontSize(10);
+  const summaryRows = [
+    `Device: ${deviceLabel} (${trip.deviceImei})`,
+    `Date: ${formatDateTime(trip.startedAt)}`,
+    `Duration: ${formatDuration(trip.durationSecs)}`,
+    `Distance: ${Number(trip.distanceKm || 0).toFixed(1)} km`,
+    `Avg Speed: ${Number(trip.avgSpeedKmh || 0).toFixed(1)} km/h`,
+    `Max Speed: ${Number(trip.maxSpeedKmh || 0).toFixed(1)} km/h`,
+    `Driver Score: ${todayScore ?? 'N/A'}`,
+  ];
+
+  let summaryY = 23;
+  for (const row of summaryRows) {
+    doc.text(row, 14, summaryY);
+    summaryY += 6;
+  }
+
+  const tableRows = locations.slice(0, 200).map((point) => [
+    formatDateTime(point.recordedAt),
+    Number(point.latitude).toFixed(6),
+    Number(point.longitude).toFixed(6),
+    Number.isFinite(Number(point.speed)) ? Number(point.speed).toFixed(0) : '0',
+  ]);
+
+  autoTable(doc, {
+    startY: summaryY + 2,
+    head: [['Timestamp', 'Lat', 'Lng', 'Speed']],
+    body: tableRows,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [30, 41, 59],
+      textColor: [248, 250, 252],
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.8,
+    },
+  });
+
+  doc.setFontSize(9);
+  doc.text('Generated by Elitrack Logistics', 14, doc.internal.pageSize.getHeight() - 10);
+
+  const fileName = `elitrack-trip-${trip.id}-${formatFilenameDate(trip.startedAt)}.pdf`;
+  doc.save(fileName);
+}

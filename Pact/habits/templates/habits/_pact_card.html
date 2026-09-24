@@ -1,0 +1,100 @@
+{# Expects: pact, can_check_in (bool), avatar_users (iterable of User) #}
+<article class="pact-card">
+  <a class="pact-card__link" href="{% url 'pact_detail' pact.id %}" aria-label="Open {{ pact.title }}">
+    <div class="pact-card__icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="3.25" stroke="currentColor" stroke-width="1.75"/>
+      </svg>
+    </div>
+
+    <div class="pact-card__body">
+      <div class="pact-card__title">{{ pact.title }}</div>
+      <div class="pact-card__subtitle">
+        {% if not can_check_in %}
+          by @{{ pact.owner.username }} ·
+        {% endif %}
+        {{ pact.get_frequency_display }}
+        {% if not pact.is_active %}
+          · Inactive
+        {% elif pact.period_status == "verified" %}
+          · Verified
+        {% elif pact.period_status == "pending" %}
+          · Pending verification
+        {% elif pact.period_status == "rejected" %}
+          · Rejected
+        {% elif pact.period_status == "expired" %}
+          · Expired
+        {% else %}
+          · Not checked in
+        {% endif %}
+      </div>
+    </div>
+  </a>
+
+  <div class="pact-card__meta">
+    <div class="pact-card__avatars" aria-label="Witnesses">
+      {% for person in avatar_users %}
+        {% if forloop.counter <= 3 %}
+          <span class="pact-card__avatar" title="@{{ person.username }}">
+            {% if person.profile.avatar %}
+              <img src="{{ person.profile.avatar.url }}" alt="">
+            {% else %}
+              <span class="pact-card__avatar-initials">{{ person.username|first|upper }}</span>
+            {% endif %}
+          </span>
+        {% endif %}
+      {% empty %}
+        <span class="pact-card__avatar pact-card__avatar--empty" title="No witnesses">
+          <span class="pact-card__avatar-initials">?</span>
+        </span>
+      {% endfor %}
+      {% with witness_count=avatar_users|length %}
+        {% if witness_count > 3 %}
+          <span class="pact-card__avatar pact-card__avatar--more">+{{ witness_count|add:"-3" }}</span>
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    {% if can_check_in and pact.is_active %}
+      {% if pact.period_status == "verified" %}
+        <span class="pact-card__status pact-card__status--verified" title="Verified" aria-label="Verified">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      {% elif pact.period_status == "pending" %}
+        <span class="pact-card__status pact-card__status--pending" title="Pending verification" aria-label="Pending verification">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.75"/>
+            <path d="M12 8v4.5l3 1.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      {% else %}
+        <a
+          class="pact-card__status pact-card__status--add"
+          href="{% url 'checkin_create' pact.id %}"
+          title="Log check-in"
+          aria-label="Log check-in for {{ pact.title }}"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/>
+          </svg>
+        </a>
+      {% endif %}
+    {% elif pact.period_status == "verified" %}
+      <span class="pact-card__status pact-card__status--verified" title="Verified" aria-label="Verified">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    {% elif pact.period_status == "pending" %}
+      <span class="pact-card__status pact-card__status--pending" title="Pending verification" aria-label="Pending verification">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.75"/>
+          <path d="M12 8v4.5l3 1.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    {% endif %}
+  </div>
+</article>

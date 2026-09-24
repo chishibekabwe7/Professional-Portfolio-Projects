@@ -1,0 +1,35 @@
+MESA: error: ZINK: failed to choose pdev
+libEGL warning: egl: failed to create dri2 screen
+MESA: error: ZINK: failed to choose pdev
+glx: failed to create drisw screen
+MESA: error: ZINK: failed to choose pdev
+glx: failed to create drisw screen
+Bug 1004: Caught: class com.jogamp.nativewindow.awt.AppContextInfo cannot access class sun.awt.AppContext (in module java.desktop) because module java.desktop does not export sun.awt to unnamed module @7fab8c68
+java.lang.IllegalAccessException: class com.jogamp.nativewindow.awt.AppContextInfo cannot access class sun.awt.AppContext (in module java.desktop) because module java.desktop does not export sun.awt to unnamed module @7fab8c68
+	at java.base/jdk.internal.reflect.Reflection.newIllegalAccessException(Reflection.java:392)
+	at java.base/java.lang.reflect.AccessibleObject.checkAccess(AccessibleObject.java:674)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:561)
+	at com.jogamp.nativewindow.awt.AppContextInfo.fetchAppContext(AppContextInfo.java:187)
+	at com.jogamp.nativewindow.awt.AppContextInfo.update(AppContextInfo.java:131)
+	at com.jogamp.nativewindow.awt.AppContextInfo.<init>(AppContextInfo.java:45)
+	at com.jogamp.nativewindow.awt.JAWTWindow.<init>(JAWTWindow.java:125)
+	at jogamp.nativewindow.jawt.x11.X11JAWTWindow.<init>(X11JAWTWindow.java:58)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance0(Native Method)
+	at java.base/jdk.internal.reflect.NativeConstructorAccessorImpl.newInstance(NativeConstructorAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingConstructorAccessorImpl.newInstance(DelegatingConstructorAccessorImpl.java:45)
+	at java.base/java.lang.reflect.Constructor.newInstanceWithCaller(Constructor.java:500)
+	at java.base/java.lang.reflect.Constructor.newInstance(Constructor.java:481)
+	at jogamp.nativewindow.NativeWindowFactoryImpl.getAWTNativeWindow(NativeWindowFactoryImpl.java:105)
+	at jogamp.nativewindow.NativeWindowFactoryImpl.getNativeWindowImpl(NativeWindowFactoryImpl.java:66)
+	at javax.media.nativewindow.NativeWindowFactory.getNativeWindow(NativeWindowFactory.java:584)
+	at javax.media.opengl.awt.GLCanvas.createJAWTDrawableAndContext(GLCanvas.java:682)
+	at javax.media.opengl.awt.GLCanvas.addNotify(GLCanvas.java:628)
+	at java.desktop/java.awt.Container.addImpl(Container.java:1150)
+	at java.desktop/java.awt.Container.add(Container.java:1001)
+	at processing.opengl.PJOGL.initSurface(PJOGL.java:357)
+	at processing.opengl.PGraphicsOpenGL.initPrimary(PGraphicsOpenGL.java:6340)
+	at processing.opengl.PGraphicsOpenGL.requestDraw(PGraphicsOpenGL.java:1658)
+	at processing.core.PApplet.run(PApplet.java:2260)
+	at java.base/java.lang.Thread.run(Thread.java:840)
+Unfolding Map v0.9.7 (UCSD edition)
+Using OpenGLMapDisplay with processing.opengl.PGraphics3D

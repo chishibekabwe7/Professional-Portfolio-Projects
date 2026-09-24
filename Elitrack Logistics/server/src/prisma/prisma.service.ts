@@ -18,6 +18,9 @@ export class PrismaService
   private readonly instanceId: number;
   private readonly queryTimeoutMs: number;
   private readonly slowQueryThresholdMs: number;
+  private readonly maxRetries: number = 3;
+  private readonly retryDelayMs: number = 100;
+  private connectionHealthy = false;
 
   constructor() {
     const databaseUrl = process.env.DATABASE_URL;
@@ -40,7 +43,7 @@ export class PrismaService
     this.logger.log(
       `[instance:${this.instanceId}] PrismaService initialized for ${this.getConnectionTarget(
         databaseUrl,
-      )}. queryTimeoutMs=${this.queryTimeoutMs}, slowQueryThresholdMs=${this.slowQueryThresholdMs}`,
+      )}. queryTimeoutMs=${this.queryTimeoutMs}, slowQueryThresholdMs=${this.slowQueryThresholdMs}, maxRetries=${this.maxRetries}`,
     );
 
     if (PrismaService.instanceCount > 1) {
@@ -52,22 +55,86 @@ export class PrismaService
 
   async onModuleInit(): Promise<void> {
     this.logger.log(`[instance:${this.instanceId}] Connecting to database...`);
-    await this.executeQuery('prisma.$connect', () => this.$connect());
-    this.logger.log(`[instance:${this.instanceId}] Database connection established.`);
+    const connectStartMs = Date.now();
+    
+    try {
+      await this.executeQueryWithRetry('prisma.$connect', () => this.$connect());
+      this.connectionHealthy = true;
+      const connectTimeMs = Date.now() - connectStartMs;
+      
+      this.logger.log(
+        `[instance:${this.instanceId}] Database connection established (${connectTimeMs}ms).`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `[instance:${this.instanceId}] Failed to connect to database: ${this.getErrorMessage(error)}`,
+      );
+      throw error;
+    }
   }
 
   async onModuleDestroy(): Promise<void> {
     this.logger.log(`[instance:${this.instanceId}] Disconnecting database client...`);
-    await this.executeQuery('prisma.$disconnect', () => this.$disconnect());
-    this.logger.log(`[instance:${this.instanceId}] Database client disconnected.`);
+    this.connectionHealthy = false;
+    
+    try {
+      await this.executeQuery('prisma.$disconnect', () => this.$disconnect());
+      this.logger.log(`[instance:${this.instanceId}] Database client disconnected.`);
+    } catch (error) {
+      this.logger.warn(
+        `[instance:${this.instanceId}] Error disconnecting: ${this.getErrorMessage(error)}`,
+      );
+    }
   }
 
-  async executeQuery<T>(
+  /**
+   * Execute query with automatic retry on transient errors
+   */
+  async executeQueryWithRetry<T>(
     label: string,
     queryFn: () => Promise<T>,
   ): Promise<T> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await this.executeQuery(label, queryFn, attempt, this.maxRetries);
+      } catch (error) {
+        lastError = error;
+        
+        if (attempt === this.maxRetries) {
+          break;
+        }
+
+        const isTransient = this.isTransientError(error);
+        if (!isTransient) {
+          throw error;
+        }
+
+        const delayMs = this.retryDelayMs * Math.pow(2, attempt - 1);
+        this.logger.warn(
+          `[PrismaQuery:retry] ${label} (attempt ${attempt}/${this.maxRetries}) - retrying in ${delayMs}ms: ${this.getErrorMessage(error)}`,
+        );
+        
+        await this.delay(delayMs);
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Execute query with timeout enforcement
+   */
+  async executeQuery<T>(
+    label: string,
+    queryFn: () => Promise<T>,
+    attempt: number = 1,
+    maxAttempts: number = 1,
+  ): Promise<T> {
     const startTime = Date.now();
-    this.logger.log(`[PrismaQuery:start] ${label}`);
+    const attemptSuffix = maxAttempts > 1 ? ` [${attempt}/${maxAttempts}]` : '';
+    this.logger.log(`[PrismaQuery:start] ${label}${attemptSuffix}`);
 
     const queryPromise: Promise<PrismaQueryOutcome<T>> = queryFn()
       .then((value): PrismaQueryOutcome<T> => ({ type: 'result', value }))
@@ -88,13 +155,13 @@ export class PrismaService
       const durationMs = Date.now() - startTime;
 
       if (outcome.type === 'result') {
-        this.logger.log(`[PrismaQuery:done] ${label} (${durationMs}ms)`);
+        this.logger.log(`[PrismaQuery:done] ${label}${attemptSuffix} (${durationMs}ms)`);
         return outcome.value;
       }
 
       if (outcome.type === 'error') {
         this.logger.error(
-          `[PrismaQuery:error] ${label} (${durationMs}ms): ${this.getErrorMessage(
+          `[PrismaQuery:error] ${label}${attemptSuffix} (${durationMs}ms): ${this.getErrorMessage(
             outcome.error,
           )}`,
         );
@@ -102,7 +169,7 @@ export class PrismaService
       }
 
       this.logger.error(
-        `[PrismaQuery:timeout] ${label} exceeded ${this.queryTimeoutMs}ms.`,
+        `[PrismaQuery:timeout] ${label}${attemptSuffix} exceeded ${this.queryTimeoutMs}ms.`,
       );
       throw new Error(
         `Database query timeout (${label}) after ${this.queryTimeoutMs}ms`,
@@ -112,6 +179,34 @@ export class PrismaService
         clearTimeout(timeoutHandle);
       }
     }
+  }
+
+  private isTransientError(error: unknown): boolean {
+    if (error instanceof Prisma.PrismaClientRustPanicError) {
+      return true;
+    }
+
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      return true;
+    }
+
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      return (
+        message.includes('econnrefused') ||
+        message.includes('econnreset') ||
+        message.includes('etimedout') ||
+        message.includes('connect failed') ||
+        message.includes('socket hang up') ||
+        message.includes('connection timeout')
+      );
+    }
+
+    return false;
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private getQueryTimeoutMs(): number {

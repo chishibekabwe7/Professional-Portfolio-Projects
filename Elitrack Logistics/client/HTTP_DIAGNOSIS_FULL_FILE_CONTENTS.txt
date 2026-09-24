@@ -1,0 +1,6292 @@
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/App.tsx =====
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import InstallButton from './components/InstallButton';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
+
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const DeviceList = lazy(() => import('./pages/DeviceList'));
+const TrackingPage = lazy(() => import('./pages/TrackingPage'));
+
+type ApiStatusEventDetail = {
+  message?: string;
+};
+
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
+console.log('[LOCK] Google Client ID loaded:', GOOGLE_CLIENT_ID ? '[CHECK] Loaded' : '[ERROR] Missing - Check .env file');
+
+export default function App() {
+  const [isOffline, setIsOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const [apiUnavailable, setApiUnavailable] = useState<boolean>(false);
+  const [apiMessage, setApiMessage] = useState<string>('');
+
+  useEffect(() => {
+    const onOnline = (): void => setIsOffline(false);
+    const onOffline = (): void => setIsOffline(true);
+
+    const onApiOffline = (event: Event): void => {
+      const apiEvent = event as CustomEvent<ApiStatusEventDetail>;
+      setApiUnavailable(true);
+      setApiMessage(apiEvent?.detail?.message || 'Backend is currently unavailable. Showing cached/offline content when possible.');
+    };
+
+    const onApiOnline = (): void => {
+      setApiUnavailable(false);
+      setApiMessage('');
+    };
+
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('api-offline', onApiOffline);
+    window.addEventListener('api-online', onApiOnline);
+
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('api-offline', onApiOffline);
+      window.removeEventListener('api-online', onApiOnline);
+    };
+  }, []);
+
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <BrowserRouter>
+          {(isOffline || apiUnavailable) && (
+            <div className="offline-banner">
+              {isOffline
+                ? 'You are offline. Some features may use cached data only.'
+                : apiMessage || 'Cannot reach API right now. Retrying automatically.'}
+            </div>
+          )}
+          <Suspense fallback={<div className="route-fallback"><div className="spinner" /></div>}>
+            <Routes>
+              <Route path="/" element={<AuthPage />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute><Dashboard /></ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute allowedRoles={['admin', 'super_admin']}><AdminDashboard /></ProtectedRoute>
+              } />
+              <Route path="/devices" element={
+                <ProtectedRoute><DeviceList /></ProtectedRoute>
+              } />
+              <Route path="/track/:deviceId" element={
+                <ProtectedRoute><TrackingPage /></ProtectedRoute>
+              } />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+          <InstallButton />
+        </BrowserRouter>
+      </AuthProvider>
+    </GoogleOAuthProvider>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/api/index.ts =====
+import axios, {
+    type AxiosRequestHeaders,
+    type AxiosResponse,
+    type InternalAxiosRequestConfig,
+} from 'axios';
+import type { ApiError, ApiErrorPayload } from '../types/api';
+
+const API_CACHE_PREFIX = 'tl_api_cache_v1:';
+const API_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+type ApiStatusEvent = 'api-offline' | 'api-online';
+
+type CachedApiEntry = {
+  savedAt: number;
+  data: unknown;
+};
+
+const parseBoolean = (value: unknown, fallback: boolean): boolean => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+  }
+
+  return fallback;
+};
+
+const USE_NEST_API = parseBoolean(
+  process.env.REACT_APP_USE_NEST_API ?? process.env.USE_NEST_API,
+  true
+);
+
+const EXPRESS_API_BASE_URL = process.env.REACT_APP_EXPRESS_API_URL || '/api';
+const NEST_API_BASE_URL = process.env.REACT_APP_NEST_API_URL || 'http://localhost:4001';
+const NORMALIZED_EXPRESS_API_BASE_URL = EXPRESS_API_BASE_URL.replace(/\/+$/, '');
+const NORMALIZED_NEST_API_BASE_URL = NEST_API_BASE_URL.replace(/\/+$/, '');
+
+const isAdminEndpoint = (endpoint: string): boolean => {
+  if (endpoint.length === 0) {
+    return false;
+  }
+
+  if (/^https?:\/\//i.test(endpoint)) {
+    return false;
+  }
+
+  const normalizedPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  return normalizedPath === '/admin' || normalizedPath.startsWith('/admin/');
+};
+
+const resolveApiBaseUrl = (): string => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  return USE_NEST_API ? NORMALIZED_NEST_API_BASE_URL : NORMALIZED_EXPRESS_API_BASE_URL;
+};
+
+const API_BASE_URL = resolveApiBaseUrl().replace(/\/+$/, '');
+
+export const buildApiUrl = (path: string): string => {
+  const endpoint = String(path || '');
+
+  if (/^https?:\/\//i.test(endpoint)) {
+    return endpoint;
+  }
+
+  const normalizedPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const targetBaseUrl = isAdminEndpoint(normalizedPath)
+    ? NORMALIZED_NEST_API_BASE_URL
+    : API_BASE_URL;
+
+  return `${targetBaseUrl}${normalizedPath}`;
+};
+
+const getCacheKey = (config: InternalAxiosRequestConfig): string => {
+  const url = config.url || '';
+  const params = config.params ? JSON.stringify(config.params) : '';
+  return `${API_CACHE_PREFIX}${url}?${params}`;
+};
+
+const readCache = (key?: string): unknown | null => {
+  if (!key) return null;
+
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as CachedApiEntry;
+    if (!parsed?.savedAt || typeof parsed.data === 'undefined') return null;
+
+    if (Date.now() - parsed.savedAt > API_CACHE_TTL_MS) {
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    return parsed.data;
+  } catch {
+    return null;
+  }
+};
+
+const writeCache = (key: string | undefined, data: unknown): void => {
+  if (!key) return;
+
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        savedAt: Date.now(),
+        data,
+      })
+    );
+  } catch {
+    // Ignore quota and serialization errors.
+  }
+};
+
+const notifyApiStatus = (eventName: ApiStatusEvent, message: string): void => {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(eventName, { detail: { message } }));
+};
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
+
+api.interceptors.request.use((cfg) => {
+  const token = localStorage.getItem('tl_token');
+
+  if (token) {
+    cfg.headers = cfg.headers ?? ({} as AxiosRequestHeaders);
+    cfg.headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (isAdminEndpoint(cfg.url || '')) {
+    cfg.baseURL = NORMALIZED_NEST_API_BASE_URL;
+  }
+
+  if ((cfg.method || 'get').toLowerCase() === 'get') {
+    cfg.__cacheKey = getCacheKey(cfg);
+  }
+
+  return cfg;
+});
+
+api.interceptors.response.use(
+  (response) => {
+    if ((response.config.method || 'get').toLowerCase() === 'get') {
+      writeCache(response.config.__cacheKey, response.data);
+    }
+
+    notifyApiStatus('api-online', '');
+    return response;
+  },
+  (error: ApiError) => {
+    const config = (error.config || {}) as InternalAxiosRequestConfig;
+    const method = (config.method || 'get').toLowerCase();
+
+    if (!error.response) {
+      const cached = method === 'get' ? readCache(config.__cacheKey) : null;
+
+      if (cached !== null) {
+        notifyApiStatus('api-offline', 'You are offline. Showing recently cached data.');
+
+        const cachedResponse: AxiosResponse = {
+          data: cached,
+          status: 200,
+          statusText: 'OK (cache)',
+          headers: { 'x-cache': 'HIT' },
+          config,
+          request: null,
+        };
+
+        return Promise.resolve(cachedResponse);
+      }
+
+      error.userMessage = 'Cannot reach the server. Check your internet connection and try again.';
+      notifyApiStatus('api-offline', error.userMessage);
+      return Promise.reject(error);
+    }
+
+    if (error.response.status >= 500) {
+      error.userMessage = 'Server error. Please try again in a moment.';
+      notifyApiStatus('api-offline', error.userMessage);
+    } else {
+      const responseData = error.response.data as ApiErrorPayload | undefined;
+      error.userMessage = responseData?.error || 'Request failed. Please try again.';
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/context/AuthContext.tsx =====
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useMemo,
+    useState,
+    type ReactNode,
+} from 'react';
+import api from '../api';
+import type {
+    LoginResponse,
+    RegisterPayload,
+    RegisterResponse,
+} from '../types/api';
+import type { AuthUser } from '../types/models';
+
+type AuthContextValue = {
+  user: AuthUser | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  register: (payload: RegisterPayload) => Promise<RegisterResponse>;
+  logout: () => void;
+};
+
+type AuthProviderProps = {
+  children: ReactNode;
+};
+
+const AuthCtx = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('tl_user');
+
+    if (stored) {
+      try {
+        setUser(JSON.parse(stored));
+      } catch {
+        localStorage.removeItem('tl_user');
+      }
+    }
+
+    setLoading(false);
+  }, []);
+
+  const login = async (email: string, password: string): Promise<AuthUser> => {
+    const { data } = await api.post<LoginResponse>('/auth/login', { email, password });
+    localStorage.setItem('tl_token', data.token);
+    localStorage.setItem('tl_user', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  };
+
+  const register = async (payload: RegisterPayload): Promise<RegisterResponse> => {
+    const { data } = await api.post<RegisterResponse>('/auth/register', payload);
+    return data;
+  };
+
+  const logout = (): void => {
+    localStorage.removeItem('tl_token');
+    localStorage.removeItem('tl_user');
+    setUser(null);
+  };
+
+  const value = useMemo(
+    () => ({ user, login, register, logout, loading }),
+    [user, loading]
+  );
+
+  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
+}
+
+export const useAuth = (): AuthContextValue => {
+  const context = useContext(AuthCtx);
+
+  if (!context) {
+    throw new Error('useAuth must be used inside AuthProvider');
+  }
+
+  return context;
+};
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/pages/AuthPage.tsx =====
+import { faCircleCheck, faCircleXmark } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../api';
+import ThemeToggle from '../components/ThemeToggle';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import type { ApiError } from '../types/api';
+
+type AuthMode = 'login' | 'register';
+
+type AuthFormState = {
+  email: string;
+  password: string;
+  phone: string;
+  full_name: string;
+  company: string;
+};
+
+type GoogleAuthResponse = {
+  token?: string;
+  user?: {
+    role?: string;
+    [key: string]: unknown;
+  };
+  error?: string;
+};
+
+export default function AuthPage() {
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [form, setForm] = useState<AuthFormState>({ email: '', password: '', phone: '', full_name: '', company: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
+  const { theme } = useTheme();
+  const navigate = useNavigate();
+  const isAdminRole = (role?: string): boolean => ['admin', 'super_admin'].includes(String(role || ''));
+
+  const handle = (event: ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = event.target;
+    setForm((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse): Promise<void> => {
+    console.log('[CHECK] Google Login Success - Token received');
+    setError('');
+    setLoading(true);
+    try {
+      // Send the token to your backend
+      console.log('[SEND] Sending token to backend...');
+      const response = await fetch(buildApiUrl('/auth/google'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: credentialResponse.credential }),
+      });
+
+      const data = (await response.json()) as GoogleAuthResponse;
+      console.log('[RECV] Backend response:', { status: response.status, data });
+
+      if (!response.ok) {
+        throw new Error(data.error || `Server error: ${response.status}`);
+      }
+
+      if (!data.token || !data.user) {
+        console.error('[ERROR] Invalid response structure:', data);
+        throw new Error('Invalid response from server');
+      }
+
+      // Store token and redirect using same keys as AuthContext
+      console.log('[CHECK] Token stored, redirecting...');
+      localStorage.setItem('tl_token', data.token);
+      localStorage.setItem('tl_user', JSON.stringify(data.user));
+      navigate(isAdminRole(data.user.role) ? '/admin' : '/dashboard');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google login failed. Check browser console for details.';
+      console.error('[ERROR] Google login error:', err);
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = (): void => {
+    console.error('[ERROR] Google Authentication Error');
+    setError('Google login failed. Please try again.');
+  };
+
+  const submit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+    event.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      if (mode === 'login') {
+        const user = await login(form.email, form.password);
+        navigate(isAdminRole(user.role) ? '/admin' : '/dashboard');
+      } else {
+        // For register, just create the account without logging in
+        await register(form);
+        setSuccess('Account created successfully! Please log in with your credentials.');
+        setForm({ email: '', password: '', phone: '', full_name: '', company: '' });
+        setTimeout(() => {
+          setMode('login');
+          setSuccess('');
+        }, 2000);
+      }
+    } catch (err) {
+      const apiError = err as ApiError;
+      setError(apiError.response?.data?.error || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="auth-page">
+      <div className="auth-shell">
+        <div className="auth-toolbar">
+          <ThemeToggle />
+        </div>
+        <div className="auth-brand">
+          <h1 className="auth-brand__title">ELITRACK</h1>
+          <p className="auth-brand__subtitle">FLEET MULTI-ASSET PORTAL</p>
+        </div>
+
+        <div className="auth-card">
+          <div className="auth-mode-switch">
+            {(['login', 'register'] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setMode(m)}
+                className={mode === m ? 'auth-mode-btn is-active' : 'auth-mode-btn'}
+              >
+                {m === 'login' ? 'Sign In' : 'Register'}
+              </button>
+            ))}
+          </div>
+
+          {mode === 'login' && (
+            <div className="auth-google-wrap">
+              <GoogleLogin
+                key={theme}
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme={theme === 'dark' ? 'filled_black' : 'outline'}
+              />
+            </div>
+          )}
+
+          <div className="auth-alt-text">
+            {mode === 'login' && 'Or continue with email'}
+          </div>
+
+          <form onSubmit={submit}>
+            {mode === 'register' && (
+              <>
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <input name="full_name" placeholder="Your full name" value={form.full_name} onChange={handle} />
+                </div>
+                <div className="form-group">
+                  <label>Company / Mine</label>
+                  <input name="company" placeholder="e.g. Kansanshi Mining" value={form.company} onChange={handle} />
+                </div>
+                <div className="form-group">
+                  <label>Phone (optional)</label>
+                  <input name="phone" placeholder="0977 000 000" value={form.phone} onChange={handle} />
+                </div>
+              </>
+            )}
+            <div className="form-group">
+              <label>Email</label>
+              <input name="email" type="email" placeholder="you@company.zm" value={form.email} onChange={handle} required />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input name="password" type="password" placeholder="••••••••" value={form.password} onChange={handle} required />
+            </div>
+
+            {success && <p className="auth-feedback auth-feedback--success"><FontAwesomeIcon icon={faCircleCheck} style={{ color: '#4ade80', marginRight: 8 }} />{success}</p>}
+            {error && <p className="auth-feedback auth-feedback--error"><FontAwesomeIcon icon={faCircleXmark} style={{ color: '#e74c3c', marginRight: 8 }} />{error}</p>}
+
+            <button type="submit" className="btn btn-gold btn-full" disabled={loading}>
+              {loading ? 'Please wait...' : mode === 'login' ? 'Access Fleet Portal' : 'Create Account'}
+            </button>
+          </form>
+
+          <p className="auth-copyright">
+            &copy; {new Date().getFullYear()} Elitrack Logistics. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/pages/AdminDashboard.tsx =====
+import { faBox, faChartBar, faHourglassEnd, faMoneyBill, faTruck, faUsers } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState, type FormEvent } from 'react';
+import api from '../api';
+import ResponsiveNavbar from '../components/ResponsiveNavbar';
+import { useAuth } from '../context/AuthContext';
+import { queryKeys } from '../queryKeys';
+import type { ApiError } from '../types/api';
+import type { AdminStats, AuthUser, Booking, NotificationEvent, Transaction } from '../types/models';
+
+const ADMIN_TABS = [
+  { key: 'overview', label: 'Overview', icon: faChartBar },
+  { key: 'bookings', label: 'Bookings', icon: faBox },
+  { key: 'transactions', label: 'Transactions', icon: faMoneyBill },
+  { key: 'users', label: 'Users', icon: faUsers },
+  { key: 'notifications', label: 'Notifications', icon: faTruck },
+];
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => (
+  (error as ApiError)?.userMessage || (error as ApiError)?.response?.data?.error || fallback
+);
+
+const fetchAdminStats = async (): Promise<AdminStats> => {
+  const { data } = await api.get('/admin/stats');
+  return data || {};
+};
+
+const fetchAllBookings = async (): Promise<Booking[]> => {
+  const { data } = await api.get('/bookings/all');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchAdminUsers = async (): Promise<AuthUser[]> => {
+  const { data } = await api.get('/admin/users');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchAdminTransactions = async (): Promise<Transaction[]> => {
+  const { data } = await api.get('/admin/transactions');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchAdminNotifications = async (): Promise<NotificationEvent[]> => {
+  const { data } = await api.get('/admin/notifications');
+  return Array.isArray(data) ? data : [];
+};
+
+type WorkflowMutationPayload = {
+  status: string;
+  dispatcher_name: string;
+  eta: string | null;
+  status_notes: string;
+};
+
+type UpdateBookingStatusVariables = {
+  id: number;
+  payload: WorkflowMutationPayload;
+};
+
+type UpdatePaymentVariables = {
+  id: number;
+  status: string;
+};
+
+type AdminUser = {
+  id: number;
+  [key: string]: unknown;
+};
+
+type CreateAdminPayload = {
+  email: string;
+  password: string;
+};
+
+export default function AdminDashboard() {
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const [tab, setTab] = useState('overview');
+  const isBookingsTab = tab === 'bookings';
+  const isUsersTab = tab === 'users';
+  const isTransactionsTab = tab === 'transactions';
+  const isNotificationsTab = tab === 'notifications';
+
+  const statsQuery = useQuery({
+    queryKey: queryKeys.admin.stats,
+    queryFn: fetchAdminStats,
+  });
+
+  const bookingsQuery = useQuery({
+    queryKey: queryKeys.admin.bookingsAll,
+    queryFn: fetchAllBookings,
+    enabled: isBookingsTab,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: queryKeys.admin.users,
+    queryFn: fetchAdminUsers,
+    enabled: isUsersTab,
+  });
+
+  const transactionsQuery = useQuery({
+    queryKey: queryKeys.admin.transactions,
+    queryFn: fetchAdminTransactions,
+    enabled: isTransactionsTab,
+  });
+
+  const notificationsQuery = useQuery({
+    queryKey: queryKeys.admin.notifications,
+    queryFn: fetchAdminNotifications,
+    enabled: isNotificationsTab,
+  });
+
+  const updateBookingStatusMutation = useMutation<void, Error, UpdateBookingStatusVariables>({
+    mutationFn: async ({ id, payload }) => {
+      await api.patch(`/bookings/${id}/status`, payload);
+    },
+  });
+
+  const updatePaymentMutation = useMutation<void, Error, UpdatePaymentVariables>({
+    mutationFn: async ({ id, status }) => {
+      await api.patch(`/bookings/${id}/payment`, { status, payment_method: 'Manual' });
+    },
+  });
+
+  const removeUserMutation = useMutation<AdminUser, Error, AdminUser>({
+    mutationFn: async (targetUser) => {
+      await api.delete(`/admin/users/${targetUser.id}`);
+      return targetUser;
+    },
+  });
+
+  const createAdminMutation = useMutation<CreateAdminPayload, Error, CreateAdminPayload>({
+    mutationFn: async (payload) => {
+      await api.post('/admin/create-admin', payload);
+      return payload;
+    },
+  });
+
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [notifications, setNotifications] = useState<NotificationEvent[]>([]);
+  const [apiError, setApiError] = useState('');
+  const [editingBookingId, setEditingBookingId] = useState<number | null>(null);
+  const [editingCurrentStatus, setEditingCurrentStatus] = useState<string | null>(null);
+  const [workflowError, setWorkflowError] = useState('');
+  const [workflowForm, setWorkflowForm] = useState({
+    status: 'approved',
+    dispatcher_name: '',
+    eta: '',
+    status_notes: '',
+  });
+
+  // Admin creation form state (super_admin only)
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
+  const [createAdminForm, setCreateAdminForm] = useState({ email: '', password: '' });
+  const [createAdminError, setCreateAdminError] = useState('');
+  const [createAdminSuccess, setCreateAdminSuccess] = useState('');
+
+  const loading = (
+    (isBookingsTab && bookingsQuery.isFetching)
+    || (isUsersTab && usersQuery.isFetching)
+    || (isTransactionsTab && transactionsQuery.isFetching)
+    || (isNotificationsTab && notificationsQuery.isFetching)
+  );
+
+  const STATUS_OPTIONS: string[] = ['pending_review', 'approved', 'dispatched', 'in_transit', 'completed'];
+  const NEXT_STATUS_MAP: Record<string, string[]> = {
+    pending_review: ['approved'],
+    approved: ['dispatched'],
+    dispatched: ['in_transit'],
+    in_transit: ['completed'],
+    completed: [],
+  };
+  const STATUS_LABELS: Record<string, string> = {
+    pending_review: 'Pending Review',
+    approved: 'Approved',
+    dispatched: 'Dispatched',
+    in_transit: 'In Transit',
+    completed: 'Completed',
+    pending: 'Pending Review',
+    active: 'In Transit',
+  };
+  const normalizeStatus = (status: string): string => (status === 'pending' ? 'pending_review' : status === 'active' ? 'in_transit' : status);
+  const formatHubLocation = (hub?: string | null): string => {
+    if (!hub) return '—';
+    const lowerHub = String(hub).toLowerCase();
+    if (lowerHub === 'kitwe') return 'Kitwe Hub (Copperbelt)';
+    if (lowerHub === 'ndola') return 'Ndola Industrial';
+    if (lowerHub === 'solwezi') return 'Solwezi (Kansanshi/Sentinel)';
+    if (lowerHub === 'chingola') return 'Chingola (KCM)';
+    return hub;
+  };
+
+  useEffect(() => {
+    if (!statsQuery.isSuccess) return;
+    setApiError('');
+    setStats(statsQuery.data || {});
+  }, [statsQuery.isSuccess, statsQuery.data]);
+
+  useEffect(() => {
+    if (!statsQuery.isError) return;
+    setStats({});
+    setApiError(getApiErrorMessage(statsQuery.error, 'Could not load dashboard stats.'));
+  }, [statsQuery.isError, statsQuery.error]);
+
+  useEffect(() => {
+    if (!bookingsQuery.isSuccess) return;
+    setApiError('');
+    setBookings(Array.isArray(bookingsQuery.data) ? bookingsQuery.data : []);
+  }, [bookingsQuery.isSuccess, bookingsQuery.data]);
+
+  useEffect(() => {
+    if (!bookingsQuery.isError) return;
+    setBookings([]);
+    setApiError(getApiErrorMessage(bookingsQuery.error, 'Could not load bookings.'));
+  }, [bookingsQuery.isError, bookingsQuery.error]);
+
+  useEffect(() => {
+    if (!usersQuery.isSuccess) return;
+    setApiError('');
+    setUsers(Array.isArray(usersQuery.data) ? usersQuery.data : []);
+  }, [usersQuery.isSuccess, usersQuery.data]);
+
+  useEffect(() => {
+    if (!usersQuery.isError) return;
+    setUsers([]);
+    setApiError(getApiErrorMessage(usersQuery.error, 'Could not load users.'));
+  }, [usersQuery.isError, usersQuery.error]);
+
+  useEffect(() => {
+    if (!transactionsQuery.isSuccess) return;
+    setApiError('');
+    setTransactions(Array.isArray(transactionsQuery.data) ? transactionsQuery.data : []);
+  }, [transactionsQuery.isSuccess, transactionsQuery.data]);
+
+  useEffect(() => {
+    if (!transactionsQuery.isError) return;
+    setTransactions([]);
+    setApiError(getApiErrorMessage(transactionsQuery.error, 'Could not load transactions.'));
+  }, [transactionsQuery.isError, transactionsQuery.error]);
+
+  useEffect(() => {
+    if (!notificationsQuery.isSuccess) return;
+    setApiError('');
+    setNotifications(Array.isArray(notificationsQuery.data) ? notificationsQuery.data : []);
+  }, [notificationsQuery.isSuccess, notificationsQuery.data]);
+
+  useEffect(() => {
+    if (!notificationsQuery.isError) return;
+    setNotifications([]);
+    setApiError(getApiErrorMessage(notificationsQuery.error, 'Could not load notifications.'));
+  }, [notificationsQuery.isError, notificationsQuery.error]);
+
+  const openWorkflowForm = (booking: Booking): void => {
+    const currentStatus = normalizeStatus(booking.status);
+    const nextStatuses = NEXT_STATUS_MAP[currentStatus] || [];
+    setEditingBookingId(booking.id);
+    setEditingCurrentStatus(currentStatus);
+    setWorkflowError('');
+    setWorkflowForm({
+      status: nextStatuses[0] || currentStatus,
+      dispatcher_name: booking.dispatcher_name || '',
+      eta: booking.eta ? new Date(booking.eta).toISOString().slice(0, 16) : '',
+      status_notes: booking.status_notes || '',
+    });
+  };
+
+  const updateBookingStatus = async (id: number): Promise<void> => {
+    setWorkflowError('');
+
+    const needsDispatchDetails = ['dispatched', 'in_transit'].includes(workflowForm.status);
+    if (needsDispatchDetails && !workflowForm.dispatcher_name.trim()) {
+      setWorkflowError('Dispatcher name is required when status is Dispatched or In Transit.');
+      return;
+    }
+    if (needsDispatchDetails && !workflowForm.eta) {
+      setWorkflowError('ETA is required when status is Dispatched or In Transit.');
+      return;
+    }
+
+    try {
+      await updateBookingStatusMutation.mutateAsync({
+        id,
+        payload: {
+          status: workflowForm.status,
+          dispatcher_name: workflowForm.dispatcher_name,
+          eta: workflowForm.eta || null,
+          status_notes: workflowForm.status_notes,
+        },
+      });
+      setEditingBookingId(null);
+      setEditingCurrentStatus(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.bookingsAll });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
+    } catch (error) {
+      setWorkflowError(getApiErrorMessage(error, 'Failed to update booking workflow.'));
+    }
+  };
+
+  const updatePayment = async (id: number, status: string): Promise<void> => {
+    try {
+      await updatePaymentMutation.mutateAsync({ id, status });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.transactions });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
+    } catch (error) {
+      setApiError(getApiErrorMessage(error, 'Failed to update payment status.'));
+    }
+  };
+
+  const removeUser = async (u: AuthUser): Promise<void> => {
+    if (!window.confirm(`Are you sure you want to permanently remove user "${u.full_name || u.email}"? This action cannot be undone.`)) return;
+    try {
+      await removeUserMutation.mutateAsync(u);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
+    } catch (err) {
+      alert(getApiErrorMessage(err, 'Failed to remove user.'));
+    }
+  };
+
+  const submitCreateAdmin = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    setCreateAdminError('');
+    setCreateAdminSuccess('');
+    try {
+      await createAdminMutation.mutateAsync(createAdminForm);
+      setCreateAdminSuccess(`Admin account created for ${createAdminForm.email}.`);
+      setCreateAdminForm({ email: '', password: '' });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.users });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.admin.stats });
+    } catch (err) {
+      setCreateAdminError(err?.response?.data?.error || 'Failed to create admin.');
+    }
+  };
+
+  const availableNextStatuses = editingCurrentStatus
+    ? (NEXT_STATUS_MAP[editingCurrentStatus] || [])
+    : [];
+
+  return (
+    <div className="app-page">
+      <ResponsiveNavbar
+        brand="ELITRACK"
+        subtitle="ADMIN CONTROL CENTER"
+        userLabel={user?.full_name || user?.email}
+        roleLabel={(user?.role || 'admin').toUpperCase()}
+        tabs={ADMIN_TABS}
+        activeTab={tab}
+        onTabChange={setTab}
+        onLogout={logout}
+      />
+
+      <main className="dashboard-main">
+        <div className="admin-shell">
+        {apiError && (
+          <div style={{ marginBottom: 16, background: 'var(--danger-surface)', border: '1px solid var(--danger-border)', color: 'var(--danger-text)', borderRadius: 10, padding: 12, fontSize: 12 }}>
+            Connection issue: {apiError}
+          </div>
+        )}
+
+        {/* Overview */}
+        {tab === 'overview' && (
+          <div className="fade-up">
+            <h2 style={{ color: 'var(--primary)', marginBottom: 24, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Dashboard Overview</h2>
+            {stats ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 32 }}>
+                {[
+                  { label: 'Total Clients', value: stats.total_users, icon: faUsers },
+                  { label: 'Total Bookings', value: stats.total_bookings, icon: faBox },
+                  { label: 'Active Convoys', value: stats.active_bookings, icon: faTruck },
+                  { label: 'Revenue (Paid)', value: `K${Number(stats.total_revenue || 0).toLocaleString()}`, icon: faMoneyBill },
+                  { label: 'Pending Revenue', value: `K${Number(stats.pending_revenue || 0).toLocaleString()}`, icon: faHourglassEnd },
+                ].map(s => (
+                  <div className="stat-card" key={s.label}>
+                    <div style={{ fontSize: 24, marginBottom: 8, color: 'var(--primary)' }}><FontAwesomeIcon icon={s.icon} /></div>
+                    <div className="stat-value">{s.value}</div>
+                    <div className="stat-label">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            ) : <div className="spinner" />}
+
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', padding: 20, fontFamily: 'Roboto' }}>
+              <p className="section-label">Quick Actions</p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button className="btn btn-gold btn-sm" onClick={() => setTab('bookings')}>Manage Bookings</button>
+                <button className="btn btn-dark btn-sm" onClick={() => setTab('transactions')}>View Transactions</button>
+                <button className="btn btn-dark btn-sm" onClick={() => setTab('users')}>View Users</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bookings */}
+        {tab === 'bookings' && (
+          <div className="fade-up">
+            <h2 style={{ color: 'var(--primary)', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>All Bookings</h2>
+            {loading ? <div className="spinner" /> : (
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <div className="table-wrap">
+                  <table style={{ color: 'var(--text)' }}>
+                    <thead>
+                      <tr><th>Ref</th><th>Client</th><th>Asset</th><th>Hub</th><th>Units</th><th>Days</th><th>Total</th><th>Status</th><th>Dispatcher</th><th>ETA</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {bookings.map(b => (
+                        <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{b.booking_ref}</td>
+                          <td>
+                            <div style={{ fontSize: 12, fontWeight: 700 }}>{b.full_name || '—'}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{b.email}</div>
+                          </td>
+                          <td style={{ fontSize: 11 }}>{b.truck_type}</td>
+                          <td style={{ fontSize: 11, maxWidth: 220 }}>{formatHubLocation(b.hub)}</td>
+                          <td style={{ textAlign: 'center' }}>{b.units}</td>
+                          <td style={{ textAlign: 'center' }}>{b.days}</td>
+                          <td className="mono" style={{ fontWeight: 700, color: 'var(--primary)' }}>K{Number(b.total_amount || 0).toLocaleString()}</td>
+                          <td><span className={`badge badge-${b.status}`}>{STATUS_LABELS[b.status] || b.status}</span></td>
+                          <td style={{ fontSize: 12 }}>{b.dispatcher_name || '—'}</td>
+                          <td style={{ fontSize: 12 }}>{b.eta ? new Date(b.eta).toLocaleString() : '—'}</td>
+                          <td>
+                            <button className="btn btn-success btn-sm" onClick={() => openWorkflowForm(b)}>Update Workflow</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {bookings.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No bookings yet.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'bookings' && editingBookingId && (
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="section-label">Update Booking Workflow</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Next Status</label>
+                <select
+                  value={workflowForm.status}
+                  onChange={(e) => setWorkflowForm((prev) => ({ ...prev, status: e.target.value }))}
+                  disabled={availableNextStatuses.length === 0}
+                >
+                  {availableNextStatuses.map((status) => (
+                    <option key={status} value={status}>{STATUS_LABELS[status]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Dispatcher Name</label>
+                <input
+                  value={workflowForm.dispatcher_name}
+                  onChange={(e) => setWorkflowForm((prev) => ({ ...prev, dispatcher_name: e.target.value }))}
+                  placeholder="Dispatcher full name"
+                />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>ETA</label>
+                <input
+                  type="datetime-local"
+                  value={workflowForm.eta}
+                  onChange={(e) => setWorkflowForm((prev) => ({ ...prev, eta: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <label>Status Notes</label>
+              <textarea
+                value={workflowForm.status_notes}
+                onChange={(e) => setWorkflowForm((prev) => ({ ...prev, status_notes: e.target.value }))}
+                placeholder="Add booking progress notes..."
+                style={{ minHeight: 90 }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn btn-success btn-sm"
+                onClick={() => updateBookingStatus(editingBookingId)}
+                disabled={availableNextStatuses.length === 0}
+              >
+                Save Workflow
+              </button>
+              <button
+                className="btn btn-dark btn-sm"
+                onClick={() => {
+                  setEditingBookingId(null);
+                  setEditingCurrentStatus(null);
+                  setWorkflowError('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+            {availableNextStatuses.length === 0 && (
+              <p style={{ marginTop: 10, color: 'var(--text-muted)', fontSize: 12 }}>
+                This booking is already completed. No further workflow transitions are available.
+              </p>
+            )}
+            {workflowError && (
+              <p style={{ marginTop: 10, color: '#f87171', fontSize: 12 }}>
+                {workflowError}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Transactions */}
+        {tab === 'transactions' && (
+          <div className="fade-up">
+            <h2 style={{ color: 'var(--primary)', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>All Transactions</h2>
+            {loading ? <div className="spinner" /> : (
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <div className="table-wrap">
+                  <table style={{ color: 'var(--text)' }}>
+                    <thead>
+                      <tr><th>Booking Ref</th><th>Client</th><th>Asset</th><th>Amount</th><th>Payment</th><th>Status</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {transactions.map(t => (
+                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{t.booking_ref}</td>
+                          <td style={{ fontSize: 12 }}>{t.full_name || t.email}</td>
+                          <td style={{ fontSize: 11 }}>{t.truck_type}</td>
+                          <td className="mono" style={{ fontWeight: 700, color: '#27ae60' }}>K{Number(t.amount || 0).toLocaleString()}</td>
+                          <td style={{ fontSize: 11 }}>{t.payment_method}</td>
+                          <td><span className={`badge badge-${t.status}`}>{t.status}</span></td>
+                          <td>
+                            {t.status === 'pending' && (
+                              <button className="btn btn-success btn-sm" onClick={() => updatePayment(t.booking_id, 'paid')}>Mark Paid</button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {transactions.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No transactions yet.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Users */}
+        {tab === 'users' && (
+          <div className="fade-up">
+            <div className="section-head-row">
+              <h2 style={{ color: 'var(--primary)', fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto', margin: 0 }}>Registered Users</h2>
+              {user?.role === 'super_admin' && (
+                <button
+                  className="btn btn-gold btn-sm"
+                  onClick={() => { setShowCreateAdmin((v) => !v); setCreateAdminError(''); setCreateAdminSuccess(''); }}
+                >
+                  {showCreateAdmin ? 'Cancel' : '+ Create New Admin'}
+                </button>
+              )}
+            </div>
+
+            {/* Create New Admin form – super_admin only */}
+            {user?.role === 'super_admin' && showCreateAdmin && (
+              <div className="card" style={{ marginBottom: 20 }}>
+                <div className="section-label">Create New Admin Account</div>
+                <form onSubmit={submitCreateAdmin}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Email *</label>
+                      <input type="email" required value={createAdminForm.email} onChange={(e) => setCreateAdminForm((p) => ({ ...p, email: e.target.value }))} placeholder="admin@example.com" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Password * (min 8 chars)</label>
+                      <input type="password" required value={createAdminForm.password} onChange={(e) => setCreateAdminForm((p) => ({ ...p, password: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 14, display: 'flex', gap: 10 }}>
+                    <button type="submit" className="btn btn-success btn-sm">Create Admin</button>
+                  </div>
+                  {createAdminError && <p style={{ marginTop: 10, color: '#f87171', fontSize: 12 }}>{createAdminError}</p>}
+                  {createAdminSuccess && <p style={{ marginTop: 10, color: '#4ade80', fontSize: 12 }}>{createAdminSuccess}</p>}
+                </form>
+              </div>
+            )}
+
+            {loading ? <div className="spinner" /> : (
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <div className="table-wrap">
+                  <table style={{ color: 'var(--text)' }}>
+                    <thead>
+                      <tr><th>Name</th><th>Email</th><th>Phone</th><th>Company</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      {users.map(u => (
+                        <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ fontWeight: 700, fontSize: 13 }}>{u.full_name || '—'}</td>
+                          <td style={{ fontSize: 12 }}>{u.email}</td>
+                          <td className="mono" style={{ fontSize: 11 }}>{u.phone}</td>
+                          <td style={{ fontSize: 12 }}>{u.company || '—'}</td>
+                          <td><span style={{ background: u.role === 'super_admin' ? '#e67e22' : u.role === 'admin' ? 'var(--primary)' : 'var(--border)', color: '#ffffff', padding: '2px 8px', borderRadius: 4, fontSize: 9, fontWeight: 700, fontFamily: 'Roboto' }}>{u.role.toUpperCase()}</span></td>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
+                          <td>
+                            {u.id !== user?.id && (
+                              <button
+                                className="btn btn-sm"
+                                style={{ background: 'var(--danger)', color: '#ffffff', fontSize: 11 }}
+                                onClick={() => removeUser(u)}
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {users.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No users yet.</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notifications */}
+        {tab === 'notifications' && (
+          <div className="fade-up">
+            <h2 style={{ color: 'var(--primary)', marginBottom: 20, fontSize: 14, letterSpacing: 2, textTransform: 'uppercase', fontFamily: 'Roboto' }}>Notification Audit Log</h2>
+            {loading ? <div className="spinner" /> : (
+              <div style={{ background: 'var(--surface-2)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                <div className="table-wrap">
+                  <table style={{ color: 'var(--text)' }}>
+                    <thead>
+                      <tr><th>Time</th><th>Booking</th><th>Client</th><th>Channel</th><th>Event</th><th>Status</th><th>Provider</th><th>Error</th></tr>
+                    </thead>
+                    <tbody>
+                      {notifications.map((n) => (
+                        <tr key={n.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ fontSize: 11, color: 'var(--text-muted)' }}>{n.created_at ? new Date(n.created_at).toLocaleString() : '—'}</td>
+                          <td className="mono" style={{ color: 'var(--primary)', fontSize: 11 }}>{n.booking_ref || '—'}</td>
+                          <td style={{ fontSize: 12 }}>{n.full_name || n.email || '—'}</td>
+                          <td style={{ fontSize: 11, textTransform: 'uppercase' }}>{n.channel}</td>
+                          <td style={{ fontSize: 11 }}>{n.event_type}</td>
+                          <td><span className={`badge badge-${n.status}`}>{n.status}</span></td>
+                          <td style={{ fontSize: 11 }}>{n.provider || '—'}</td>
+                          <td style={{ fontSize: 11, color: 'var(--danger)', maxWidth: 260 }}>{n.error_text || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {notifications.length === 0 && <p style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>No notification events yet.</p>}
+              </div>
+            )}
+          </div>
+        )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/pages/Dashboard.tsx =====
+import {
+    faBroadcastTower,
+    faCalendarCheck,
+    faClipboard,
+    faLocationDot,
+    faWarehouse,
+} from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import api from '../api';
+import AddVehicle from '../components/AddVehicle';
+import FleetDashboard from '../components/FleetDashboard';
+import ResponsiveNavbar from '../components/ResponsiveNavbar';
+import VehicleCategory, { CATEGORY_BASE_RATE } from '../components/VehicleCategory';
+import VehicleTracking from '../components/VehicleTracking';
+import { useAuth } from '../context/AuthContext';
+import { queryKeys } from '../queryKeys';
+import type { ApiError } from '../types/api';
+import type { Booking, Vehicle } from '../types/models';
+
+const HUBS: Record<string, { coords: [number, number]; label: string }> = {
+  kitwe: { coords: [-12.8167, 28.2], label: 'Kitwe Hub (Copperbelt)' },
+  ndola: { coords: [-12.9667, 28.6333], label: 'Ndola Industrial' },
+  solwezi: { coords: [-12.1833, 26.4], label: 'Solwezi (Kansanshi/Sentinel)' },
+  chingola: { coords: [-12.5333, 27.85], label: 'Chingola (KCM)' },
+};
+
+const OTHER_HUB_VALUE = 'other';
+
+const SEC_TIERS = [
+  { value: 0, label: 'Standard (GPS Tracking Only)' },
+  { value: 4500, label: 'Silver: 1x Armed Escort (+K4,500)' },
+  { value: 9000, label: 'Gold: 2x Tactical Vehicles (+K9,000)' },
+  { value: 15000, label: 'Diamond: Full Convoy Security (+K15,000)' },
+];
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_review: 'Pending Review',
+  approved: 'Approved',
+  dispatched: 'Dispatched',
+  in_transit: 'In Transit',
+  completed: 'Completed',
+  pending: 'Pending Review',
+  active: 'In Transit',
+};
+
+const DASHBOARD_TABS = [
+  { key: 'fleet', label: 'My Fleet', icon: faWarehouse },
+  { key: 'book', label: 'Create Booking', icon: faCalendarCheck },
+  { key: 'track', label: 'Live Tracking', icon: faBroadcastTower },
+  { key: 'bookings', label: 'My Bookings', icon: faClipboard },
+];
+
+const TRACKABLE_BOOKING_STATUSES = ['dispatched', 'in_transit'];
+
+type BookingFormState = {
+  vehicle_id: string;
+  units: number | string;
+  days: number | string;
+  hub: string;
+  customHub: string;
+  sec: number | string;
+};
+
+type VehicleMutationPayload = Record<string, unknown> & {
+  category?: string;
+  custom_category?: string;
+};
+
+const parseInteger = (value: number | string | undefined, fallback = 0): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const fetchMyFleet = async (): Promise<Vehicle[]> => {
+  const { data } = await api.get('/vehicles');
+  return Array.isArray(data) ? data : [];
+};
+
+const fetchMyBookings = async (): Promise<Booking[]> => {
+  const { data } = await api.get('/bookings/mine');
+  return Array.isArray(data) ? data : [];
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string): string => (
+  (error as ApiError)?.userMessage || (error as ApiError)?.response?.data?.error || fallback
+);
+
+const formatHubLabel = (hub?: string | null): string => {
+  const normalized = String(hub || '').toLowerCase();
+  return HUBS[normalized]?.label || hub || 'Unknown';
+};
+
+const resolveVehicleRate = (vehicle?: Vehicle | null): number => {
+  if (!vehicle) return 0;
+
+  const category = String(vehicle.category || 'other').toLowerCase();
+  return CATEGORY_BASE_RATE[category] || CATEGORY_BASE_RATE.other;
+};
+
+export default function Dashboard() {
+  const { user, logout } = useAuth();
+  const queryClient = useQueryClient();
+  const firstFleetLoadRef = useRef(true);
+
+  const [tab, setTab] = useState('fleet');
+  const shouldLoadBookings = tab === 'bookings' || tab === 'track';
+
+  const fleetQuery = useQuery({
+    queryKey: queryKeys.vehicles.mine,
+    queryFn: fetchMyFleet,
+  });
+
+  const bookingsQuery = useQuery({
+    queryKey: queryKeys.bookings.mine,
+    queryFn: fetchMyBookings,
+    enabled: shouldLoadBookings,
+  });
+
+  const saveVehicleMutation = useMutation<
+    'updated' | 'created',
+    Error,
+    { vehicleId?: number; payload: VehicleMutationPayload }
+  >({
+    mutationFn: async ({ vehicleId, payload }) => {
+      if (vehicleId) {
+        await api.put(`/vehicles/${vehicleId}`, payload);
+        return 'updated';
+      }
+
+      await api.post('/vehicles', payload);
+      return 'created';
+    },
+  });
+
+  const removeVehicleMutation = useMutation<void, Error, { vehicleId: number }>({
+    mutationFn: async ({ vehicleId }) => {
+      await api.delete(`/vehicles/${vehicleId}`);
+    },
+  });
+
+  const createBookingMutation = useMutation<void, Error, { payload: Record<string, unknown> }>({
+    mutationFn: async ({ payload }) => {
+      await api.post('/bookings', payload);
+    },
+  });
+
+  const [fleet, setFleet] = useState<Vehicle[]>([]);
+  const [deletingVehicleId, setDeletingVehicleId] = useState<number | null>(null);
+  const [apiError, setApiError] = useState('');
+  const [toast, setToast] = useState('');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+
+  const loadingFleet = fleetQuery.isPending;
+  const loadingBookings = shouldLoadBookings && bookingsQuery.isFetching;
+  const savingVehicle = saveVehicleMutation.isPending;
+  const submittingBooking = createBookingMutation.isPending;
+
+  const [selectedCategory, setSelectedCategory] = useState('truck');
+  const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [trackingVehicle, setTrackingVehicle] = useState<Vehicle | null>(null);
+
+  const [bookingForm, setBookingForm] = useState<BookingFormState>({
+    vehicle_id: '',
+    units: 1,
+    days: 1,
+    hub: 'kitwe',
+    customHub: '',
+    sec: 0,
+  });
+
+  const selectedBookingVehicle = useMemo(
+    () => fleet.find((vehicle) => vehicle.id === Number(bookingForm.vehicle_id)) || null,
+    [fleet, bookingForm.vehicle_id]
+  );
+
+  const selectedTrackingVehicle = useMemo(
+    () => fleet.find((vehicle) => vehicle.id === Number(trackingVehicle?.id)) || trackingVehicle,
+    [fleet, trackingVehicle]
+  );
+
+  const bookingTotal = useMemo(() => {
+    const baseRate = resolveVehicleRate(selectedBookingVehicle);
+    const units = Math.max(1, parseInteger(bookingForm.units, 1));
+    const days = Math.max(1, parseInteger(bookingForm.days, 1));
+    const security = Math.max(0, parseInteger(bookingForm.sec, 0));
+    return baseRate * units * days + security;
+  }, [selectedBookingVehicle, bookingForm.units, bookingForm.days, bookingForm.sec]);
+
+  const activeTrackedBooking = useMemo(() => {
+    if (!selectedTrackingVehicle) return null;
+
+    return bookings.find(
+      (booking) =>
+        Number(booking.vehicle_id) === Number(selectedTrackingVehicle.id)
+        && TRACKABLE_BOOKING_STATUSES.includes(booking.status)
+    ) || null;
+  }, [bookings, selectedTrackingVehicle]);
+
+  const showToast = (message: string): void => {
+    setToast(message);
+    setTimeout(() => setToast(''), 3500);
+  };
+
+  const applyFleetResult = (vehicles: Vehicle[]): void => {
+    const normalizedFleet = Array.isArray(vehicles) ? vehicles : [];
+    setFleet(normalizedFleet);
+
+    if (firstFleetLoadRef.current) {
+      setTab('fleet');
+      firstFleetLoadRef.current = false;
+    }
+
+    if (!normalizedFleet.length) {
+      setBookingForm((previous) => ({ ...previous, vehicle_id: '' }));
+      setTrackingVehicle(null);
+      setEditingVehicle(null);
+      return;
+    }
+
+    setBookingForm((previous) => {
+      const hasSelectedVehicle = normalizedFleet.some((vehicle) => vehicle.id === Number(previous.vehicle_id));
+      return {
+        ...previous,
+        vehicle_id: hasSelectedVehicle ? previous.vehicle_id : String(normalizedFleet[0].id),
+      };
+    });
+
+    setTrackingVehicle((previous: Vehicle | null) => {
+      if (!previous) return normalizedFleet[0];
+      const matchedVehicle = normalizedFleet.find((vehicle) => vehicle.id === Number(previous.id));
+      return matchedVehicle || normalizedFleet[0];
+    });
+  };
+
+  useEffect(() => {
+    if (!fleetQuery.isSuccess) return;
+    setApiError('');
+    applyFleetResult(fleetQuery.data);
+  }, [fleetQuery.isSuccess, fleetQuery.data]);
+
+  useEffect(() => {
+    if (!fleetQuery.isError) return;
+    setFleet([]);
+    setApiError(getApiErrorMessage(fleetQuery.error, 'Could not load your fleet.'));
+  }, [fleetQuery.isError, fleetQuery.error]);
+
+  useEffect(() => {
+    if (!bookingsQuery.isSuccess) return;
+    setApiError('');
+    setBookings(Array.isArray(bookingsQuery.data) ? bookingsQuery.data : []);
+  }, [bookingsQuery.isSuccess, bookingsQuery.data]);
+
+  useEffect(() => {
+    if (!bookingsQuery.isError) return;
+    setBookings([]);
+    setApiError(getApiErrorMessage(bookingsQuery.error, 'Could not load bookings right now.'));
+  }, [bookingsQuery.isError, bookingsQuery.error]);
+
+  const saveVehicle = async (payload: VehicleMutationPayload) => {
+    try {
+      const normalizedPayload = {
+        ...payload,
+        category: payload.category === 'other'
+          ? (payload.custom_category || 'other')
+          : payload.category,
+      };
+
+      const mode = await saveVehicleMutation.mutateAsync({
+        vehicleId: editingVehicle?.id,
+        payload: normalizedPayload,
+      });
+
+      if (mode === 'updated') {
+        showToast('Vehicle updated successfully.');
+      } else {
+        showToast('Vehicle registered in your fleet.');
+      }
+
+      setShowVehicleForm(false);
+      setEditingVehicle(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.mine });
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'Vehicle save failed.');
+      setApiError(message);
+      showToast(message);
+      throw error;
+    }
+  };
+
+  const removeVehicle = async (vehicle: Vehicle) => {
+    if (!window.confirm(`Remove ${vehicle.vehicle_name} from your fleet?`)) return;
+
+    setDeletingVehicleId(vehicle.id);
+    try {
+      await removeVehicleMutation.mutateAsync({ vehicleId: vehicle.id });
+      showToast('Vehicle removed from fleet.');
+      await queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.mine });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.mine });
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'Failed to remove vehicle.');
+      setApiError(message);
+      showToast(message);
+    } finally {
+      setDeletingVehicleId(null);
+    }
+  };
+
+  const createBooking = async () => {
+    const customHub = bookingForm.customHub.trim();
+
+    if (!selectedBookingVehicle) {
+      showToast('Select a vehicle before creating a booking.');
+      setTab('fleet');
+      return;
+    }
+
+    if (bookingForm.hub === OTHER_HUB_VALUE && !customHub) {
+      showToast('Please specify the exact location for manual entry.');
+      return;
+    }
+
+    try {
+      const selectedSecurityTier = SEC_TIERS.find((tier) => tier.value === Number(bookingForm.sec)) || SEC_TIERS[0];
+      const selectedHubLabel = bookingForm.hub === OTHER_HUB_VALUE
+        ? customHub
+        : (HUBS[bookingForm.hub]?.label || bookingForm.hub);
+
+      await createBookingMutation.mutateAsync({
+        payload: {
+          vehicle_id: selectedBookingVehicle.id,
+          truck_type: `${selectedBookingVehicle.vehicle_name} (${selectedBookingVehicle.category})`,
+          truck_price_per_day: resolveVehicleRate(selectedBookingVehicle),
+          units: parseInteger(bookingForm.units, 1),
+          days: parseInteger(bookingForm.days, 1),
+          hub: bookingForm.hub,
+          manual_location: customHub,
+          security_tier: selectedSecurityTier.label,
+          security_price: selectedSecurityTier.value,
+          total_amount: bookingTotal,
+        },
+      });
+
+      setTrackingVehicle(selectedBookingVehicle);
+      showToast(`Booking created for ${selectedBookingVehicle.vehicle_name} from ${selectedHubLabel}.`);
+      setTab('track');
+      await queryClient.invalidateQueries({ queryKey: queryKeys.bookings.mine });
+    } catch (error) {
+      const message = getApiErrorMessage(error, 'Unknown booking error.');
+      setApiError(message);
+      showToast(`Booking failed: ${message}`);
+    }
+  };
+
+  return (
+    <div className="app-page">
+      <ResponsiveNavbar
+        brand="ELITRACK LOGISTICS"
+        subtitle="CLIENT FLEET PORTAL"
+        userLabel={user?.full_name || user?.email}
+        roleLabel={undefined}
+        tabs={DASHBOARD_TABS}
+        activeTab={tab}
+        onTabChange={setTab}
+        onLogout={logout}
+      />
+
+      <main className="dashboard-main">
+        <div className="dashboard-shell">
+          {apiError && (
+            <div
+              style={{
+                marginBottom: 16,
+                background: 'var(--danger-surface)',
+                border: '1px solid var(--danger-border)',
+                color: 'var(--danger-text)',
+                borderRadius: 10,
+                padding: 12,
+                fontSize: 12,
+              }}
+            >
+              Connection issue: {apiError}
+            </div>
+          )}
+
+          {tab === 'fleet' && (
+            <>
+              {loadingFleet ? (
+                <div className="card"><div className="spinner" /></div>
+              ) : showVehicleForm ? (
+                <AddVehicle
+                  initialCategory={selectedCategory}
+                  initialVehicle={editingVehicle}
+                  submitting={savingVehicle}
+                  onSubmit={saveVehicle}
+                  onCancel={() => {
+                    setShowVehicleForm(false);
+                    setEditingVehicle(null);
+                  }}
+                />
+              ) : fleet.length === 0 ? (
+                <VehicleCategory
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  onContinue={() => {
+                    setEditingVehicle(null);
+                    setShowVehicleForm(true);
+                  }}
+                />
+              ) : (
+                <FleetDashboard
+                  vehicles={fleet}
+                  loading={loadingFleet}
+                  deletingVehicleId={deletingVehicleId}
+                  onAddVehicle={() => {
+                    setEditingVehicle(null);
+                    setSelectedCategory('truck');
+                    setShowVehicleForm(true);
+                  }}
+                  onViewTracking={(vehicle) => {
+                    setTrackingVehicle(vehicle);
+                    setTab('track');
+                  }}
+                  onEditVehicle={(vehicle) => {
+                    setEditingVehicle(vehicle);
+                    setSelectedCategory(String(vehicle.category || 'other').toLowerCase());
+                    setShowVehicleForm(true);
+                  }}
+                  onRemoveVehicle={removeVehicle}
+                />
+              )}
+            </>
+          )}
+
+          {tab === 'book' && (
+            <div className="fade-up">
+              {fleet.length === 0 ? (
+                <div className="card empty-state">
+                  <p style={{ marginBottom: 14 }}>No fleet vehicles found. Register a vehicle to continue.</p>
+                  <button className="btn btn-gold" onClick={() => setTab('fleet')}>
+                    Go To My Fleet
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div className="section-label">Booking Setup</div>
+
+                    <div className="form-group">
+                      <label>Registered Vehicle</label>
+                      <select
+                        value={bookingForm.vehicle_id}
+                        onChange={(event) => setBookingForm((previous) => ({ ...previous, vehicle_id: event.target.value }))}
+                      >
+                        {fleet.map((vehicle) => (
+                          <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.vehicle_name} ({vehicle.category}) - {vehicle.plate_number}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="responsive-split">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Support Units</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={bookingForm.units}
+                          onChange={(event) => setBookingForm((previous) => ({ ...previous, units: event.target.value }))}
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>Contract Days</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={bookingForm.days}
+                          onChange={(event) => setBookingForm((previous) => ({ ...previous, days: event.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div className="section-label">
+                      <FontAwesomeIcon icon={faLocationDot} style={{ marginRight: 8 }} />
+                      Deployment Logistics
+                    </div>
+
+                    <div className="form-group">
+                      <label>Strategic Hub</label>
+                      <select
+                        value={bookingForm.hub}
+                        onChange={(event) => setBookingForm((previous) => ({ ...previous, hub: event.target.value }))}
+                      >
+                        {Object.entries(HUBS).map(([hubKey, hub]) => (
+                          <option key={hubKey} value={hubKey}>{hub.label}</option>
+                        ))}
+                        <option value={OTHER_HUB_VALUE}>Other / Manual Entry</option>
+                      </select>
+                    </div>
+
+                    {bookingForm.hub === OTHER_HUB_VALUE && (
+                      <div className="form-group">
+                        <label>Specify Exact Location</label>
+                        <input
+                          type="text"
+                          value={bookingForm.customHub}
+                          onChange={(event) => setBookingForm((previous) => ({ ...previous, customHub: event.target.value }))}
+                          placeholder="e.g. specific mine site or coordinates"
+                        />
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label>Security Tier</label>
+                      <select
+                        value={bookingForm.sec}
+                        onChange={(event) => setBookingForm((previous) => ({ ...previous, sec: event.target.value }))}
+                      >
+                        {SEC_TIERS.map((tier) => (
+                          <option key={tier.value} value={tier.value}>{tier.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pricing-summary">
+                    <p style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, marginBottom: 8 }}>
+                      TOTAL LOGISTICS VALUE
+                    </p>
+                    <p className="pricing-summary__amount">K{bookingTotal.toLocaleString()}</p>
+                    <button
+                      className="btn btn-gold btn-full"
+                      style={{ marginTop: 20 }}
+                      onClick={createBooking}
+                      disabled={submittingBooking}
+                    >
+                      {submittingBooking ? 'Creating Booking...' : 'Create Booking'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {tab === 'track' && (
+            <div className="fade-up">
+              {fleet.length === 0 ? (
+                <div className="card empty-state">
+                  <p style={{ marginBottom: 14 }}>No fleet vehicles available for tracking.</p>
+                  <button className="btn btn-gold" onClick={() => setTab('fleet')}>Open My Fleet</button>
+                </div>
+              ) : (
+                <>
+                  <div className="card" style={{ marginBottom: 16 }}>
+                    <div className="section-label">Select Vehicle To Track</div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label>Vehicle</label>
+                      <select
+                        value={selectedTrackingVehicle?.id || ''}
+                        onChange={(event) => {
+                          const nextVehicle = fleet.find((vehicle) => vehicle.id === Number(event.target.value)) || null;
+                          setTrackingVehicle(nextVehicle);
+                        }}
+                      >
+                        {fleet.map((vehicle) => (
+                          <option key={vehicle.id} value={vehicle.id}>
+                            {vehicle.vehicle_name} ({vehicle.plate_number})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {selectedTrackingVehicle && !selectedTrackingVehicle.tracking_enabled ? (
+                    <div className="card empty-state">
+                      <p style={{ marginBottom: 14 }}>
+                        Tracking is disabled for {selectedTrackingVehicle.vehicle_name}. Enable tracking in My Fleet.
+                      </p>
+                      <button className="btn btn-dark" onClick={() => setTab('fleet')}>Back To Fleet</button>
+                    </div>
+                  ) : selectedTrackingVehicle ? (
+                    <VehicleTracking
+                      vehicle={selectedTrackingVehicle}
+                      lastBookedHub={activeTrackedBooking?.hub}
+                      bookingMeta={activeTrackedBooking}
+                    />
+                  ) : null}
+                </>
+              )}
+            </div>
+          )}
+
+          {tab === 'bookings' && (
+            <div className="fade-up">
+              <div className="card">
+                <div className="section-label">My Bookings</div>
+                {loadingBookings ? (
+                  <div className="spinner" />
+                ) : bookings.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '30px 0' }}>
+                    No bookings yet.
+                  </p>
+                ) : (
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Ref</th>
+                          <th>Vehicle</th>
+                          <th>Hub</th>
+                          <th>Total</th>
+                          <th>Status</th>
+                          <th>Dispatcher</th>
+                          <th>ETA</th>
+                          <th>Status Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.map((booking) => (
+                          <tr key={booking.id}>
+                            <td className="mono" style={{ color: 'var(--warning)', fontSize: 11 }}>
+                              {booking.booking_ref}
+                            </td>
+                            <td style={{ fontSize: 12 }}>{booking.truck_type}</td>
+                            <td style={{ fontSize: 12 }}>{formatHubLabel(booking.hub)}</td>
+                            <td className="mono" style={{ fontWeight: 700 }}>
+                              K{parseInteger(booking.total_amount).toLocaleString()}
+                            </td>
+                            <td>
+                              <span className={`badge badge-${booking.status}`}>
+                                {STATUS_LABELS[booking.status] || booking.status}
+                              </span>
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
+                              {booking.dispatcher_name || '-'}
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 180 }}>
+                              {booking.eta ? new Date(booking.eta).toLocaleString() : '-'}
+                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 240 }}>
+                              {booking.status_notes || 'No updates from dispatch yet.'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {toast && (
+        <div className="app-toast">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/pages/DeviceList.tsx =====
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Cell,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
+import { io } from 'socket.io-client';
+import api from '../api';
+import { ScoreBadge } from '../components/ScoreBadge';
+import './DeviceList.css';
+
+type DeviceLocation = {
+  id: number;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  altitude: number;
+  recordedAt: string;
+};
+
+type TrackerDevice = {
+  id: number;
+  imei: string;
+  label: string;
+  ownerId: string;
+  isActive: boolean;
+  lastSeenAt: string | null;
+  createdAt: string;
+  locations?: DeviceLocation[];
+};
+
+type DailyScore = {
+  id: number;
+  deviceImei: string;
+  date: string;
+  score: number;
+  speedViolations: number;
+  idleMinutes: number;
+  totalKm: number;
+  totalTrips: number;
+  harshEvents: number;
+};
+
+type FleetScoreEntry = {
+  device: TrackerDevice;
+  score: DailyScore | null;
+};
+
+type DeviceCard = {
+  device: TrackerDevice;
+  score: number;
+  scoreLabel: string;
+  status: 'ONLINE' | 'IDLE' | 'OFFLINE';
+  statusRank: number;
+  speed: number;
+  lastSeenAt: string | null;
+  scoreBorderColor: string;
+};
+
+type SocketLocationUpdate = {
+  imei: string;
+  speed: number;
+  timestamp: string | Date;
+};
+
+type ChartPoint = {
+  dateLabel: string;
+  score: number;
+  speedViolations: number;
+  idleMinutes: number;
+  harshEvents: number;
+  totalKm: number;
+  totalTrips: number;
+  fill: string;
+};
+
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const IDLE_SPEED_KMH = 5;
+
+const SOCKET_BASE_URL =
+  process.env.REACT_APP_WS_URL ||
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_NEST_API_URL ||
+  'http://localhost:3001';
+
+const SOCKET_NAMESPACE_URL = `${SOCKET_BASE_URL.replace(/\/+$/, '')}/tracking`;
+
+const formatRelativeTime = (isoDate: string | null): string => {
+  if (!isoDate) {
+    return 'Never';
+  }
+
+  const timestamp = new Date(isoDate).getTime();
+
+  if (!Number.isFinite(timestamp)) {
+    return 'Unknown';
+  }
+
+  const deltaMs = Date.now() - timestamp;
+
+  if (deltaMs < 5000) {
+    return 'just now';
+  }
+
+  const totalSeconds = Math.floor(deltaMs / 1000);
+  if (totalSeconds < 60) {
+    return `${totalSeconds} second${totalSeconds === 1 ? '' : 's'} ago`;
+  }
+
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  if (totalMinutes < 60) {
+    return `${totalMinutes} minute${totalMinutes === 1 ? '' : 's'} ago`;
+  }
+
+  const totalHours = Math.floor(totalMinutes / 60);
+  if (totalHours < 24) {
+    return `${totalHours} hour${totalHours === 1 ? '' : 's'} ago`;
+  }
+
+  const totalDays = Math.floor(totalHours / 24);
+  return `${totalDays} day${totalDays === 1 ? '' : 's'} ago`;
+};
+
+const scoreColor = (score: number): string => {
+  if (score >= 90) {
+    return '#16a34a';
+  }
+
+  if (score >= 70) {
+    return '#f59e0b';
+  }
+
+  if (score >= 50) {
+    return '#f97316';
+  }
+
+  return '#ef4444';
+};
+
+const scoreLabel = (score: number): string => {
+  if (score >= 90) {
+    return 'Excellent';
+  }
+
+  if (score >= 70) {
+    return 'Good';
+  }
+
+  if (score >= 50) {
+    return 'Fair';
+  }
+
+  return 'Poor';
+};
+
+const statusRankMap: Record<DeviceCard['status'], number> = {
+  ONLINE: 0,
+  IDLE: 1,
+  OFFLINE: 2,
+};
+
+const isDeviceFresh = (lastSeenAt: string | null): boolean => {
+  if (!lastSeenAt) {
+    return false;
+  }
+
+  const time = new Date(lastSeenAt).getTime();
+  if (!Number.isFinite(time)) {
+    return false;
+  }
+
+  return Date.now() - time <= ONLINE_WINDOW_MS;
+};
+
+function ScoreTooltip(props: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartPoint }>;
+}) {
+  if (!props.active || !props.payload || props.payload.length === 0) {
+    return null;
+  }
+
+  const data = props.payload[0].payload;
+
+  return (
+    <div
+      style={{
+        background: 'rgba(15, 23, 42, 0.95)',
+        border: '1px solid rgba(148, 163, 184, 0.35)',
+        borderRadius: 10,
+        padding: '10px 12px',
+        color: '#f8fafc',
+        fontSize: 12,
+        lineHeight: 1.45,
+      }}
+    >
+      <div>Score: {data.score}</div>
+      <div>Speed violations: {data.speedViolations}</div>
+      <div>Idle minutes: {data.idleMinutes}</div>
+      <div>Harsh brakes: {data.harshEvents}</div>
+      <div>Distance: {data.totalKm.toFixed(1)} km</div>
+      <div>Trips: {data.totalTrips}</div>
+    </div>
+  );
+}
+
+export default function DeviceList() {
+  const navigate = useNavigate();
+  const [fleetData, setFleetData] = useState<FleetScoreEntry[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+  const [selectedImei, setSelectedImei] = useState<string>('');
+  const [scoreHistory, setScoreHistory] = useState<DailyScore[]>([]);
+  const [todayScore, setTodayScore] = useState<DailyScore | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+  const [liveSpeedMap, setLiveSpeedMap] = useState<Record<string, number>>({});
+  const [liveSeenMap, setLiveSeenMap] = useState<Record<string, string>>({});
+
+  const fleetImeis = useMemo(
+    () => Array.from(new Set(fleetData.map((item) => item.device.imei))),
+    [fleetData],
+  );
+
+  const fetchFleetScores = async (): Promise<void> => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await api.get<FleetScoreEntry[]>('/locations/fleet/scores');
+      const entries = Array.isArray(response.data) ? response.data : [];
+      setFleetData(entries);
+
+      if (entries.length > 0) {
+        setSelectedImei((previous) =>
+          previous && entries.some((entry) => entry.device.imei === previous)
+            ? previous
+            : entries[0].device.imei,
+        );
+      }
+
+      setLiveSpeedMap((previous) => {
+        const next = { ...previous };
+
+        for (const entry of entries) {
+          if (next[entry.device.imei] === undefined) {
+            next[entry.device.imei] = Number(entry.device.locations?.[0]?.speed ?? 0);
+          }
+        }
+
+        return next;
+      });
+
+      setLiveSeenMap((previous) => {
+        const next = { ...previous };
+
+        for (const entry of entries) {
+          const lastSeenAt = entry.device.lastSeenAt;
+
+          if (lastSeenAt && !next[entry.device.imei]) {
+            next[entry.device.imei] = lastSeenAt;
+          }
+        }
+
+        return next;
+      });
+    } catch (fetchError) {
+      const message = fetchError instanceof Error ? fetchError.message : 'Failed to load fleet scores.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchFleetScores();
+
+    const timer = window.setInterval(() => {
+      void fetchFleetScores();
+    }, 60000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (fleetImeis.length === 0) {
+      return;
+    }
+
+    const socket = io(SOCKET_NAMESPACE_URL, {
+      transports: ['websocket'],
+      autoConnect: true,
+    });
+
+    socket.on('connect', () => {
+      for (const imei of fleetImeis) {
+        socket.emit('subscribeToTracker', { deviceId: imei });
+      }
+    });
+
+    socket.on('locationUpdate', (data: SocketLocationUpdate) => {
+      const imei = String(data.imei ?? '');
+
+      if (!imei) {
+        return;
+      }
+
+      const speed = Number(data.speed);
+      const timestamp = new Date(data.timestamp);
+
+      setLiveSpeedMap((previous) => ({
+        ...previous,
+        [imei]: Number.isFinite(speed) ? speed : 0,
+      }));
+
+      if (!Number.isNaN(timestamp.getTime())) {
+        setLiveSeenMap((previous) => ({
+          ...previous,
+          [imei]: timestamp.toISOString(),
+        }));
+      }
+    });
+
+    return () => {
+      for (const imei of fleetImeis) {
+        socket.emit('unsubscribeFromTracker', { deviceId: imei });
+      }
+
+      socket.disconnect();
+    };
+  }, [fleetImeis.join('|')]);
+
+  const sortedCards = useMemo<DeviceCard[]>(() => {
+    return fleetData
+      .map((entry) => {
+        const imei = entry.device.imei;
+        const speed = Number(
+          liveSpeedMap[imei] ?? entry.device.locations?.[0]?.speed ?? 0,
+        );
+        const lastSeenAt = liveSeenMap[imei] ?? entry.device.lastSeenAt;
+        const score = Math.max(0, Math.min(100, Math.round(entry.score?.score ?? 100)));
+
+        let status: DeviceCard['status'] = 'OFFLINE';
+
+        if (isDeviceFresh(lastSeenAt)) {
+          status = speed <= IDLE_SPEED_KMH ? 'IDLE' : 'ONLINE';
+        }
+
+        return {
+          device: entry.device,
+          score,
+          scoreLabel: scoreLabel(score),
+          status,
+          statusRank: statusRankMap[status],
+          speed: Number.isFinite(speed) ? speed : 0,
+          lastSeenAt,
+          scoreBorderColor: scoreColor(score),
+        };
+      })
+      .sort((a, b) => {
+        if (a.statusRank !== b.statusRank) {
+          return a.statusRank - b.statusRank;
+        }
+
+        if (a.score !== b.score) {
+          return b.score - a.score;
+        }
+
+        return a.device.label.localeCompare(b.device.label);
+      });
+  }, [fleetData, liveSeenMap, liveSpeedMap]);
+
+  useEffect(() => {
+    if (sortedCards.length === 0) {
+      return;
+    }
+
+    if (!selectedImei || !sortedCards.some((item) => item.device.imei === selectedImei)) {
+      setSelectedImei(sortedCards[0].device.imei);
+    }
+  }, [selectedImei, sortedCards]);
+
+  useEffect(() => {
+    if (!selectedImei) {
+      setScoreHistory([]);
+      setTodayScore(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchScoreHistory = async (): Promise<void> => {
+      setLoadingHistory(true);
+
+      try {
+        const [historyResponse, todayResponse] = await Promise.all([
+          api.get<DailyScore[]>(`/locations/${selectedImei}/score/history`, {
+            params: { days: 30 },
+          }),
+          api.get<DailyScore | null>(`/locations/${selectedImei}/score/today`),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setScoreHistory(Array.isArray(historyResponse.data) ? historyResponse.data : []);
+        setTodayScore(todayResponse.data ?? null);
+      } catch (historyError) {
+        if (!isMounted) {
+          return;
+        }
+
+        const message = historyError instanceof Error ? historyError.message : 'Failed to load score history.';
+        setError(message);
+        setScoreHistory([]);
+        setTodayScore(null);
+      } finally {
+        if (isMounted) {
+          setLoadingHistory(false);
+        }
+      }
+    };
+
+    void fetchScoreHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedImei]);
+
+  const selectedCard = sortedCards.find((card) => card.device.imei === selectedImei) ?? null;
+
+  const chartData = useMemo<ChartPoint[]>(() => {
+    return scoreHistory.map((item) => {
+      const date = new Date(item.date);
+      const dateLabel = Number.isNaN(date.getTime())
+        ? 'N/A'
+        : date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+          });
+
+      const fill = item.score > 80 ? '#16a34a' : item.score >= 60 ? '#f59e0b' : '#ef4444';
+
+      return {
+        dateLabel,
+        score: Math.max(0, Math.min(100, Math.round(item.score))),
+        speedViolations: item.speedViolations,
+        idleMinutes: item.idleMinutes,
+        harshEvents: item.harshEvents,
+        totalKm: item.totalKm,
+        totalTrips: item.totalTrips,
+        fill,
+      };
+    });
+  }, [scoreHistory]);
+
+  const todayBreakdown = todayScore ?? (scoreHistory.length > 0 ? scoreHistory[scoreHistory.length - 1] : null);
+
+  return (
+    <div className="fleet-page">
+      <div className="fleet-shell">
+        <header className="fleet-header">
+          <div>
+            <h1 className="fleet-title">Fleet Overview</h1>
+            <div className="fleet-subtitle">
+              Live device status and driver behaviour scoring across your fleet.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="fleet-refresh-btn"
+            onClick={() => {
+              void fetchFleetScores();
+            }}
+          >
+            Refresh
+          </button>
+        </header>
+
+        {loading ? (
+          <div className="fleet-state">Loading fleet dashboard...</div>
+        ) : sortedCards.length === 0 ? (
+          <div className="fleet-state">No fleet devices found.</div>
+        ) : (
+          <section className="fleet-grid">
+            {sortedCards.map((card) => (
+              <article
+                key={card.device.id}
+                className={`fleet-card ${selectedImei === card.device.imei ? 'is-selected' : ''}`}
+                style={{ borderColor: card.scoreBorderColor }}
+                onClick={() => setSelectedImei(card.device.imei)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    setSelectedImei(card.device.imei);
+                  }
+                }}
+              >
+                <div className="fleet-card__header">
+                  <div>
+                    <h3 className="fleet-card__name">{card.device.label}</h3>
+                    <div className="fleet-card__imei">{card.device.imei}</div>
+                  </div>
+
+                  <span
+                    className={`fleet-status ${
+                      card.status === 'ONLINE'
+                        ? 'is-online'
+                        : card.status === 'IDLE'
+                          ? 'is-idle'
+                          : 'is-offline'
+                    }`}
+                  >
+                    {card.status}
+                  </span>
+                </div>
+
+                <div className="fleet-card__stats">
+                  <div className="fleet-card__speed">Speed: {Math.round(card.speed)} km/h</div>
+                  <div className="fleet-card__last-seen">
+                    Last seen: {formatRelativeTime(card.lastSeenAt)}
+                  </div>
+                </div>
+
+                <div className="fleet-card__score">
+                  <ScoreBadge score={card.score} size="md" />
+                  <div className="fleet-card__score-meta">
+                    <span className="fleet-card__score-label">Driver score</span>
+                    <span className="fleet-card__score-grade">{card.scoreLabel}</span>
+                  </div>
+                </div>
+
+                <div className="fleet-card__actions">
+                  <button
+                    type="button"
+                    className="fleet-track-btn"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/track/${card.device.imei}`);
+                    }}
+                  >
+                    Track
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+
+        <section className="fleet-chart-card">
+          <div>
+            <h2 className="fleet-chart-title">
+              {selectedCard ? `Score History - ${selectedCard.device.label}` : 'Score History'}
+            </h2>
+            <div className="fleet-chart-subtitle">Last 30 days</div>
+          </div>
+
+          {error && <div className="fleet-subtitle">{error}</div>}
+
+          {loadingHistory ? (
+            <div className="fleet-state">Loading score history...</div>
+          ) : chartData.length === 0 ? (
+            <div className="fleet-state">No score history available for this device.</div>
+          ) : (
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.25)" />
+                  <XAxis dataKey="dateLabel" stroke="#cbd5e1" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} stroke="#cbd5e1" tick={{ fontSize: 11 }} />
+                  <Tooltip content={<ScoreTooltip />} />
+                  <Bar dataKey="score" radius={[6, 6, 0, 0]}>
+                    {chartData.map((item, index) => (
+                      <Cell key={`${item.dateLabel}-${index}`} fill={item.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          <div className="fleet-breakdown-grid">
+            <div className="fleet-breakdown-tile">
+              <div className="fleet-breakdown-label">Speed violations</div>
+              <div className="fleet-breakdown-value">{todayBreakdown?.speedViolations ?? 0}</div>
+            </div>
+
+            <div className="fleet-breakdown-tile">
+              <div className="fleet-breakdown-label">Idle time</div>
+              <div className="fleet-breakdown-value">{todayBreakdown?.idleMinutes ?? 0} min</div>
+            </div>
+
+            <div className="fleet-breakdown-tile">
+              <div className="fleet-breakdown-label">Harsh brakes</div>
+              <div className="fleet-breakdown-value">{todayBreakdown?.harshEvents ?? 0}</div>
+            </div>
+
+            <div className="fleet-breakdown-tile">
+              <div className="fleet-breakdown-label">Distance</div>
+              <div className="fleet-breakdown-value">{(todayBreakdown?.totalKm ?? 0).toFixed(1)} km</div>
+            </div>
+
+            <div className="fleet-breakdown-tile">
+              <div className="fleet-breakdown-label">Trips</div>
+              <div className="fleet-breakdown-value">{todayBreakdown?.totalTrips ?? 0}</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/hooks/useTracker.ts =====
+import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
+import api from '../api';
+
+type TrackerPoint = {
+  lat: number;
+  lng: number;
+};
+
+type CurrentPosition = {
+  lat: number;
+  lng: number;
+  speed: number;
+};
+
+type HistoryRecord = {
+  latitude: number;
+  longitude: number;
+};
+
+type SocketLocationUpdate = {
+  latitude: number;
+  longitude: number;
+  speed: number;
+};
+
+type GeofenceAlertEvent = {
+  geofenceName: string;
+  type: 'entered' | 'exited';
+  triggeredAt: Date;
+};
+
+type SpeedAlertEvent = {
+  speed: number;
+  limit: number;
+  lat: number;
+  lng: number;
+  triggeredAt: Date;
+};
+
+type IdleAlertEvent = {
+  duration: number;
+  lat: number;
+  lng: number;
+  triggeredAt: Date;
+};
+
+type UseTrackerOptions = {
+  loadHistory?: boolean;
+  trackLocation?: boolean;
+};
+
+const MAX_HISTORY_POINTS = 1000;
+
+const SOCKET_BASE_URL =
+  process.env.REACT_APP_WS_URL ||
+  process.env.REACT_APP_API_URL ||
+  process.env.REACT_APP_NEST_API_URL ||
+  'http://localhost:3001';
+
+const SOCKET_NAMESPACE_URL = `${SOCKET_BASE_URL.replace(/\/+$/, '')}/tracking`;
+
+export function useTracker(deviceId: string, options: UseTrackerOptions = {}) {
+  const loadHistory = options.loadHistory ?? true;
+  const trackLocation = options.trackLocation ?? true;
+  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
+  const [history, setHistory] = useState<TrackerPoint[]>([]);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [latestGeofenceAlert, setLatestGeofenceAlert] = useState<GeofenceAlertEvent | null>(null);
+  const [latestSpeedAlert, setLatestSpeedAlert] = useState<SpeedAlertEvent | null>(null);
+  const [latestIdleAlert, setLatestIdleAlert] = useState<IdleAlertEvent | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchHistory = async (): Promise<void> => {
+      try {
+        const response = await api.get<HistoryRecord[]>(`/locations/${deviceId}/history`);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const points = (Array.isArray(response.data) ? response.data : [])
+          .map((item) => ({
+            lat: Number(item.latitude),
+            lng: Number(item.longitude),
+          }))
+          .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+        setHistory(points);
+      } catch (error) {
+        console.error('Failed to load tracker history:', error);
+      }
+    };
+
+    if (loadHistory) {
+      void fetchHistory();
+    }
+
+    const socket = io(SOCKET_NAMESPACE_URL, {
+      transports: ['websocket'],
+      autoConnect: true,
+    });
+
+    socket.on('connect', () => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsConnected(true);
+      socket.emit('subscribeToTracker', { deviceId });
+    });
+
+    socket.on('disconnect', () => {
+      if (!isMounted) {
+        return;
+      }
+
+      setIsConnected(false);
+    });
+
+    socket.on('locationUpdate', (data: SocketLocationUpdate) => {
+      if (!trackLocation) {
+        return;
+      }
+
+      if (!isMounted) {
+        return;
+      }
+
+      const latitude = Number(data.latitude);
+      const longitude = Number(data.longitude);
+      const speed = Number(data.speed);
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return;
+      }
+
+      setCurrentPosition({
+        lat: latitude,
+        lng: longitude,
+        speed: Number.isFinite(speed) ? speed : 0,
+      });
+
+      setHistory((previous) => {
+        const next = [...previous, { lat: latitude, lng: longitude }];
+
+        if (next.length <= MAX_HISTORY_POINTS) {
+          return next;
+        }
+
+        return next.slice(next.length - MAX_HISTORY_POINTS);
+      });
+
+      setLastUpdated(new Date());
+    });
+
+    socket.on('geofenceAlert', (data: {
+      geofenceName: string;
+      type: 'entered' | 'exited';
+      triggeredAt: string | Date;
+    }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const normalizedDate = new Date(data.triggeredAt);
+
+      setLatestGeofenceAlert({
+        geofenceName: data.geofenceName,
+        type: data.type,
+        triggeredAt: Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate,
+      });
+    });
+
+    socket.on('speedAlert', (data: {
+      speed: number;
+      limit: number;
+      lat: number;
+      lng: number;
+      triggeredAt: string | Date;
+    }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const normalizedDate = new Date(data.triggeredAt);
+
+      setLatestSpeedAlert({
+        speed: Number(data.speed),
+        limit: Number(data.limit),
+        lat: Number(data.lat),
+        lng: Number(data.lng),
+        triggeredAt: Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate,
+      });
+    });
+
+    socket.on('idleAlert', (data: {
+      duration: number;
+      lat: number;
+      lng: number;
+      triggeredAt: string | Date;
+    }) => {
+      if (!isMounted) {
+        return;
+      }
+
+      const normalizedDate = new Date(data.triggeredAt);
+
+      setLatestIdleAlert({
+        duration: Number(data.duration),
+        lat: Number(data.lat),
+        lng: Number(data.lng),
+        triggeredAt: Number.isNaN(normalizedDate.getTime()) ? new Date() : normalizedDate,
+      });
+    });
+
+    return () => {
+      isMounted = false;
+      socket.emit('unsubscribeFromTracker', { deviceId });
+      socket.disconnect();
+    };
+  }, [deviceId, loadHistory, trackLocation]);
+
+  return {
+    currentPosition,
+    history,
+    isConnected,
+    lastUpdated,
+    latestGeofenceAlert,
+    latestSpeedAlert,
+    latestIdleAlert,
+  };
+}
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/components/GeofenceLayer.tsx =====
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Circle, Popup, useMap, useMapEvents } from 'react-leaflet';
+import api from '../api';
+import { useTracker } from '../hooks/useTracker';
+
+type Geofence = {
+  id: number;
+  deviceImei: string;
+  name: string;
+  centerLat: number;
+  centerLng: number;
+  radiusMeters: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+type GeofenceAlertToast = {
+  message: string;
+  type: 'entered' | 'exited';
+};
+
+type GeofenceLayerProps = {
+  deviceId: string;
+};
+
+const BEEP_AUDIO_SRC =
+  'data:audio/wav;base64,UklGRvwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YdgAAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAAAP///wAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAD///8AAAAAAAAAAAAAAAAAAAAA';
+
+function MapOverlayPortal({ children }: { children: ReactNode }) {
+  const map = useMap();
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setContainer(map.getContainer());
+  }, [map]);
+
+  if (!container) {
+    return null;
+  }
+
+  return createPortal(children, container);
+}
+
+function DrawClickHandler({
+  enabled,
+  onPick,
+}: {
+  enabled: boolean;
+  onPick: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(event) {
+      if (!enabled) {
+        return;
+      }
+
+      onPick(event.latlng.lat, event.latlng.lng);
+    },
+  });
+
+  return null;
+}
+
+export function GeofenceLayer({ deviceId }: GeofenceLayerProps) {
+  const [geofences, setGeofences] = useState<Geofence[]>([]);
+  const [drawMode, setDrawMode] = useState<boolean>(false);
+  const [draftCenter, setDraftCenter] = useState<[number, number] | null>(null);
+  const [draftRadius, setDraftRadius] = useState<number>(500);
+  const [draftName, setDraftName] = useState<string>('');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [toast, setToast] = useState<GeofenceAlertToast | null>(null);
+
+  const { latestGeofenceAlert } = useTracker(deviceId, {
+    loadHistory: false,
+    trackLocation: false,
+  });
+
+  const loadGeofences = useCallback(async (): Promise<void> => {
+    try {
+      const response = await api.get<Geofence[]>(`/locations/${deviceId}/geofences`);
+      const rows = Array.isArray(response.data) ? response.data : [];
+      setGeofences(rows);
+    } catch (error) {
+      console.error('Failed to load geofences:', error);
+    }
+  }, [deviceId]);
+
+  useEffect(() => {
+    void loadGeofences();
+  }, [loadGeofences]);
+
+  useEffect(() => {
+    if (!latestGeofenceAlert) {
+      return;
+    }
+
+    const message =
+      latestGeofenceAlert.type === 'entered'
+        ? `Vehicle entered ${latestGeofenceAlert.geofenceName}`
+        : `Vehicle exited ${latestGeofenceAlert.geofenceName}`;
+
+    setToast({
+      message,
+      type: latestGeofenceAlert.type,
+    });
+
+    const audio = new Audio(BEEP_AUDIO_SRC);
+    audio.volume = 0.2;
+    void audio.play().catch(() => {
+      // Ignore autoplay restrictions.
+    });
+
+    const hideTimer = window.setTimeout(() => {
+      setToast(null);
+    }, 8000);
+
+    return () => {
+      window.clearTimeout(hideTimer);
+    };
+  }, [latestGeofenceAlert]);
+
+  const onToggleDrawMode = (): void => {
+    setDrawMode((previous) => {
+      const next = !previous;
+
+      if (!next) {
+        setDraftCenter(null);
+        setDraftName('');
+        setDraftRadius(500);
+      }
+
+      return next;
+    });
+  };
+
+  const onSave = async (): Promise<void> => {
+    if (!draftCenter || !draftName.trim()) {
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      await api.post(`/locations/${deviceId}/geofences`, {
+        name: draftName.trim(),
+        centerLat: draftCenter[0],
+        centerLng: draftCenter[1],
+        radiusMeters: draftRadius,
+      });
+
+      setDraftCenter(null);
+      setDraftName('');
+      setDraftRadius(500);
+      setDrawMode(false);
+      await loadGeofences();
+    } catch (error) {
+      console.error('Failed to save geofence:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const onDeleteGeofence = async (id: number): Promise<void> => {
+    setDeletingId(id);
+
+    try {
+      await api.delete(`/locations/${deviceId}/geofences/${id}`);
+      setGeofences((previous) => previous.filter((item) => item.id !== id));
+    } catch (error) {
+      console.error('Failed to delete geofence:', error);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const drawButtonLabel = useMemo(
+    () => (drawMode ? 'Drawing: ON' : 'Draw geofence'),
+    [drawMode],
+  );
+
+  return (
+    <>
+      <DrawClickHandler
+        enabled={drawMode}
+        onPick={(lat, lng) => {
+          setDraftCenter([lat, lng]);
+        }}
+      />
+
+      {geofences.map((geofence) => (
+        <Circle
+          key={geofence.id}
+          center={[geofence.centerLat, geofence.centerLng]}
+          radius={geofence.radiusMeters}
+          pathOptions={{ color: '#f59e0b', fillOpacity: 0.15 }}
+        >
+          <Popup>
+            <div style={{ minWidth: 200 }}>
+              <strong>{geofence.name}</strong>
+              <div>Radius: {geofence.radiusMeters}m</div>
+              <button
+                type="button"
+                style={{ marginTop: 8 }}
+                disabled={deletingId === geofence.id}
+                onClick={() => {
+                  void onDeleteGeofence(geofence.id);
+                }}
+              >
+                {deletingId === geofence.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </Popup>
+        </Circle>
+      ))}
+
+      {draftCenter && (
+        <Circle
+          center={draftCenter}
+          radius={draftRadius}
+          pathOptions={{ color: '#f59e0b', dashArray: '8 8', fillOpacity: 0.12 }}
+        />
+      )}
+
+      <MapOverlayPortal>
+        <div
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 1000,
+            width: 300,
+            background: 'rgba(17, 24, 39, 0.92)',
+            color: '#ffffff',
+            borderRadius: 12,
+            padding: 12,
+            boxShadow: '0 10px 24px rgba(0, 0, 0, 0.35)',
+            pointerEvents: 'auto',
+          }}
+        >
+          <button
+            type="button"
+            onClick={onToggleDrawMode}
+            style={{
+              width: '100%',
+              minHeight: 40,
+              border: 0,
+              borderRadius: 8,
+              fontWeight: 700,
+              cursor: 'pointer',
+              background: drawMode ? '#f59e0b' : '#111827',
+              color: '#ffffff',
+            }}
+          >
+            {drawButtonLabel}
+          </button>
+
+          {drawMode && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12, opacity: 0.85 }}>
+                Click map to set center
+              </div>
+
+              <label style={{ display: 'block', marginTop: 10, fontSize: 13 }}>
+                Radius: {draftRadius}m
+              </label>
+              <input
+                type="range"
+                min={100}
+                max={10000}
+                step={50}
+                value={draftRadius}
+                onChange={(event) => {
+                  setDraftRadius(Number(event.target.value));
+                }}
+                style={{ width: '100%' }}
+              />
+
+              <input
+                type="text"
+                placeholder="Geofence name"
+                value={draftName}
+                onChange={(event) => {
+                  setDraftName(event.target.value);
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: 10,
+                  minHeight: 38,
+                  borderRadius: 8,
+                  border: '1px solid #374151',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  padding: '0 10px',
+                }}
+              />
+
+              <button
+                type="button"
+                disabled={!draftCenter || !draftName.trim() || isSaving}
+                onClick={() => {
+                  void onSave();
+                }}
+                style={{
+                  width: '100%',
+                  marginTop: 10,
+                  minHeight: 40,
+                  border: 0,
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  background: '#f59e0b',
+                  color: '#111827',
+                  fontWeight: 800,
+                  opacity: !draftCenter || !draftName.trim() || isSaving ? 0.6 : 1,
+                }}
+              >
+                {isSaving ? 'Saving...' : 'Save geofence'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {toast && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 16,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 1200,
+              minWidth: 280,
+              maxWidth: '90%',
+              padding: '12px 16px',
+              borderRadius: 10,
+              color: '#ffffff',
+              fontWeight: 800,
+              textAlign: 'center',
+              boxShadow: '0 8px 22px rgba(0, 0, 0, 0.35)',
+              background: toast.type === 'entered' ? '#16a34a' : '#f59e0b',
+              pointerEvents: 'none',
+            }}
+          >
+            {toast.message}
+          </div>
+        )}
+      </MapOverlayPortal>
+    </>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/components/TrackingMap.tsx =====
+import L, { type DivIcon } from 'leaflet';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import 'leaflet/dist/leaflet.css';
+import { useEffect, useMemo, useState } from 'react';
+import {
+    MapContainer,
+    Marker,
+    Polyline,
+    Popup,
+    TileLayer,
+    useMap,
+} from 'react-leaflet';
+import api from '../api';
+import { useTracker } from '../hooks/useTracker';
+import { reverseGeocode } from '../utils/geocode';
+import { EngineControl } from './EngineControl';
+import { GeofenceLayer } from './GeofenceLayer';
+import { ScoreBadge } from './ScoreBadge';
+import './TrackingMap.css';
+
+type TrackingMapProps = {
+  deviceId: string;
+  height?: string;
+};
+
+type MapUpdaterProps = {
+  currentPosition: {
+    lat: number;
+    lng: number;
+    speed: number;
+  } | null;
+  enabled: boolean;
+};
+
+type ReplayPoint = {
+  lat: number;
+  lng: number;
+};
+
+type PlaybackMapUpdaterProps = {
+  isPlaybackMode: boolean;
+  playbackLocations: ReplayPoint[] | null;
+  playbackIndex: number;
+};
+
+type PlaybackSpeed = 1 | 2 | 5;
+
+type TodayScoreResponse = {
+  score?: number;
+} | null;
+
+const PLAYBACK_SPEED_OPTIONS: PlaybackSpeed[] = [1, 2, 5];
+
+const DEFAULT_CENTER: [number, number] = [-12.9667, 28.6333];
+const DEFAULT_ZOOM = 13;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
+
+function MapUpdater({ currentPosition, enabled }: MapUpdaterProps): null {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!enabled || !currentPosition) {
+      return;
+    }
+
+    map.flyTo([currentPosition.lat, currentPosition.lng], map.getZoom(), {
+      animate: true,
+      duration: 1,
+    });
+  }, [currentPosition, enabled, map]);
+
+  return null;
+}
+
+function PlaybackMapUpdater({
+  isPlaybackMode,
+  playbackLocations,
+  playbackIndex,
+}: PlaybackMapUpdaterProps): null {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!isPlaybackMode || !playbackLocations || playbackLocations.length === 0) {
+      return;
+    }
+
+    if (playbackLocations.length === 1) {
+      map.flyTo([playbackLocations[0].lat, playbackLocations[0].lng], 16, {
+        animate: true,
+        duration: 0.8,
+      });
+      return;
+    }
+
+    const bounds = L.latLngBounds(
+      playbackLocations.map((point) => [point.lat, point.lng] as [number, number]),
+    );
+
+    map.fitBounds(bounds, {
+      padding: [40, 40],
+      animate: true,
+    });
+  }, [isPlaybackMode, map, playbackLocations]);
+
+  useEffect(() => {
+    if (!isPlaybackMode || !playbackLocations || playbackLocations.length === 0) {
+      return;
+    }
+
+    const point = playbackLocations[Math.min(playbackIndex, playbackLocations.length - 1)];
+
+    map.panTo([point.lat, point.lng], {
+      animate: true,
+      duration: 0.2,
+    });
+  }, [isPlaybackMode, map, playbackIndex, playbackLocations]);
+
+  return null;
+}
+
+function ExternalFlyToHandler(): null {
+  const map = useMap();
+
+  useEffect(() => {
+    const onFlyTo = (event: Event): void => {
+      const customEvent = event as CustomEvent<{
+        lat: number;
+        lng: number;
+        zoom?: number;
+      }>;
+
+      const lat = Number(customEvent.detail?.lat);
+      const lng = Number(customEvent.detail?.lng);
+      const zoom = Number(customEvent.detail?.zoom);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        return;
+      }
+
+      map.flyTo([lat, lng], Number.isFinite(zoom) ? zoom : map.getZoom(), {
+        animate: true,
+        duration: 1,
+      });
+    };
+
+    window.addEventListener('elitrack:fly-to', onFlyTo as EventListener);
+
+    return () => {
+      window.removeEventListener('elitrack:fly-to', onFlyTo as EventListener);
+    };
+  }, [map]);
+
+  return null;
+}
+
+const formatTime = (date: Date | null): string => {
+  if (!date) {
+    return '--:--:--';
+  }
+
+  return date.toLocaleTimeString('en-GB', { hour12: false });
+};
+
+export function TrackingMap({ deviceId, height = '100vh' }: TrackingMapProps) {
+  const { currentPosition, history, isConnected, lastUpdated } = useTracker(deviceId);
+  const [todayScore, setTodayScore] = useState<number>(100);
+  const [currentAddress, setCurrentAddress] = useState<string>('Location unavailable');
+  const [playbackLocations, setPlaybackLocations] = useState<ReplayPoint[] | null>(null);
+  const [playbackIndex, setPlaybackIndex] = useState<number>(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<PlaybackSpeed>(1);
+  const [isPlaybackPlaying, setIsPlaybackPlaying] = useState<boolean>(false);
+
+  const isPlaybackMode = Boolean(playbackLocations && playbackLocations.length > 0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchTodayScore = async (): Promise<void> => {
+      try {
+        const response = await api.get<TodayScoreResponse>(`/locations/${deviceId}/score/today`);
+        const rawScore = Number(response.data?.score ?? 100);
+
+        if (!isMounted || !Number.isFinite(rawScore)) {
+          return;
+        }
+
+        setTodayScore(Math.max(0, Math.min(100, Math.round(rawScore))));
+      } catch (error) {
+        console.error('Failed to load today score:', error);
+      }
+    };
+
+    void fetchTodayScore();
+
+    const timer = window.setInterval(() => {
+      void fetchTodayScore();
+    }, 60000);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(timer);
+    };
+  }, [deviceId]);
+
+  useEffect(() => {
+    if (!currentPosition) {
+      setCurrentAddress('Location unavailable');
+      return;
+    }
+
+    let isMounted = true;
+
+    const resolveAddress = async (): Promise<void> => {
+      const address = await reverseGeocode(currentPosition.lat, currentPosition.lng);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setCurrentAddress(address);
+    };
+
+    void resolveAddress();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentPosition?.lat, currentPosition?.lng]);
+
+  useEffect(() => {
+    const onTripPlayback = (event: Event): void => {
+      const customEvent = event as CustomEvent<{
+        locations?: Array<{
+          lat?: number;
+          lng?: number;
+          latitude?: number;
+          longitude?: number;
+        }>;
+      }>;
+
+      const rawLocations = Array.isArray(customEvent.detail?.locations)
+        ? customEvent.detail.locations
+        : [];
+
+      const normalizedLocations = rawLocations
+        .map((item) => ({
+          lat: Number(item.lat ?? item.latitude),
+          lng: Number(item.lng ?? item.longitude),
+        }))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+      if (normalizedLocations.length === 0) {
+        return;
+      }
+
+      setPlaybackLocations(normalizedLocations);
+      setPlaybackIndex(0);
+      setPlaybackSpeed(1);
+      setIsPlaybackPlaying(true);
+    };
+
+    window.addEventListener('elitrack:trip-playback', onTripPlayback as EventListener);
+
+    return () => {
+      window.removeEventListener('elitrack:trip-playback', onTripPlayback as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaybackMode || !isPlaybackPlaying || !playbackLocations) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setPlaybackIndex((previous) => {
+        const next = previous + playbackSpeed;
+        const finalIndex = playbackLocations.length - 1;
+
+        if (next >= finalIndex) {
+          setIsPlaybackPlaying(false);
+          return finalIndex;
+        }
+
+        return next;
+      });
+    }, 100);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [isPlaybackMode, isPlaybackPlaying, playbackLocations, playbackSpeed]);
+
+  const liveIcon: DivIcon = useMemo(
+    () =>
+      L.divIcon({
+        className: 'tracking-marker-wrapper',
+        html: `<span class="tracking-marker-dot ${isConnected ? 'is-live' : 'is-offline'}"></span>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, -14],
+      }),
+    [isConnected],
+  );
+
+  const playbackIcon: DivIcon = useMemo(
+    () =>
+      L.divIcon({
+        className: 'tracking-marker-wrapper',
+        html: '<span class="tracking-marker-dot is-playback"></span>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, -14],
+      }),
+    [],
+  );
+
+  const markerPosition: [number, number] | null = currentPosition
+    ? [currentPosition.lat, currentPosition.lng]
+    : null;
+
+  const playbackMarkerPoint: [number, number] | null =
+    playbackLocations && playbackLocations.length > 0
+      ? [
+          playbackLocations[Math.min(playbackIndex, playbackLocations.length - 1)].lat,
+          playbackLocations[Math.min(playbackIndex, playbackLocations.length - 1)].lng,
+        ]
+      : null;
+
+  const mapCenter: [number, number] =
+    playbackMarkerPoint ?? markerPosition ?? DEFAULT_CENTER;
+
+  const historyPositions: [number, number][] = history.map((point) => [
+    point.lat,
+    point.lng,
+  ]);
+
+  const playbackPositions: [number, number][] = (playbackLocations ?? []).map((point) => [
+    point.lat,
+    point.lng,
+  ]);
+
+  const playbackMaxIndex = Math.max(0, (playbackLocations?.length ?? 1) - 1);
+
+  const onSeekPlayback = (value: number): void => {
+    if (!playbackLocations || playbackLocations.length === 0) {
+      return;
+    }
+
+    const nextIndex = Math.min(Math.max(0, Math.floor(value)), playbackLocations.length - 1);
+    setPlaybackIndex(nextIndex);
+  };
+
+  const onExitPlayback = (): void => {
+    setPlaybackLocations(null);
+    setPlaybackIndex(0);
+    setPlaybackSpeed(1);
+    setIsPlaybackPlaying(false);
+  };
+
+  return (
+    <div className="tracking-map-wrapper" style={{ height }}>
+      <MapContainer
+        center={mapCenter}
+        zoom={DEFAULT_ZOOM}
+        scrollWheelZoom
+      >
+        <TileLayer
+          attribution="&copy; OpenStreetMap contributors"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        {!isPlaybackMode && history.length > 1 && (
+          <Polyline
+            positions={historyPositions}
+            pathOptions={{ color: '#1D9E75', weight: 3, opacity: 0.7 }}
+          />
+        )}
+
+        {isPlaybackMode && playbackPositions.length > 1 && (
+          <Polyline
+            positions={playbackPositions}
+            pathOptions={{ color: '#64748b', weight: 4, opacity: 0.95 }}
+          />
+        )}
+
+        {!isPlaybackMode && markerPosition && currentPosition && (
+          <Marker position={markerPosition} icon={liveIcon}>
+            <Popup>
+              <div>Device: {deviceId}</div>
+              <div>Address: {currentAddress}</div>
+              <div>Speed: {currentPosition.speed} km/h</div>
+              <div>Last update: {formatTime(lastUpdated)}</div>
+            </Popup>
+          </Marker>
+        )}
+
+        {isPlaybackMode && playbackMarkerPoint && (
+          <Marker position={playbackMarkerPoint} icon={playbackIcon}>
+            <Popup>
+              <div>Playback point</div>
+              <div>
+                Step {Math.min(playbackIndex + 1, playbackMaxIndex + 1)} / {playbackMaxIndex + 1}
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        <MapUpdater currentPosition={currentPosition} enabled={!isPlaybackMode} />
+        <PlaybackMapUpdater
+          isPlaybackMode={isPlaybackMode}
+          playbackLocations={playbackLocations}
+          playbackIndex={playbackIndex}
+        />
+        <ExternalFlyToHandler />
+        <GeofenceLayer deviceId={deviceId} />
+      </MapContainer>
+
+      {!isPlaybackMode && (
+        <>
+          <div className="tracking-score-overlay">
+            <ScoreBadge score={todayScore} size="lg" />
+            <span className="tracking-score-overlay__label">Driver Score</span>
+          </div>
+
+          <div className="tracking-status-bar">
+            <span className={`tracking-badge ${isConnected ? 'is-live' : 'is-offline'}`}>
+              {isConnected ? 'LIVE' : 'OFFLINE'}
+            </span>
+            <span className="tracking-status-item">
+              Speed: {currentPosition?.speed ?? 0} km/h
+            </span>
+            <span className="tracking-status-item is-address">@ {currentAddress}</span>
+            <span className="tracking-status-item">
+              Updated: {formatTime(lastUpdated)}
+            </span>
+          </div>
+
+          <EngineControl deviceId={deviceId} isDeviceOnline={isConnected} />
+        </>
+      )}
+
+      {isPlaybackMode && (
+        <>
+          <div className="playback-banner">PLAYBACK MODE</div>
+
+          <div className="playback-controls">
+            <button
+              type="button"
+              className="playback-controls__button"
+              onClick={() => setIsPlaybackPlaying((previous) => !previous)}
+            >
+              {isPlaybackPlaying ? 'Pause' : 'Play'}
+            </button>
+
+            <label className="playback-controls__speed">
+              Speed
+              <select
+                value={playbackSpeed}
+                onChange={(event) => {
+                  const nextSpeed = Number(event.target.value);
+
+                  if (nextSpeed === 1 || nextSpeed === 2 || nextSpeed === 5) {
+                    setPlaybackSpeed(nextSpeed);
+                  }
+                }}
+              >
+                {PLAYBACK_SPEED_OPTIONS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}x
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <input
+              className="playback-controls__range"
+              type="range"
+              min={0}
+              max={playbackMaxIndex}
+              value={Math.min(playbackIndex, playbackMaxIndex)}
+              onChange={(event) => {
+                onSeekPlayback(Number(event.target.value));
+              }}
+            />
+
+            <span className="playback-controls__progress">
+              {Math.min(playbackIndex + 1, playbackMaxIndex + 1)} / {playbackMaxIndex + 1}
+            </span>
+
+            <button
+              type="button"
+              className="playback-controls__button is-exit"
+              onClick={onExitPlayback}
+            >
+              Exit playback
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/components/TripHistory.tsx =====
+import { useEffect, useRef, useState } from 'react';
+import api from '../api';
+import {
+    exportTripCSV,
+    exportTripPDF,
+    type Trip as ExportableTrip,
+    type LocationLog,
+} from '../utils/exportTrip';
+import { reverseGeocode } from '../utils/geocode';
+import './TripHistory.css';
+
+type TripHistoryProps = {
+  deviceId: string;
+};
+
+type TripSummary = {
+  id: number;
+  deviceImei: string;
+  startedAt: string;
+  endedAt: string | null;
+  distanceKm: number;
+  durationSecs: number;
+  avgSpeedKmh: number;
+  maxSpeedKmh: number;
+  startLat: number;
+  startLng: number;
+  endLat: number | null;
+  endLng: number | null;
+  isComplete: boolean;
+};
+
+type ReplayResponse = {
+  trip: TripSummary;
+  locations: Array<{
+    recordedAt: string;
+    latitude: number;
+    longitude: number;
+    speed: number;
+  }>;
+};
+
+type TrackerDeviceSummary = {
+  imei: string;
+  label: string;
+};
+
+type TripAction = 'play' | 'csv' | 'pdf' | null;
+
+const formatTripDate = (startedAt: string): string => {
+  const date = new Date(startedAt);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown date';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const formatDuration = (durationSecs: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(durationSecs));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+};
+
+export function TripHistory({ deviceId }: TripHistoryProps) {
+  const [trips, setTrips] = useState<TripSummary[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [tripActions, setTripActions] = useState<Record<number, TripAction>>({});
+  const [tripAddresses, setTripAddresses] = useState<Record<number, string>>({});
+  const [visibleTripIds, setVisibleTripIds] = useState<Record<number, boolean>>({});
+  const [replayCache, setReplayCache] = useState<Record<number, ReplayResponse>>({});
+  const [deviceLabel, setDeviceLabel] = useState<string>(deviceId);
+
+  const listRef = useRef<HTMLElement | null>(null);
+  const cardRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const requestedAddressIdsRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setTripActions({});
+    setTripAddresses({});
+    setVisibleTripIds({});
+    setReplayCache({});
+    requestedAddressIdsRef.current = new Set();
+
+    const fetchDeviceLabel = async (): Promise<void> => {
+      try {
+        const response = await api.get<TrackerDeviceSummary[]>('/locations/devices');
+        const devices = Array.isArray(response.data) ? response.data : [];
+        const selectedDevice = devices.find((device) => device.imei === deviceId);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setDeviceLabel(selectedDevice?.label || deviceId);
+      } catch (error) {
+        if (isMounted) {
+          setDeviceLabel(deviceId);
+        }
+      }
+    };
+
+    const fetchTrips = async (): Promise<void> => {
+      setIsLoading(true);
+
+      try {
+        const response = await api.get<TripSummary[]>(`/locations/${deviceId}/trips`, {
+          params: { limit: 30 },
+        });
+
+        if (!isMounted) {
+          return;
+        }
+
+        setTrips(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error('Failed to load trip history:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void fetchDeviceLabel();
+    void fetchTrips();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [deviceId]);
+
+  useEffect(() => {
+    const root = listRef.current;
+
+    if (!root || trips.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        setVisibleTripIds((previous) => {
+          const next = { ...previous };
+          let changed = false;
+
+          for (const entry of entries) {
+            if (!entry.isIntersecting) {
+              continue;
+            }
+
+            const tripId = Number((entry.target as HTMLElement).dataset.tripId);
+
+            if (!Number.isFinite(tripId)) {
+              continue;
+            }
+
+            if (!next[tripId]) {
+              next[tripId] = true;
+              changed = true;
+            }
+          }
+
+          return changed ? next : previous;
+        });
+      },
+      {
+        root,
+        threshold: 0.2,
+      },
+    );
+
+    cardRefs.current.forEach((card) => {
+      observer.observe(card);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [trips]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolveVisibleAddresses = async (): Promise<void> => {
+      const pendingTrips = trips.filter(
+        (trip) =>
+          visibleTripIds[trip.id] &&
+          !tripAddresses[trip.id] &&
+          !requestedAddressIdsRef.current.has(trip.id),
+      );
+
+      for (const trip of pendingTrips) {
+        requestedAddressIdsRef.current.add(trip.id);
+        const address = await reverseGeocode(trip.startLat, trip.startLng);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setTripAddresses((previous) => ({
+          ...previous,
+          [trip.id]: address,
+        }));
+      }
+    };
+
+    void resolveVisibleAddresses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [trips, tripAddresses, visibleTripIds]);
+
+  const setTripCardRef =
+    (tripId: number) =>
+    (node: HTMLElement | null): void => {
+      if (node) {
+        cardRefs.current.set(tripId, node);
+        return;
+      }
+
+      cardRefs.current.delete(tripId);
+    };
+
+  const setTripAction = (tripId: number, action: TripAction): void => {
+    setTripActions((previous) => ({
+      ...previous,
+      [tripId]: action,
+    }));
+  };
+
+  const toExportTrip = (trip: TripSummary): ExportableTrip => ({
+    id: trip.id,
+    deviceImei: trip.deviceImei,
+    startedAt: trip.startedAt,
+    endedAt: trip.endedAt,
+    distanceKm: trip.distanceKm,
+    durationSecs: trip.durationSecs,
+    avgSpeedKmh: trip.avgSpeedKmh,
+    maxSpeedKmh: trip.maxSpeedKmh,
+  });
+
+  const toExportLocations = (
+    locations: ReplayResponse['locations'],
+  ): LocationLog[] =>
+    locations.map((location) => ({
+      recordedAt: location.recordedAt,
+      latitude: Number(location.latitude),
+      longitude: Number(location.longitude),
+      speed: Number(location.speed),
+    }));
+
+  const fetchReplayData = async (tripId: number): Promise<ReplayResponse | null> => {
+    const cachedReplay = replayCache[tripId];
+
+    if (cachedReplay) {
+      return cachedReplay;
+    }
+
+    try {
+      const response = await api.get<ReplayResponse>(`/locations/${deviceId}/trips/${tripId}/replay`);
+
+      const normalizedLocations = (Array.isArray(response.data.locations)
+        ? response.data.locations
+        : []
+      )
+        .map((location) => ({
+          recordedAt: location.recordedAt,
+          latitude: Number(location.latitude),
+          longitude: Number(location.longitude),
+          speed: Number(location.speed),
+        }))
+        .filter(
+          (location) =>
+            Number.isFinite(location.latitude) &&
+            Number.isFinite(location.longitude) &&
+            typeof location.recordedAt === 'string',
+        );
+
+      const normalizedReplay: ReplayResponse = {
+        trip: response.data.trip,
+        locations: normalizedLocations,
+      };
+
+      setReplayCache((previous) => ({
+        ...previous,
+        [tripId]: normalizedReplay,
+      }));
+
+      return normalizedReplay;
+    } catch (error) {
+      console.error('Failed to load trip replay:', error);
+      return null;
+    }
+  };
+
+  const onPlayTrip = async (trip: TripSummary): Promise<void> => {
+    setTripAction(trip.id, 'play');
+
+    try {
+      const replay = await fetchReplayData(trip.id);
+
+      if (!replay) {
+        return;
+      }
+
+      const replayLocations = replay.locations
+        .map((item) => ({
+          lat: Number(item.latitude),
+          lng: Number(item.longitude),
+        }))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+      if (replayLocations.length === 0) {
+        return;
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('elitrack:trip-playback', {
+          detail: {
+            trip: replay.trip,
+            locations: replayLocations,
+          },
+        }),
+      );
+    } catch (error) {
+      console.error('Failed to load trip replay:', error);
+    } finally {
+      setTripAction(trip.id, null);
+    }
+  };
+
+  const onExportCsv = async (trip: TripSummary): Promise<void> => {
+    setTripAction(trip.id, 'csv');
+
+    try {
+      const replay = await fetchReplayData(trip.id);
+
+      if (!replay) {
+        return;
+      }
+
+      exportTripCSV(toExportTrip(trip), toExportLocations(replay.locations));
+    } finally {
+      setTripAction(trip.id, null);
+    }
+  };
+
+  const onExportPdf = async (trip: TripSummary): Promise<void> => {
+    setTripAction(trip.id, 'pdf');
+
+    try {
+      const replay = await fetchReplayData(trip.id);
+
+      if (!replay) {
+        return;
+      }
+
+      await exportTripPDF(
+        toExportTrip(trip),
+        toExportLocations(replay.locations),
+        deviceLabel,
+      );
+    } finally {
+      setTripAction(trip.id, null);
+    }
+  };
+
+  return (
+    <aside className="trip-history">
+      <header className="trip-history__header">
+        <h3>Trip History</h3>
+        <span>{trips.length}</span>
+      </header>
+
+      <section className="trip-history__list" role="list" ref={listRef}>
+        {isLoading && <div className="trip-history__state">Loading trips...</div>}
+
+        {!isLoading && trips.length === 0 && (
+          <div className="trip-history__state">No completed trips yet</div>
+        )}
+
+        {!isLoading &&
+          trips.map((trip) => (
+            <article
+              key={trip.id}
+              className="trip-history__card"
+              role="listitem"
+              data-trip-id={trip.id}
+              ref={setTripCardRef(trip.id)}
+            >
+              <div className="trip-history__time">{formatTripDate(trip.startedAt)}</div>
+
+              <div className="trip-history__meta">
+                <span>{formatDuration(trip.durationSecs)}</span>
+                <span>{trip.distanceKm.toFixed(1)} km</span>
+              </div>
+
+              <div className="trip-history__from">
+                From:{' '}
+                {tripAddresses[trip.id] ||
+                  (visibleTripIds[trip.id] ? 'Resolving location...' : 'Address loads when visible')}
+              </div>
+
+              <div className="trip-history__speed">
+                Avg {trip.avgSpeedKmh.toFixed(1)} km/h | Max {trip.maxSpeedKmh.toFixed(1)} km/h
+              </div>
+
+              <div className="trip-history__actions">
+                <button
+                  type="button"
+                  className="trip-history__play"
+                  onClick={() => {
+                    void onPlayTrip(trip);
+                  }}
+                  disabled={(tripActions[trip.id] ?? null) !== null}
+                >
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <path fill="currentColor" d="M8 5v14l11-7z" />
+                  </svg>
+                  {tripActions[trip.id] === 'play' ? 'Loading...' : 'Play'}
+                </button>
+
+                <button
+                  type="button"
+                  className="trip-history__export"
+                  onClick={() => {
+                    void onExportCsv(trip);
+                  }}
+                  disabled={(tripActions[trip.id] ?? null) !== null}
+                >
+                  {tripActions[trip.id] === 'csv' ? 'Exporting...' : 'CSV'}
+                </button>
+
+                <button
+                  type="button"
+                  className={`trip-history__export ${tripActions[trip.id] === 'pdf' ? 'is-loading' : ''}`}
+                  onClick={() => {
+                    void onExportPdf(trip);
+                  }}
+                  disabled={(tripActions[trip.id] ?? null) !== null}
+                >
+                  {tripActions[trip.id] === 'pdf' ? (
+                    <>
+                      <span className="trip-history__spinner" aria-hidden="true" />
+                      PDF...
+                    </>
+                  ) : (
+                    'PDF'
+                  )}
+                </button>
+              </div>
+            </article>
+          ))}
+      </section>
+    </aside>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/components/EngineControl.tsx =====
+import { useEffect, useMemo, useState } from 'react';
+import api from '../api';
+import './EngineControl.css';
+
+type EngineStatus = 'cut' | 'restored' | 'unknown';
+
+type EngineStatusResponse =
+  | EngineStatus
+  | {
+      status: EngineStatus;
+      lastActionAt?: string | null;
+      requestedBy?: string | null;
+    };
+
+type EngineActionResponse = {
+  success: boolean;
+  message: string;
+};
+
+type EngineControlProps = {
+  deviceId: string;
+  isDeviceOnline: boolean;
+};
+
+type ToastState = {
+  message: string;
+  variant: 'cut' | 'restore';
+} | null;
+
+const POLL_INTERVAL_MS = 10000;
+
+const formatActionTime = (date: Date | null): string => {
+  if (!date) {
+    return 'never';
+  }
+
+  return date.toLocaleTimeString('en-GB', { hour12: false });
+};
+
+export function EngineControl({ deviceId, isDeviceOnline }: EngineControlProps) {
+  const [engineStatus, setEngineStatus] = useState<EngineStatus>('unknown');
+  const [lastActionAt, setLastActionAt] = useState<Date | null>(null);
+  const [lastActionBy, setLastActionBy] = useState<string>('system');
+  const [loadingAction, setLoadingAction] = useState<boolean>(false);
+  const [cutConfirmOpen, setCutConfirmOpen] = useState<boolean>(false);
+  const [cutCountdown, setCutCountdown] = useState<number>(3);
+  const [toast, setToast] = useState<ToastState>(null);
+
+  const isCut = engineStatus === 'cut';
+
+  const runningLabel = isCut ? 'ENGINE CUT' : 'ENGINE RUNNING';
+
+  const cutDisabled = loadingAction || isCut || !isDeviceOnline;
+  const restoreDisabled = loadingAction || engineStatus === 'restored';
+
+  const cutButtonTitle = useMemo(() => {
+    if (!isDeviceOnline) {
+      return 'Device is offline';
+    }
+
+    if (isCut) {
+      return 'Engine already cut';
+    }
+
+    return 'Cut engine';
+  }, [isCut, isDeviceOnline]);
+
+  const fetchEngineStatus = async (): Promise<void> => {
+    try {
+      const response = await api.get<EngineStatusResponse>(`/locations/${deviceId}/engine/status`);
+      const payload = response.data;
+
+      if (typeof payload === 'string') {
+        setEngineStatus(payload);
+        return;
+      }
+
+      setEngineStatus(payload.status || 'unknown');
+      setLastActionAt(payload.lastActionAt ? new Date(payload.lastActionAt) : null);
+      setLastActionBy(payload.requestedBy || 'system');
+    } catch (error) {
+      console.error('Failed to fetch engine status:', error);
+    }
+  };
+
+  useEffect(() => {
+    void fetchEngineStatus();
+
+    const pollTimer = window.setInterval(() => {
+      void fetchEngineStatus();
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(pollTimer);
+    };
+  }, [deviceId]);
+
+  useEffect(() => {
+    if (!cutConfirmOpen) {
+      setCutCountdown(3);
+      return;
+    }
+
+    setCutCountdown(3);
+
+    const countdownTimer = window.setInterval(() => {
+      setCutCountdown((previous) => {
+        if (previous <= 1) {
+          window.clearInterval(countdownTimer);
+          return 0;
+        }
+
+        return previous - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(countdownTimer);
+    };
+  }, [cutConfirmOpen]);
+
+  useEffect(() => {
+    if (!toast) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setToast(null);
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [toast]);
+
+  const runEngineAction = async (action: 'cut' | 'restore'): Promise<void> => {
+    setLoadingAction(true);
+
+    try {
+      const endpoint = action === 'cut'
+        ? `/locations/${deviceId}/engine/cut`
+        : `/locations/${deviceId}/engine/restore`;
+
+      const response = await api.post<EngineActionResponse>(endpoint);
+      const payload = response.data;
+
+      if (payload.success) {
+        setEngineStatus(action === 'cut' ? 'cut' : 'restored');
+        setLastActionAt(new Date());
+      }
+
+      setToast({
+        message: payload.message,
+        variant: action === 'cut' ? 'cut' : 'restore',
+      });
+
+      await fetchEngineStatus();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Engine command failed';
+
+      setToast({
+        message,
+        variant: action === 'cut' ? 'cut' : 'restore',
+      });
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleCutConfirm = async (): Promise<void> => {
+    if (cutCountdown > 0) {
+      return;
+    }
+
+    await runEngineAction('cut');
+    setCutConfirmOpen(false);
+  };
+
+  const handleRestore = async (): Promise<void> => {
+    await runEngineAction('restore');
+  };
+
+  return (
+    <>
+      {toast && (
+        <div className={`engine-control__toast engine-control__toast--${toast.variant}`}>
+          {toast.message}
+        </div>
+      )}
+
+      <div className="engine-control">
+        <section className={`engine-control__panel ${isCut ? 'is-cut' : 'is-running'}`}>
+          <div className="engine-control__status-row">
+            <span className={`engine-control__status-dot ${isCut ? 'is-cut' : 'is-running'}`} />
+            <div>
+              <p className="engine-control__status-title">{runningLabel}</p>
+              <p className="engine-control__status-subtitle">
+                Last action: {formatActionTime(lastActionAt)} by {lastActionBy}
+              </p>
+            </div>
+          </div>
+
+          <div className="engine-control__actions">
+            <button
+              type="button"
+              className="engine-control__btn engine-control__btn--cut"
+              disabled={cutDisabled}
+              title={cutButtonTitle}
+              onClick={() => setCutConfirmOpen(true)}
+            >
+              {loadingAction ? <span className="engine-control__spinner" /> : 'CUT ENGINE'}
+            </button>
+
+            <button
+              type="button"
+              className="engine-control__btn engine-control__btn--restore"
+              disabled={restoreDisabled}
+              onClick={handleRestore}
+            >
+              {loadingAction ? <span className="engine-control__spinner" /> : 'RESTORE ENGINE'}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      {cutConfirmOpen && (
+        <div className="engine-control__modal-overlay">
+          <div className="engine-control__modal">
+            <div className="engine-control__warning-icon">!</div>
+            <h2>CONFIRM ENGINE CUT</h2>
+            <p>
+              This will immediately stop the vehicle engine for device {deviceId}. This action
+              cannot be undone remotely unless you send a restore command.
+            </p>
+
+            <div className="engine-control__modal-actions">
+              <button
+                type="button"
+                className="engine-control__modal-btn engine-control__modal-btn--cancel"
+                onClick={() => setCutConfirmOpen(false)}
+                disabled={loadingAction}
+              >
+                CANCEL
+              </button>
+
+              <button
+                type="button"
+                className={`engine-control__modal-btn engine-control__modal-btn--confirm ${cutCountdown > 0 ? 'is-counting' : ''}`}
+                onClick={handleCutConfirm}
+                disabled={loadingAction || cutCountdown > 0}
+              >
+                {cutCountdown > 0 ? `Wait ${cutCountdown}s...` : 'YES, CUT ENGINE'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/components/VehicleTracking.tsx =====
+import {
+    faBroadcastTower,
+    faCamera,
+    faGaugeHigh,
+    faRoad,
+    faSatellite,
+} from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
+import type { Booking, Vehicle } from '../types/models';
+
+// Ensure map markers load correctly when Leaflet is bundled by React.
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+type Coordinate = [number, number];
+
+const HUB_COORDS: Record<string, Coordinate> = {
+  kitwe: [-12.8167, 28.2],
+  ndola: [-12.9667, 28.6333],
+  solwezi: [-12.1833, 26.4],
+  chingola: [-12.5333, 27.85],
+};
+
+type VehicleTrackingProps = {
+  vehicle: Vehicle;
+  lastBookedHub?: string;
+  bookingMeta?: Booking | null;
+};
+
+function FlyToPosition({ center }: { center: Coordinate | null }): null {
+  const map = useMap();
+
+  useEffect(() => {
+    if (center) {
+      map.flyTo(center, 13, { duration: 1.25 });
+    }
+  }, [center, map]);
+
+  return null;
+}
+
+const seededOffset = (seed: string, maxDelta: number): number => {
+  const hash = Array.from(seed).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return ((hash % 100) / 100 - 0.5) * maxDelta;
+};
+
+export default function VehicleTracking({ vehicle, lastBookedHub, bookingMeta }: VehicleTrackingProps): ReactElement {
+  const [speed, setSpeed] = useState(0);
+  const [route, setRoute] = useState<Coordinate[]>([]);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCenter = useMemo<Coordinate>(() => {
+    const hubKey = String(lastBookedHub || '').toLowerCase();
+    const hub = HUB_COORDS[hubKey];
+
+    if (hub) {
+      return [
+        hub[0] + seededOffset(String(vehicle.id), 0.02),
+        hub[1] + seededOffset(String(vehicle.plate_number || vehicle.id), 0.02),
+      ] as Coordinate;
+    }
+
+    return [-12.95 + seededOffset(String(vehicle.id), 0.03), 28.1 + seededOffset(String(vehicle.vehicle_name || ''), 0.03)] as Coordinate;
+  }, [lastBookedHub, vehicle.id, vehicle.plate_number, vehicle.vehicle_name]);
+
+  useEffect(() => {
+    setRoute([startCenter]);
+    setSpeed(Math.floor(Math.random() * 12) + 38);
+
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    intervalRef.current = setInterval(() => {
+      setRoute((previous) => {
+        const current = previous[previous.length - 1] || startCenter;
+        const nextPoint: Coordinate = [
+          current[0] + (Math.random() - 0.5) * 0.004,
+          current[1] + (Math.random() - 0.5) * 0.004,
+        ];
+
+        const updated = [...previous, nextPoint];
+        return updated.slice(-16);
+      });
+
+      setSpeed(Math.floor(Math.random() * 22) + 44);
+    }, 3200);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [startCenter]);
+
+  const activePoint = route[route.length - 1] || startCenter;
+
+  return (
+    <div className="fade-up">
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="section-label">Vehicle Telemetry</div>
+        <div className="tracking-meta-grid">
+          <div className="tracking-meta-item">
+            <span><FontAwesomeIcon icon={faSatellite} /></span>
+            <p>Vehicle</p>
+            <strong>{vehicle.vehicle_name}</strong>
+          </div>
+          <div className="tracking-meta-item">
+            <span><FontAwesomeIcon icon={faGaugeHigh} /></span>
+            <p>Speed</p>
+            <strong>{speed} km/h</strong>
+          </div>
+          <div className="tracking-meta-item">
+            <span><FontAwesomeIcon icon={faRoad} /></span>
+            <p>Status</p>
+            <strong>{vehicle.tracking_enabled ? 'Active' : 'Inactive'}</strong>
+          </div>
+          <div className="tracking-meta-item">
+            <span><FontAwesomeIcon icon={faBroadcastTower} /></span>
+            <p>Route Points</p>
+            <strong>{route.length}</strong>
+          </div>
+        </div>
+
+        {bookingMeta && (
+          <div className="tracking-booking-note">
+            <div><strong>Dispatcher:</strong> {bookingMeta.dispatcher_name || 'Not assigned'}</div>
+            <div><strong>ETA:</strong> {bookingMeta.eta ? new Date(bookingMeta.eta).toLocaleString() : 'Not available'}</div>
+            <div><strong>Status Note:</strong> {bookingMeta.status_notes || 'No dispatcher notes yet.'}</div>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="section-label">Route Visualization</div>
+        <div className="map-panel tracking-map-panel">
+          <MapContainer center={startCenter} zoom={12} style={{ height: '100%', width: '100%' }}>
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <FlyToPosition center={activePoint} />
+            <Polyline positions={route} color="#30bdec" weight={4} />
+            <Marker position={activePoint}>
+              <Popup>
+                <div>
+                  <strong>{vehicle.vehicle_name}</strong>
+                  <p style={{ margin: '8px 0 0', fontSize: 12 }}>{vehicle.plate_number}</p>
+                </div>
+              </Popup>
+            </Marker>
+          </MapContainer>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="section-label">
+          <FontAwesomeIcon icon={faCamera} style={{ marginRight: 8 }} />
+          Live Feed (Simulated)
+        </div>
+        <div className="live-camera tracking-live-camera">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            controls={false}
+            src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+            className="tracking-live-video"
+          />
+          <div className="tracking-live-overlay">LIVE FEED (SIMULATED)</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/utils/geocode.ts =====
+const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/reverse';
+const REQUEST_INTERVAL_MS = 1000;
+const LOCATION_UNAVAILABLE = 'Location unavailable';
+
+const geocodeCache = new Map<string, string>();
+let requestQueue: Promise<void> = Promise.resolve();
+let lastRequestAtMs = 0;
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+
+const toCacheKey = (lat: number, lng: number): string =>
+  `${lat.toFixed(4)},${lng.toFixed(4)}`;
+
+const shortenDisplayName = (displayName: string): string => {
+  const parts = displayName
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (parts.length === 0) {
+    return LOCATION_UNAVAILABLE;
+  }
+
+  return parts.join(', ');
+};
+
+const queueRequest = async <T>(task: () => Promise<T>): Promise<T> => {
+  const scheduledTask = requestQueue.then(async () => {
+    const elapsed = Date.now() - lastRequestAtMs;
+    const waitMs = Math.max(0, REQUEST_INTERVAL_MS - elapsed);
+
+    if (waitMs > 0) {
+      await delay(waitMs);
+    }
+
+    lastRequestAtMs = Date.now();
+    return task();
+  });
+
+  requestQueue = scheduledTask.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return scheduledTask;
+};
+
+const fetchReverseGeocode = async (lat: number, lng: number): Promise<string> => {
+  const searchParams = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lng),
+    format: 'json',
+    zoom: '16',
+    addressdetails: '1',
+  });
+
+  const url = `${NOMINATIM_URL}?${searchParams.toString()}`;
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Elitrack-Logistics-App/1.0',
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return LOCATION_UNAVAILABLE;
+    }
+
+    const payload = (await response.json()) as {
+      display_name?: string;
+    };
+
+    if (!payload.display_name || typeof payload.display_name !== 'string') {
+      return LOCATION_UNAVAILABLE;
+    }
+
+    return shortenDisplayName(payload.display_name);
+  } catch (error) {
+    return LOCATION_UNAVAILABLE;
+  }
+};
+
+export function getCachedReverseGeocode(lat: number, lng: number): string | undefined {
+  return geocodeCache.get(toCacheKey(lat, lng));
+}
+
+export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return LOCATION_UNAVAILABLE;
+  }
+
+  const cacheKey = toCacheKey(lat, lng);
+  const cachedValue = geocodeCache.get(cacheKey);
+
+  if (cachedValue) {
+    return cachedValue;
+  }
+
+  const resolvedAddress = await queueRequest(() => fetchReverseGeocode(lat, lng));
+  geocodeCache.set(cacheKey, resolvedAddress || LOCATION_UNAVAILABLE);
+
+  return geocodeCache.get(cacheKey) ?? LOCATION_UNAVAILABLE;
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/utils/exportTrip.ts =====
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import api from '../api';
+import { getCachedReverseGeocode } from './geocode';
+
+type TodayScoreResponse = {
+  score?: number;
+} | null;
+
+export type Trip = {
+  id: number;
+  deviceImei: string;
+  startedAt: string | Date;
+  endedAt?: string | Date | null;
+  distanceKm: number;
+  durationSecs: number;
+  avgSpeedKmh: number;
+  maxSpeedKmh: number;
+};
+
+export type LocationLog = {
+  recordedAt: string | Date;
+  latitude: number;
+  longitude: number;
+  speed?: number;
+};
+
+const formatFilenameDate = (value: string | Date): string => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'unknown-date';
+  }
+
+  return date.toISOString().slice(0, 10);
+};
+
+const formatDateTime = (value: string | Date): string => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Unknown';
+  }
+
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const formatDuration = (durationSecs: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(durationSecs));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  return `${minutes}m`;
+};
+
+const escapeCsv = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+
+const triggerDownload = (blob: Blob, fileName: string): void => {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 2000);
+};
+
+const fetchTodayScore = async (imei: string): Promise<number | null> => {
+  try {
+    const response = await api.get<TodayScoreResponse>(`/locations/${imei}/score/today`);
+    const score = Number(response.data?.score);
+
+    if (!Number.isFinite(score)) {
+      return null;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+  } catch (error) {
+    return null;
+  }
+};
+
+export function exportTripCSV(trip: Trip, locations: LocationLog[]): void {
+  const headers = ['Timestamp', 'Latitude', 'Longitude', 'Speed (km/h)', 'Address'];
+
+  const rows = locations.map((point) => {
+    const latitude = Number(point.latitude);
+    const longitude = Number(point.longitude);
+    const speed = Number.isFinite(Number(point.speed)) ? Number(point.speed) : 0;
+    const address =
+      Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? getCachedReverseGeocode(latitude, longitude) ?? ''
+        : '';
+
+    return [
+      formatDateTime(point.recordedAt),
+      Number.isFinite(latitude) ? latitude.toFixed(6) : '',
+      Number.isFinite(longitude) ? longitude.toFixed(6) : '',
+      speed.toFixed(0),
+      address,
+    ];
+  });
+
+  const csvBody = [headers, ...rows]
+    .map((row) => row.map((value) => escapeCsv(String(value))).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvBody], { type: 'text/csv;charset=utf-8;' });
+  const fileName = `elitrack-trip-${trip.id}-${formatFilenameDate(trip.startedAt)}.csv`;
+
+  triggerDownload(blob, fileName);
+}
+
+export async function exportTripPDF(
+  trip: Trip,
+  locations: LocationLog[],
+  deviceLabel: string,
+): Promise<void> {
+  const todayScore = await fetchTodayScore(trip.deviceImei);
+
+  const doc = new jsPDF({
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  doc.setFontSize(14);
+  doc.text('ELITRACK LOGISTICS - TRIP REPORT', 14, 15);
+
+  doc.setFontSize(10);
+  const summaryRows = [
+    `Device: ${deviceLabel} (${trip.deviceImei})`,
+    `Date: ${formatDateTime(trip.startedAt)}`,
+    `Duration: ${formatDuration(trip.durationSecs)}`,
+    `Distance: ${Number(trip.distanceKm || 0).toFixed(1)} km`,
+    `Avg Speed: ${Number(trip.avgSpeedKmh || 0).toFixed(1)} km/h`,
+    `Max Speed: ${Number(trip.maxSpeedKmh || 0).toFixed(1)} km/h`,
+    `Driver Score: ${todayScore ?? 'N/A'}`,
+  ];
+
+  let summaryY = 23;
+  for (const row of summaryRows) {
+    doc.text(row, 14, summaryY);
+    summaryY += 6;
+  }
+
+  const tableRows = locations.slice(0, 200).map((point) => [
+    formatDateTime(point.recordedAt),
+    Number(point.latitude).toFixed(6),
+    Number(point.longitude).toFixed(6),
+    Number.isFinite(Number(point.speed)) ? Number(point.speed).toFixed(0) : '0',
+  ]);
+
+  autoTable(doc, {
+    startY: summaryY + 2,
+    head: [['Timestamp', 'Lat', 'Lng', 'Speed']],
+    body: tableRows,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [30, 41, 59],
+      textColor: [248, 250, 252],
+    },
+    styles: {
+      fontSize: 8,
+      cellPadding: 1.8,
+    },
+  });
+
+  doc.setFontSize(9);
+  doc.text('Generated by Elitrack Logistics', 14, doc.internal.pageSize.getHeight() - 10);
+
+  const fileName = `elitrack-trip-${trip.id}-${formatFilenameDate(trip.startedAt)}.pdf`;
+  doc.save(fileName);
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/serviceWorkerRegistration.ts =====
+type Config = {
+  onSuccess?: (registration: ServiceWorkerRegistration) => void;
+  onUpdate?: (registration: ServiceWorkerRegistration) => void;
+};
+
+const isLocalhost = Boolean(
+  window.location.hostname === 'localhost' ||
+    window.location.hostname === '[::1]' ||
+    window.location.hostname.match(
+      /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/,
+    ),
+);
+
+export function register(config?: Config): void {
+  if (process.env.NODE_ENV !== 'production') {
+    return;
+  }
+
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
+
+  if (publicUrl.origin !== window.location.origin) {
+    return;
+  }
+
+  window.addEventListener('load', () => {
+    const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+
+    if (isLocalhost) {
+      checkValidServiceWorker(swUrl, config);
+
+      navigator.serviceWorker.ready
+        .then(() => {
+          console.log('Elitrack PWA: service worker registered');
+        })
+        .catch((error: unknown) => {
+          console.error('Elitrack PWA: service worker registration failed', error);
+        });
+
+      return;
+    }
+
+    registerValidSW(swUrl, config);
+  });
+}
+
+function registerValidSW(swUrl: string, config?: Config): void {
+  navigator.serviceWorker
+    .register(swUrl)
+    .then((registration) => {
+      console.log('Elitrack PWA: service worker registered');
+
+      registration.onupdatefound = () => {
+        const installingWorker = registration.installing;
+
+        if (!installingWorker) {
+          return;
+        }
+
+        installingWorker.onstatechange = () => {
+          if (installingWorker.state !== 'installed') {
+            return;
+          }
+
+          if (navigator.serviceWorker.controller) {
+            console.log('Elitrack PWA: new version available');
+            config?.onUpdate?.(registration);
+          } else {
+            config?.onSuccess?.(registration);
+          }
+        };
+      };
+    })
+    .catch((error: unknown) => {
+      console.error('Elitrack PWA: service worker registration failed', error);
+    });
+}
+
+function checkValidServiceWorker(swUrl: string, config?: Config): void {
+  fetch(swUrl, {
+    headers: { 'Service-Worker': 'script' },
+  })
+    .then((response) => {
+      const contentType = response.headers.get('content-type');
+
+      if (
+        response.status === 404 ||
+        (contentType !== null && contentType.indexOf('javascript') === -1)
+      ) {
+        navigator.serviceWorker.ready
+          .then((registration) => registration.unregister())
+          .then(() => {
+            window.location.reload();
+          })
+          .catch((error: unknown) => {
+            console.error('Elitrack PWA: service worker unregister failed', error);
+          });
+        return;
+      }
+
+      registerValidSW(swUrl, config);
+    })
+    .catch((error: unknown) => {
+      console.error('Elitrack PWA: service worker validation failed', error);
+    });
+}
+
+export function unregister(): void {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  navigator.serviceWorker.ready
+    .then((registration) => registration.unregister())
+    .catch((error: unknown) => {
+      console.error('Elitrack PWA: service worker unregister failed', error);
+    });
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/service-worker.ts =====
+/// <reference lib="webworker" />
+
+/* eslint-disable no-restricted-globals */
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
+import { clientsClaim, skipWaiting } from 'workbox-core';
+import { ExpirationPlugin } from 'workbox-expiration';
+import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
+
+declare const self: ServiceWorkerGlobalScope;
+
+// Activate updated service worker right away.
+skipWaiting();
+clientsClaim();
+
+// Precache files generated by the build (JS, CSS, index.html, etc).
+precacheAndRoute(self.__WB_MANIFEST);
+
+// 1) CacheFirst: static assets load fast, even when offline.
+registerRoute(
+  ({ request, url }) =>
+    request.method === 'GET' &&
+    url.origin === self.location.origin &&
+    (request.destination === 'style' ||
+      request.destination === 'script' ||
+      request.destination === 'image' ||
+      request.destination === 'font'),
+  new CacheFirst({
+    cacheName: 'elitrack-static-v2',
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 120,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+// 2) NetworkFirst: API tries network first, then falls back to cached data.
+registerRoute(
+  ({ request, url }) =>
+    request.method === 'GET' &&
+    (url.pathname.startsWith('/api/') || url.pathname.includes('/api/')),
+  new NetworkFirst({
+    cacheName: 'elitrack-api-v2',
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 80,
+        maxAgeSeconds: 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+// 3) Runtime caching for page navigations: keeps the app shell available offline.
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  new NetworkFirst({
+    cacheName: 'elitrack-pages-v2',
+    networkTimeoutSeconds: 3,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({
+        maxEntries: 20,
+        maxAgeSeconds: 7 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+// 4) Runtime caching for external Google Fonts.
+registerRoute(
+  ({ url }) =>
+    url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
+  new StaleWhileRevalidate({
+    cacheName: 'elitrack-fonts-v1',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 30,
+        maxAgeSeconds: 60 * 24 * 60 * 60,
+      }),
+    ],
+  })
+);
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/index.css =====
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+:root.light {
+  --primary: #30bdec;
+  --primary-light: #63d5f4;
+  --surface: #f4f7fb;
+  --surface-2: #ffffff;
+  --surface-3: #e9eef6;
+  --text: #102a43;
+  --text-muted: #5f6c7b;
+  --success: #1f8f4d;
+  --danger: #c0392b;
+  --warning: #d97706;
+  --border: #d3dde8;
+  --danger-surface: #fde7e5;
+  --danger-border: #f2a8a1;
+  --danger-text: #7f1d1d;
+  --input-bg: #ffffff;
+  --toggle-icon-filter: none;
+  --radius: 12px;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --container-wide: 72rem;
+  --container-admin: 68rem;
+  --container-client: 42rem;
+}
+
+:root.dark {
+  --primary: #30bdec;
+  --primary-light: #63d5f4;
+  --surface: #1d2429;
+  --surface-2: #131313;
+  --surface-3: #242424;
+  --text: #ffffff;
+  --text-muted: #9ca3af;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --border: #333333;
+  --danger-surface: #4a1f25;
+  --danger-border: #f87171;
+  --danger-text: #ffffff;
+  --input-bg: #1d2429;
+  --toggle-icon-filter: invert(1);
+  --radius: 12px;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --container-wide: 72rem;
+  --container-admin: 68rem;
+  --container-client: 42rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.mono {
+  font-family: 'DM Mono', monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0.72rem 1.3rem;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Roboto', sans-serif;
+  font-weight: 700;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #ffffff;
+}
+
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(26, 69, 189, 0.35);
+}
+
+.btn-dark {
+  background: var(--surface-2);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+
+.btn-dark:hover {
+  background: var(--surface-3);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.btn-sm {
+  min-height: 38px;
+  padding: 0.48rem 0.9rem;
+  font-size: 0.68rem;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Card */
+.card {
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  color: var(--text);
+}
+
+/* Badge */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.badge-pending,
+.badge-pending_review,
+.badge-skipped {
+  background: #4a3d1a;
+  color: #ffd700;
+}
+
+.badge-active,
+.badge-in_transit,
+.badge-paid,
+.badge-sent {
+  background: #1a3a24;
+  color: #4ade80;
+}
+
+.badge-approved {
+  background: #1f3b5d;
+  color: #93c5fd;
+}
+
+.badge-dispatched {
+  background: #3f2f56;
+  color: #c4b5fd;
+}
+
+.badge-completed {
+  background: #1a2d4a;
+  color: #60a5fa;
+}
+
+.badge-cancelled,
+.badge-failed {
+  background: #4a1f25;
+  color: #f87171;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.78rem 0.95rem;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: var(--input-bg);
+  color: var(--text);
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--primary);
+}
+
+/* Section header */
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--primary);
+  border-left: 3px solid var(--primary);
+  padding-left: 10px;
+  margin-bottom: 16px;
+}
+
+/* Tables remain scrollable on narrow screens instead of clipping */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+th {
+  background: var(--surface-2);
+  color: var(--primary);
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+tr:hover td {
+  background: var(--surface-3);
+}
+
+/* Stat card */
+.stat-card {
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+.stat-card .stat-value {
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.stat-card .stat-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Loading */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 40px auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.4s ease forwards;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.46rem 0.82rem;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.theme-toggle__icon {
+  width: 14px;
+  height: 14px;
+  filter: var(--toggle-icon-filter);
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Global page shell */
+.app-page {
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.dashboard-main {
+  width: 100%;
+}
+
+.dashboard-shell {
+  width: min(100% - 2rem, var(--container-client));
+  margin: 0 auto;
+  padding: var(--space-6) 0;
+}
+
+.admin-shell {
+  width: min(100% - 2rem, var(--container-admin));
+  margin: 0 auto;
+  padding: var(--space-6) 0;
+}
+
+/* Responsive navbar with animated mobile menu */
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  backdrop-filter: saturate(130%) blur(4px);
+}
+
+.app-navbar__top {
+  width: min(100% - 2rem, var(--container-wide));
+  margin: 0 auto;
+  padding: 0.95rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.app-navbar__brand-wrap {
+  min-width: 0;
+}
+
+.app-navbar__brand {
+  color: var(--primary);
+  font-size: clamp(1rem, 1.2vw + 0.75rem, 1.45rem);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
+.app-navbar__subtitle {
+  color: var(--text-muted);
+  font-size: clamp(0.58rem, 0.45vw + 0.48rem, 0.68rem);
+  letter-spacing: 0.2em;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+}
+
+.app-navbar__menu {
+  width: min(100% - 2rem, var(--container-wide));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: 0.5rem;
+}
+
+.app-navbar__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.app-navbar__tab {
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.58rem 0.85rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-navbar__tab.is-active {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: rgba(48, 189, 236, 0.12);
+}
+
+.app-navbar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.app-navbar__user {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.app-navbar__role {
+  background: var(--primary);
+  color: #ffffff;
+  padding: 0.16rem 0.44rem;
+  border-radius: 6px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.app-navbar__toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 0;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.app-navbar__toggle span {
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.app-navbar__toggle.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.app-navbar__toggle.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.app-navbar__toggle.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.app-navbar__actions--mobile {
+  display: none;
+}
+
+/* Auth page */
+.auth-page {
+  min-height: 100vh;
+  background: var(--surface);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: clamp(0.9rem, 2.5vw, 1.5rem);
+}
+
+.auth-shell {
+  width: min(100%, 30rem);
+}
+
+.auth-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.85rem;
+}
+
+.auth-brand {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.auth-brand__title {
+  color: var(--primary);
+  font-size: clamp(1.8rem, 5vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.auth-brand__subtitle {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  margin-top: 0.4rem;
+}
+
+.auth-card {
+  background: var(--surface-2);
+  border-radius: 16px;
+  border: 1px solid var(--primary);
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.auth-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 1.4rem;
+}
+
+.auth-mode-btn {
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.auth-mode-btn.is-active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.auth-google-wrap {
+  margin-bottom: 1.2rem;
+}
+
+.auth-alt-text {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+.auth-feedback {
+  font-size: 0.76rem;
+  margin-bottom: 0.9rem;
+  text-align: center;
+}
+
+.auth-feedback--success {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.auth-feedback--error {
+  color: #e74c3c;
+}
+
+.auth-copyright {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* Dashboard helpers */
+.responsive-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.pricing-summary {
+  background: var(--surface-2);
+  border-radius: 16px;
+  border: 1px solid var(--primary);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.pricing-summary__amount {
+  color: var(--primary);
+  font-size: clamp(1.7rem, 6vw, 2.25rem);
+  font-weight: 800;
+}
+
+.empty-state {
+  text-align: center;
+  padding: clamp(2.2rem, 8vw, 3.5rem) 0;
+  color: var(--text-muted);
+}
+
+.telematics-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.live-camera {
+  background: #000;
+  border-radius: 8px;
+  aspect-ratio: 16 / 9;
+  min-height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.map-panel {
+  height: clamp(220px, 42vw, 300px);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.app-toast {
+  position: fixed;
+  bottom: 1.35rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.78rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--warning);
+  font-size: 0.82rem;
+  z-index: 1400;
+  max-width: min(94vw, 34rem);
+  text-align: center;
+}
+
+.section-head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* Fleet modules */
+.fleet-category-shell {
+  border-color: var(--primary);
+}
+
+.fleet-category-copy {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.fleet-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.75rem;
+}
+
+.fleet-category-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.fleet-category-card:hover {
+  border-color: var(--primary);
+}
+
+.fleet-category-card.is-selected {
+  border-color: var(--primary);
+  background: rgba(48, 189, 236, 0.09);
+}
+
+.fleet-category-icon {
+  font-size: 1.15rem;
+  color: var(--primary);
+}
+
+.fleet-category-title {
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.fleet-category-blurb {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.fleet-inline-error {
+  background: var(--danger-surface);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.82rem;
+  margin-bottom: 0.85rem;
+}
+
+.fleet-toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1rem;
+  font-size: 0.87rem;
+  color: var(--text-muted);
+}
+
+.fleet-toggle-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.fleet-form-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.fleet-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.fleet-copy-muted {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.9rem;
+}
+
+.fleet-vehicle-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.fleet-vehicle-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.fleet-vehicle-icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-3);
+  color: var(--primary);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.fleet-vehicle-name {
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.fleet-vehicle-sub {
+  color: var(--text-muted);
+  font-size: 0.77rem;
+}
+
+.fleet-card-actions {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.tracking-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.6rem;
+}
+
+.tracking-meta-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: var(--surface-3);
+}
+
+.tracking-meta-item span {
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+
+.tracking-meta-item p {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin: 0.3rem 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tracking-meta-item strong {
+  font-size: 0.9rem;
+}
+
+.tracking-booking-note {
+  margin-top: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-3);
+  padding: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+}
+
+.tracking-map-panel {
+  height: clamp(250px, 48vw, 360px);
+}
+
+.tracking-live-camera {
+  min-height: 220px;
+}
+
+.tracking-live-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.82;
+}
+
+.tracking-live-overlay {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  background: rgba(220, 38, 38, 0.9);
+  color: #ffffff;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.24rem 0.58rem;
+}
+
+/* App shell utility UI */
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 3000;
+  background: var(--danger-surface);
+  color: var(--danger-text);
+  border-bottom: 1px solid var(--danger-border);
+  padding: 10px 16px;
+  font-size: 12px;
+  text-align: center;
+}
+
+.route-fallback {
+  min-height: 40vh;
+  display: grid;
+  place-items: center;
+}
+
+.install-btn {
+  position: fixed;
+  bottom: 1.2rem;
+  left: 1.2rem;
+  z-index: 1100;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+/* Small laptop: max-width 1024px */
+@media (max-width: 1024px) {
+  .app-navbar__top,
+  .app-navbar__menu {
+    width: min(100% - 1.5rem, var(--container-wide));
+  }
+
+  .dashboard-shell,
+  .admin-shell {
+    width: min(100% - 1.5rem, 100%);
+    padding: 1.1rem 0 1.35rem;
+  }
+
+  table {
+    min-width: 42rem;
+  }
+}
+
+/* Tablet and below: max-width 768px */
+@media (max-width: 768px) {
+  .app-navbar__actions--desktop {
+    display: none;
+  }
+
+  .app-navbar__toggle {
+    display: inline-flex;
+  }
+
+  .app-navbar__menu {
+    display: block;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    padding-bottom: 0;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+  }
+
+  .app-navbar__menu.is-open {
+    max-height: 26rem;
+    opacity: 1;
+    padding-bottom: 0.8rem;
+  }
+
+  .app-navbar__tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    margin-bottom: 0.7rem;
+  }
+
+  .app-navbar__tab {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .app-navbar__actions--mobile {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: start;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  .auth-shell {
+    width: min(100%, 32rem);
+  }
+
+  .responsive-split {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .telematics-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .fleet-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .fleet-form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .fleet-header-row {
+    align-items: flex-start;
+  }
+
+  table {
+    min-width: 38rem;
+  }
+
+  .install-btn {
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(92vw, 16rem);
+  }
+}
+
+/* Mobile: max-width 480px */
+@media (max-width: 480px) {
+  .app-navbar__top,
+  .app-navbar__menu {
+    width: calc(100% - 1rem);
+  }
+
+  .dashboard-shell,
+  .admin-shell {
+    width: calc(100% - 1rem);
+    padding: 0.9rem 0 1.2rem;
+  }
+
+  .btn,
+  .btn-sm {
+    width: 100%;
+  }
+
+  .section-head-row .btn {
+    width: auto;
+  }
+
+  .fleet-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fleet-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-toggle {
+    font-size: 11px;
+    padding: 0.42rem 0.68rem;
+  }
+
+  .auth-card {
+    border-radius: 14px;
+  }
+
+  .app-toast {
+    width: calc(100% - 1rem);
+    left: 0.5rem;
+    transform: none;
+  }
+
+  table {
+    min-width: 33rem;
+  }
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/types/api.ts =====
+import type { AxiosError } from 'axios';
+import type { AuthUser } from './models';
+
+export interface ApiErrorPayload {
+  error?: string;
+  message?: string;
+  [key: string]: unknown;
+}
+
+export type ApiError = AxiosError<ApiErrorPayload> & {
+  userMessage?: string;
+};
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  email: string;
+  password: string;
+  phone?: string;
+  full_name?: string;
+  company?: string;
+  [key: string]: unknown;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+}
+
+export interface RegisterResponse {
+  token?: string;
+  user?: AuthUser;
+  message?: string;
+  [key: string]: unknown;
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/src/types/axios.d.ts =====
+import 'axios';
+
+declare module 'axios' {
+  export interface InternalAxiosRequestConfig<D = any> {
+    __cacheKey?: string;
+  }
+}
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/.env =====
+# API: NestJS on 4001 (do not point REACT_APP_API_URL at the React dev port)
+REACT_APP_USE_NEST_API=true
+REACT_APP_NEST_API_URL=http://localhost:4001
+# Socket.IO runs on the same Nest server
+REACT_APP_WS_URL=http://localhost:4001
+
+===== FILE: /home/cj/Github/Professional-Portfolio-Projects/Elitrack Logistics/client/.env.example =====
+# Optional hard override for all API traffic
+# REACT_APP_API_URL=http://localhost:4001
+
+# Primary cutover switch (default in code is true)
+REACT_APP_USE_NEST_API=true
+# Optional alias for non-CRA setups
+USE_NEST_API=true
+
+# Target URLs for each backend
+REACT_APP_NEST_API_URL=http://localhost:4001
+REACT_APP_EXPRESS_API_URL=http://localhost:5000/api
+

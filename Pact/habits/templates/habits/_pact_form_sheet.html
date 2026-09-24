@@ -1,0 +1,34 @@
+{% load static %}
+<div class="bottom-sheet-overlay" id="pactSheetOverlay" aria-hidden="true"></div>
+<div class="bottom-sheet glass" id="pactBottomSheet" role="dialog" aria-modal="true" aria-labelledby="pactSheetTitle" aria-hidden="true" data-standalone="{% if is_standalone %}true{% else %}false{% endif %}" data-close-url="{% if pact %}{% url 'pact_detail' pact.id %}{% else %}{% url 'dashboard' %}{% endif %}">
+  <div class="bottom-sheet-handle" aria-hidden="true"></div>
+  <div class="bottom-sheet-header">
+    <span class="bottom-sheet-label" id="pactSheetTitle">{% if mode == 'Edit' %}EDIT PACT{% else %}NEW PACT{% endif %}</span>
+    <button type="button" class="bottom-sheet-close" id="pactSheetCloseBtn" aria-label="Close">&times;</button>
+  </div>
+  <p class="bottom-sheet-subtitle">Choose witnesses from your accepted friends only.</p>
+
+  <form method="post" action="{% if form_action %}{{ form_action }}{% elif pact %}{% url 'pact_edit' pact.id %}{% else %}{% url 'pact_create' %}{% endif %}" id="pactForm" novalidate>
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        {% if field.name == 'is_active' %}
+          <div class="form-check">
+            {{ field }}
+            <label for="{{ field.id_for_label }}" class="form-check-label">{{ field.label }}</label>
+          </div>
+        {% else %}
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+          {{ field }}
+        {% endif %}
+        {% if field.help_text %}
+          <div class="form-text">{{ field.help_text }}</div>
+        {% endif %}
+        {% if field.errors %}
+          <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn-pact-submit">Save Pact</button>
+  </form>
+</div>
