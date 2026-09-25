@@ -15,6 +15,20 @@ your streak count/home/cj/Github/My-Learning-Repository-2025-2026-main/My-Learni
 The core idea is simple: **habits are easier to keep when someone else is watching.**
 Pact turns personal discipline into a small social contract between friends.
 
+## Diagrams
+
+### Flowchart
+![Pact Flowchart](./Pact%20Visuals/Pact_Flowchart.png)
+
+### Data Flow Diagram
+![Pact Data Flow Diagram](./Pact%20Visuals/Pact_DataFlowDiagram.png)
+
+### Entity Relationship Diagram
+![Pact ERD](./Pact%20Visuals/Pact_ERD.png)
+
+### Algorithm
+![Pact Algorithm](./Pact%20Visuals/Pact_Algorithm.png)
+
 ## Why This Project Is Distinct
 
 Pact is not a to-do list, a wiki, or an e-commerce clone. Its distinctiveness comes

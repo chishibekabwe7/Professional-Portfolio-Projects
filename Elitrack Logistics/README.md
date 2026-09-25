@@ -2,6 +2,26 @@
 
 **Elitrack Logistics** is a full-stack logistics platform with a fleet-first client portal and an admin dashboard for booking operations, payment control, and dispatch visibility.
 
+## Diagrams
+
+### Project Overview
+![Elitrack Logistics](./elitrack%20visuals/Elitrack%20Logistics.png)
+
+### System Flowchart
+![Elitrack Flowchart](./elitrack%20visuals/Elitrack_1_Flowchart.png)
+
+### Data Flow Diagram - Level 0
+![Elitrack DFD Level 0](./elitrack%20visuals/Elitrack_2_DFD_Level0.png)
+
+### Data Flow Diagram - Level 1
+![Elitrack DFD Level 1](./elitrack%20visuals/Elitrack_3_DFD_Level1.png)
+
+### Entity Relationship Diagram
+![Elitrack ERD](./elitrack%20visuals/Elitrack_4_ERD.png)
+
+### Algorithm Diagram
+![Elitrack Algorithm](./elitrack%20visuals/Elitrack_5_Algorithm.png)
+
 ## What it does
 
 ### Client side (Dashboard)
