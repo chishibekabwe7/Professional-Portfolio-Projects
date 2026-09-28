@@ -91,6 +91,7 @@ def pact_detail(request, pact_id):
         .prefetch_related("verifications")
         .order_by("-timestamp")
     )
+    attach_period_checkin_statuses([pact])
 
     return render(
         request,
