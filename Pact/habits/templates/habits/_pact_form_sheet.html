@@ -4,7 +4,7 @@
   <div class="bottom-sheet-handle" aria-hidden="true"></div>
   <div class="bottom-sheet-header">
     <span class="bottom-sheet-label" id="pactSheetTitle">{% if mode == 'Edit' %}EDIT PACT{% else %}NEW PACT{% endif %}</span>
-    <button type="button" class="bottom-sheet-close" id="pactSheetCloseBtn" aria-label="Close">&times;</button>
+    <button type="button" class="bottom-sheet-close icon-button" id="pactSheetCloseBtn" aria-label="Close"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
   </div>
   <p class="bottom-sheet-subtitle">Choose witnesses from your accepted friends only.</p>
 
@@ -29,6 +29,6 @@
         {% endif %}
       </div>
     {% endfor %}
-    <button type="submit" class="btn-pact-submit">Save Pact</button>
+    <button type="submit" class="button btn-pact-submit"><i class="bi bi-check2-circle button__icon" aria-hidden="true"></i>Save Pact</button>
   </form>
 </div>

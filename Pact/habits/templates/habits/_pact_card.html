@@ -32,6 +32,13 @@
     </div>
   </a>
 
+  <div class="pact-card__progress" role="img" aria-label="{% if pact.period_status == 'pending' or pact.period_status == 'verified' %}Today's check-in complete{% else %}Today's check-in incomplete{% endif %}">
+    <svg class="pact-card__progress-ring" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true">
+      <circle class="pact-card__progress-track" cx="18" cy="18" r="15" pathLength="100" />
+      <circle class="pact-card__progress-value{% if pact.period_status == 'pending' or pact.period_status == 'verified' %} is-complete{% endif %}" cx="18" cy="18" r="15" pathLength="100" />
+    </svg>
+  </div>
+
   <div class="pact-card__meta">
     <div class="pact-card__avatars" aria-label="Witnesses">
       {% for person in avatar_users %}
@@ -59,16 +66,11 @@
     {% if can_check_in and pact.is_active %}
       {% if pact.period_status == "verified" %}
         <span class="pact-card__status pact-card__status--verified" title="Verified" aria-label="Verified">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
         </span>
       {% elif pact.period_status == "pending" %}
         <span class="pact-card__status pact-card__status--pending" title="Pending verification" aria-label="Pending verification">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.75"/>
-            <path d="M12 8v4.5l3 1.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <i class="bi bi-clock-fill" aria-hidden="true"></i>
         </span>
       {% else %}
         <a
@@ -77,23 +79,16 @@
           title="Log check-in"
           aria-label="Log check-in for {{ pact.title }}"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.25" stroke-linecap="round"/>
-          </svg>
+          <i class="bi bi-plus-circle-fill" aria-hidden="true"></i>
         </a>
       {% endif %}
     {% elif pact.period_status == "verified" %}
       <span class="pact-card__status pact-card__status--verified" title="Verified" aria-label="Verified">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
       </span>
     {% elif pact.period_status == "pending" %}
       <span class="pact-card__status pact-card__status--pending" title="Pending verification" aria-label="Pending verification">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.75"/>
-          <path d="M12 8v4.5l3 1.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        <i class="bi bi-clock-fill" aria-hidden="true"></i>
       </span>
     {% endif %}
   </div>

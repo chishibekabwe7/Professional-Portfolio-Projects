@@ -24,13 +24,13 @@
 
 [data-theme="dark"] {
   --color-bg: #1E1B2E;
-  --color-surface: #2A2740;
-  --color-border: rgba(255, 255, 255, 0.12);
+  --color-surface: #322E4A;
+  --color-border: rgba(255, 255, 255, 0);
   --color-text-primary: #F6F4FB;
-  --color-text-secondary: #A9A3BD;
-  --color-text-muted: #7E788F;
-  --color-accent: #3843FF;
-  --color-accent-tint: rgba(56, 67, 255, 0.18);
+  --color-text-secondary: #C0B9D2;
+  --color-text-muted: #AAA2BE;
+  --color-accent: #5865F2;
+  --color-accent-tint: rgba(88, 101, 242, 0.22);
   --color-brand: #06DB9A;
   --color-brand-tint: rgba(6, 219, 154, 0.16);
   --color-brand-hover: #05B382;
@@ -41,13 +41,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --color-bg: #1E1B2E;
-    --color-surface: #2A2740;
-    --color-border: rgba(255, 255, 255, 0.12);
+    --color-surface: #322E4A;
+    --color-border: rgba(255, 255, 255, 0);
     --color-text-primary: #F6F4FB;
-    --color-text-secondary: #A9A3BD;
-    --color-text-muted: #7E788F;
-    --color-accent: #3843FF;
-    --color-accent-tint: rgba(56, 67, 255, 0.18);
+    --color-text-secondary: #C0B9D2;
+    --color-text-muted: #AAA2BE;
+    --color-accent: #5865F2;
+    --color-accent-tint: rgba(88, 101, 242, 0.22);
     --color-brand: #06DB9A;
     --color-brand-tint: rgba(6, 219, 154, 0.16);
     --color-brand-hover: #05B382;
@@ -70,6 +70,16 @@ body.bg-light {
   background-color: var(--color-bg) !important;
 }
 
+body,
+button,
+input,
+select,
+textarea,
+.navbar,
+.btn {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
 a,
 button,
 [role="button"],
@@ -87,10 +97,15 @@ textarea {
   padding-bottom: 8px;
 }
 
+.navbar > .container {
+  gap: 0.75rem;
+}
+
 .navbar-logo {
-  height: 32px;
+  height: 44px;
   width: auto;
   display: block;
+  flex-shrink: 0;
 }
 
 .navbar-brand.brand-logo {
@@ -98,8 +113,32 @@ textarea {
   align-items: center;
   width: auto;
   height: auto;
-  padding: 0.5rem 0;
+  padding: 0.25rem 0;
   flex: 0 0 auto;
+}
+
+.setting-btn {
+  flex: 0 0 45px;
+  width: 45px;
+  height: 45px;
+  margin-left: 0.25rem;
+  position: relative;
+  z-index: 2;
+}
+
+.navbar-collapse {
+  min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+  .navbar > .container {
+    flex-wrap: wrap;
+  }
+
+  .navbar-collapse {
+    flex-basis: 100%;
+    width: 100%;
+  }
 }
 
 .brand-logo::after {
@@ -265,6 +304,16 @@ textarea {
 .setting-btn:focus-visible {
   outline: 3px solid var(--color-brand);
   outline-offset: 3px;
+}
+
+.dashboard-title {
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.dashboard-section-title {
+  font-size: 1.125rem;
+  line-height: 1.3;
 }
 
 .dashboard-hero {
@@ -677,7 +726,7 @@ textarea:focus-visible {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid transparent;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
@@ -692,7 +741,7 @@ textarea:focus-visible {
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid transparent;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
   }
 
@@ -860,7 +909,7 @@ textarea:focus-visible {
 [data-theme="dark"] .bottom-sheet .form-control,
 [data-theme="dark"] .bottom-sheet .form-select {
   background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: transparent;
   color: var(--color-text-primary);
 }
 
