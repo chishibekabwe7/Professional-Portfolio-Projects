@@ -8,12 +8,16 @@
   --color-accent: #3843FF;
   --color-accent-tint: #EBECFF;
   --color-accent-gradient: linear-gradient(145deg, #6B73FF 0%, #000DFF 100%);
+  --color-brand: #06DB9A;
+  --color-brand-tint: rgba(6, 219, 154, 0.12);
+  --color-brand-hover: #05B382;
   --color-success: #3BA935;
   --color-warning: #FEA800;
   --color-error: #E3524F;
   --radius-pill: 40px;
   --radius-card: 16px;
-  --shadow-soft: 0 8px 24px rgba(35, 44, 93, 0.06);
+  --shadow-soft: 0 10px 26px rgba(35, 44, 93, 0.09);
+  --shadow-hover: 0 14px 30px rgba(35, 44, 93, 0.14);
 
   --heatmap-cell-size: 14px;
 }
@@ -27,7 +31,11 @@
   --color-text-muted: #7E788F;
   --color-accent: #3843FF;
   --color-accent-tint: rgba(56, 67, 255, 0.18);
-  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --color-brand: #06DB9A;
+  --color-brand-tint: rgba(6, 219, 154, 0.16);
+  --color-brand-hover: #05B382;
+  --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 14px 30px rgba(0, 0, 0, 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,16 +48,336 @@
     --color-text-muted: #7E788F;
     --color-accent: #3843FF;
     --color-accent-tint: rgba(56, 67, 255, 0.18);
-    --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.35);
+    --color-brand: #06DB9A;
+    --color-brand-tint: rgba(6, 219, 154, 0.16);
+    --color-brand-hover: #05B382;
+    --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 14px 30px rgba(0, 0, 0, 0.45);
   }
 }
 
 html {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+}
+
+body.bg-light {
+  background-color: var(--color-bg) !important;
+}
+
+a,
+button,
+[role="button"],
+input[type="submit"],
+select,
+textarea {
+  transition: all 0.15s ease;
+}
+
+
+.navbar {
+  min-height: 61px;
+  height: auto;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.navbar-logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.navbar-brand.brand-logo {
+  display: flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 0;
+  flex: 0 0 auto;
+}
+
+.brand-logo::after {
+  display: none;
+}
+
+.auth-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.auth-logo {
+  height: 80px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.site-footer {
+  margin-top: 2rem;
+  padding: 24px 0;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  text-align: center;
+  font-size: 13px;
+}
+
+.brand-logo {
+  position: relative;
+}
+
+.brand-logo::after {
+  display: none;
+  content: none;
+}
+
+.brand-logo:hover::after,
+.brand-logo:focus-visible::after {
+  display: none;
+}
+
+.nav-link.active-nav {
+  border-left: 2px solid var(--color-brand);
+  padding-left: calc(0.5rem - 2px);
+  color: var(--color-brand) !important;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+  background: var(--color-brand-tint);
+  border-radius: 0.35rem;
+}
+
+.btn-brand-outline {
+  border: 1px solid var(--color-brand);
+  color: var(--color-brand);
+  background: transparent;
+}
+
+.btn-brand-outline:hover,
+.btn-brand-outline:focus-visible {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: var(--color-brand-tint);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+.pact-card__status--verified {
+  background: var(--color-brand);
+}
+
+.pact-card__status--verified:hover,
+.pact-card__status--verified:focus-visible {
+  background: var(--color-brand-hover);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* Uiverse-inspired primary action treatment, adapted to Pact tokens. */
+.button {
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  padding: 0.75em 1.25em;
+  color: #ffffff;
+  border: 1px solid transparent;
+  font-weight: 700;
+  border-radius: 2em;
+  font-size: 1rem;
+  box-shadow: 0 0.7em 1.5em -0.5em rgba(56, 67, 255, 0.55);
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  background: var(--color-accent-gradient);
+}
+
+.button__icon {
+  width: 1.5em;
+  height: 1.5em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button:hover,
+.button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.85);
+  color: #ffffff;
+}
+
+.button:active {
+  transform: scale(0.98);
+  box-shadow: 0 0.5em 1.5em -0.5em rgba(56, 67, 255, 0.55);
+}
+
+.setting-btn {
+  width: 45px;
+  height: 45px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: rgb(129, 110, 216);
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 0 2px rgb(212, 209, 255);
+  transition: all 0.3s ease;
+}
+
+.setting-btn .bar {
+  width: 50%;
+  height: 2px;
+  background-color: rgb(229, 229, 229);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 2px;
+}
+
+.setting-btn .bar::before {
+  content: "";
+  width: 2px;
+  height: 2px;
+  background-color: rgb(126, 117, 255);
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid white;
+  transition: all 0.3s;
+  box-shadow: 0 0 5px white;
+}
+
+.setting-btn .bar1::before { transform: translateX(-4px); }
+.setting-btn .bar2::before { transform: translateX(4px); }
+.setting-btn:hover .bar1::before { transform: translateX(4px); }
+.setting-btn:hover .bar2::before { transform: translateX(-4px); }
+.setting-btn:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+
+.dashboard-hero {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-accent-tint);
+  box-shadow: var(--shadow-soft);
+}
+
+[data-theme="dark"] .dashboard-hero,
+[data-theme="dark"] .dashboard-hero h1,
+[data-theme="dark"] .dashboard-hero p {
+  color: #ffffff !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .dashboard-hero,
+  :root:not([data-theme="light"]) .dashboard-hero h1,
+  :root:not([data-theme="light"]) .dashboard-hero p {
+    color: #ffffff !important;
+  }
+}
+
+.card {
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-soft);
+}
+
+.card-header.bg-white {
+  border-bottom-color: var(--color-border);
+}
+
+.empty-state {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--color-accent-tint);
+}
+
+.btn-primary,
+.btn-pact-submit,
+.pact-card__status--add {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.button.btn-primary,
+.button.btn-pact-submit {
+  background: var(--color-accent-gradient);
+  border-color: transparent;
+}
+
+.btn-primary:hover,
+.btn-primary:focus-visible,
+.btn-pact-submit:hover,
+.btn-pact-submit:focus-visible,
+.pact-card__status--add:hover,
+.pact-card__status--add:focus-visible {
+  background-color: color-mix(in srgb, var(--color-accent) 85%, black);
+  border-color: color-mix(in srgb, var(--color-accent) 85%, black);
+  box-shadow: var(--shadow-hover);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.icon-button {
+  border-radius: 0.5rem;
+}
+
+.icon-button:hover,
+.icon-button:focus-visible,
+.bottom-sheet-close:hover,
+.bottom-sheet-close:focus-visible {
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+}
+
+.pact-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pact-card:hover,
+.pact-card:focus-within {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.pact-card__status--add,
+.bottom-sheet-close,
+#theme-toggle {
+  cursor: pointer;
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .card-header.bg-white {
+  background: var(--color-surface) !important;
+  color: var(--color-text-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .card-header.bg-white {
+    background: var(--color-surface) !important;
+    color: var(--color-text-primary);
+  }
 }
 
 .pact-card-list {
@@ -98,6 +426,37 @@ body {
 .pact-card__body {
   flex: 1;
   min-width: 0;
+}
+
+.pact-card__progress {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+
+.pact-card__progress-ring {
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.pact-card__progress-track,
+.pact-card__progress-value {
+  fill: none;
+  stroke-width: 3;
+}
+
+.pact-card__progress-track {
+  stroke: var(--color-border);
+}
+
+.pact-card__progress-value {
+  stroke: var(--color-accent);
+  stroke-dasharray: 0 100;
+  transition: stroke-dasharray 0.2s ease;
+}
+
+.pact-card__progress-value.is-complete {
+  stroke-dasharray: 100 100;
 }
 
 .pact-card__title {
@@ -188,12 +547,6 @@ body {
 }
 
 .pact-card__status--add {
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-.pact-card__status--add:hover {
-  filter: brightness(1.05);
   color: var(--color-bg);
 }
 
@@ -280,7 +633,7 @@ body {
 }
 
 .status-verified {
-  background: var(--color-accent);
+  background: var(--color-brand);
 }
 
 .heatmap-legend {
@@ -462,7 +815,7 @@ body {
 }
 
 .btn-pact-submit {
-  display: block;
+  display: flex;
   width: 100%;
   border-radius: var(--radius-pill);
   background: var(--color-accent);
@@ -479,7 +832,6 @@ body {
 }
 
 .btn-pact-submit:hover {
-  filter: brightness(1.1);
   color: #ffffff;
 }
 
@@ -534,3 +886,14 @@ body {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
+
+/* Keep the shared button treatment ahead of the legacy sheet-submit rule. */
+.button.btn-pact-submit {
+  background: var(--color-accent-gradient);
+  border-color: transparent;
+}
+
+.button.btn-pact-submit:hover,
+.button.btn-pact-submit:focus-visible {
+  background: var(--color-accent-gradient);
+}

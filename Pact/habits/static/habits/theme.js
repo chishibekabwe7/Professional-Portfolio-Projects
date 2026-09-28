@@ -15,13 +15,26 @@
     }
   }
 
+  function updateThemeButton() {
+    var button = document.getElementById("theme-toggle");
+    if (!button) return;
+    var dark = currentTheme() === "dark";
+    var icon = button.querySelector("i");
+    if (icon) {
+      icon.className = dark ? "bi bi-moon-fill" : "bi bi-sun-fill";
+    }
+    button.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  }
+
   function toggleTheme() {
     applyTheme(currentTheme() === "dark" ? "light" : "dark");
+    updateThemeButton();
   }
 
   document.addEventListener("DOMContentLoaded", function () {
     var button = document.getElementById("theme-toggle");
     if (button) {
+      updateThemeButton();
       button.addEventListener("click", toggleTheme);
     }
   });
