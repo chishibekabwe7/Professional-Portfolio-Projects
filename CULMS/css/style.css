@@ -1,9 +1,9 @@
 /********** Template CSS **********/
 :root {
-    --primary: #0F3D75;
-    --secondary: #C8702A;
-    --light: #F3F6FA;
-    --dark: #0A1F3C;
+    --primary: #06A3DA;
+    --secondary: #34AD54;
+    --light: #EEF9FF;
+    --dark: #091E3E;
 }
 
 
@@ -221,7 +221,7 @@ h6,
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(10, 31, 60, .82);
+    background: rgba(9, 30, 62, .7);
     z-index: 1;
 }
 
@@ -378,7 +378,7 @@ h6,
 }
 
 .team-item:hover .team-social {
-    background: rgba(10, 31, 60, .82);
+    background: rgba(9, 30, 62, .7);
 }
 
 .team-item:hover .team-social a.btn:first-child {
@@ -432,8 +432,12 @@ h6,
 }
 
 .bg-header {
-    background: linear-gradient(rgba(10, 31, 60, .82), rgba(10, 31, 60, .82)), url(../img/carousel-1.jpg) center center no-repeat;
+    background: linear-gradient(rgba(9, 30, 62, .7), rgba(9, 30, 62, .7)), url(../img/carousel-1.jpg) center center no-repeat;
     background-size: cover;
+}
+
+.culms-footer-bar {
+    background: #061429;
 }
 
 .link-animated a {

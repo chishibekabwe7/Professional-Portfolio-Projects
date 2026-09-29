@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Advanced Search</title>
+  <link rel="icon" href="https://www.google.com/favicon.ico">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: arial, sans-serif;
+      background: #fff;
+      color: #202124;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top nav */
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+    }
+
+    .top-nav .logo img { height: 30px; }
+
+    .top-nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .top-nav a {
+      font-size: 13px;
+      color: #202124;
+      text-decoration: none;
+    }
+
+    .top-nav a:hover { text-decoration: underline; }
+
+    .top-nav .sign-in-btn {
+      background: #1a73e8;
+      color: #fff;
+      border-radius: 4px;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .top-nav .sign-in-btn:hover {
+      background: #1765cc;
+      text-decoration: none;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid #ebebeb;
+    }
+
+    /* Page title */
+    .page-header {
+      padding: 28px 0 0 148px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+      font-weight: normal;
+      color: #202124;
+    }
+
+    /* Main content */
+    main {
+      flex: 1;
+      padding: 28px 148px;
+      max-width: 900px;
+    }
+
+    .section-label {
+      font-size: 16px;
+      color: #70757a;
+      margin-bottom: 16px;
+      font-weight: normal;
+    }
+
+    .fields-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .fields-table tr {
+      border-bottom: 1px solid #ebebeb;
+    }
+
+    .fields-table td {
+      padding: 12px 0;
+      vertical-align: middle;
+    }
+
+    .field-label {
+      width: 260px;
+      padding-right: 24px;
+      text-align: right;
+      font-size: 13px;
+      color: #202124;
+      font-weight: bold;
+    }
+
+    .field-sublabel {
+      font-size: 11px;
+      color: #70757a;
+      font-weight: normal;
+    }
+
+    .field-input {
+      flex: 1;
+    }
+
+    .adv-input {
+      width: 100%;
+      height: 30px;
+      padding: 0 8px;
+      border: 1px solid #dfe1e5;
+      border-radius: 2px;
+      font-size: 14px;
+      color: #202124;
+      outline: none;
+      font-family: arial, sans-serif;
+    }
+
+    .adv-input:focus {
+      border-color: #4d90fe;
+      box-shadow: 0 0 0 2px rgba(77,144,254,.2);
+    }
+
+    /* Advanced Search button */
+    .adv-btn-row {
+      margin-top: 28px;
+      padding-left: 284px;
+    }
+
+    .adv-search-btn {
+      background: #1a73e8;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: arial, sans-serif;
+    }
+
+    .adv-search-btn:hover {
+      background: #1765cc;
+      box-shadow: 0 1px 3px rgba(60,64,67,.3);
+    }
+
+    /* Footer */
+    footer {
+      background: #f2f2f2;
+      border-top: 1px solid #e4e4e4;
+      margin-top: auto;
+    }
+
+    .footer-top {
+      padding: 15px 30px;
+      font-size: 15px;
+      color: #70757a;
+      border-bottom: 1px solid #e4e4e4;
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      padding: 13px 30px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: #70757a;
+      text-decoration: none;
+    }
+
+    .footer-links a:hover { text-decoration: underline; }
+
+    @media (max-width: 700px) {
+      main, .page-header { padding-left: 20px; padding-right: 20px; }
+      .field-label { width: 140px; font-size: 12px; }
+      .adv-btn-row { padding-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a href="index.html" class="logo">
+      <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" alt="Google">
+    </a>
+    <div class="top-nav-right">
+      <a href="index.html">Google Search</a>
+      <a href="image.html">Image Search</a>
+      <a href="#" class="sign-in-btn">Sign in</a>
+    </div>
+  </nav>
+
+  <hr class="divider">
+
+  <div class="page-header">
+    <h1>Advanced Search</h1>
+  </div>
+
+  <main>
+    <p class="section-label">Find pages with…</p>
+
+    <form action="https://www.google.com/search" method="GET">
+      <table class="fields-table">
+        <tr>
+          <td class="field-label">
+            all these words:
+          </td>
+          <td class="field-input">
+            <!-- Google param: as_q -->
+            <input class="adv-input" type="text" name="as_q" placeholder="Type the important words: tricolor rat terrier">
+          </td>
+        </tr>
+        <tr>
+          <td class="field-label">
+            this exact word or phrase:
+          </td>
+          <td class="field-input">
+            <!-- Google param: as_epq -->
+            <input class="adv-input" type="text" name="as_epq" placeholder="Put exact words in quotes: &quot;rat terrier&quot;">
+          </td>
+        </tr>
+        <tr>
+          <td class="field-label">
+            any of these words:
+          </td>
+          <td class="field-input">
+            <!-- Google param: as_oq -->
+            <input class="adv-input" type="text" name="as_oq" placeholder="Type OR between all the words you want: miniature OR standard">
+          </td>
+        </tr>
+        <tr>
+          <td class="field-label">
+            none of these words:
+          </td>
+          <td class="field-input">
+            <!-- Google param: as_eq -->
+            <input class="adv-input" type="text" name="as_eq" placeholder="Put a minus sign just before words you don't want: -rodent, -&quot;Jack Russell&quot;">
+          </td>
+        </tr>
+      </table>
+
+      <div class="adv-btn-row">
+        <button class="adv-search-btn" type="submit">Advanced Search</button>
+      </div>
+    </form>
+  </main>
+
+  <footer>
+    <div class="footer-top">Zambia</div>
+    <div class="footer-bottom">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Advertising</a>
+        <a href="#">Business</a>
+        <a href="#">How Search works</a>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Settings</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

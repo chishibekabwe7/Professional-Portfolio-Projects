@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Search</title>
+  <link rel="icon" href="https://www.google.com/favicon.ico">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: arial, sans-serif;
+      background: #fff;
+      color: #202124;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top-right nav */
+    .top-nav {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 14px 20px;
+      gap: 16px;
+    }
+
+    .top-nav a {
+      font-size: 13px;
+      color: #202124;
+      text-decoration: none;
+    }
+
+    .top-nav a:hover { text-decoration: underline; }
+
+    .top-nav .sign-in-btn {
+      background: #1a73e8;
+      color: #fff;
+      border-radius: 4px;
+      padding: 8px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .top-nav .sign-in-btn:hover {
+      background: #1765cc;
+      text-decoration: none;
+      box-shadow: 0 1px 3px rgba(60,64,67,.3);
+    }
+
+    /* Main content */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 100px;
+    }
+
+    .logo {
+      margin-bottom: 28px;
+    }
+
+    .logo img {
+      width: 272px;
+      height: 92px;
+    }
+
+    /* Search form */
+    .search-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .search-bar-wrapper {
+      position: relative;
+      width: 582px;
+      max-width: 90vw;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9aa0a6;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 52px 0 46px;
+      border: 1px solid #dfe1e5;
+      border-radius: 24px;
+      font-size: 16px;
+      color: #202124;
+      outline: none;
+      transition: box-shadow .2s;
+    }
+
+    .search-input:hover,
+    .search-input:focus {
+      box-shadow: 0 1px 6px rgba(32,33,36,.28);
+      border-color: rgba(223,225,229,0);
+    }
+
+    .search-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 26px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      background: #f8f9fa;
+      border: 1px solid #f8f9fa;
+      border-radius: 4px;
+      color: #3c4043;
+      font-size: 14px;
+      padding: 0 16px;
+      height: 36px;
+      cursor: pointer;
+      font-family: arial, sans-serif;
+      line-height: 36px;
+    }
+
+    .btn:hover {
+      box-shadow: 0 1px 3px rgba(60,64,67,.3);
+      border-color: #dadce0;
+    }
+
+    /* Footer */
+    footer {
+      background: #f2f2f2;
+      border-top: 1px solid #e4e4e4;
+    }
+
+    .footer-top {
+      padding: 15px 30px;
+      font-size: 15px;
+      color: #70757a;
+      border-bottom: 1px solid #e4e4e4;
+    }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      padding: 13px 30px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: #70757a;
+      text-decoration: none;
+    }
+
+    .footer-links a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <nav class="top-nav">
+    <a href="image.html">Image Search</a>
+    <a href="advanced.html">Advanced Search</a>
+    <a href="#" class="sign-in-btn">Sign in</a>
+  </nav>
+
+  <main>
+    <div class="logo">
+      <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" alt="Google">
+    </div>
+
+    <!-- Regular Search -->
+    <form class="search-form" action="https://www.google.com/search" method="GET">
+      <div class="search-bar-wrapper">
+        <span class="search-icon">
+          <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+            <path fill="#9aa0a6" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+          </svg>
+        </span>
+        <input class="search-input" type="text" name="q" autocomplete="off" autofocus>
+      </div>
+      <div class="search-buttons">
+        <button class="btn" type="submit">Google Search</button>
+        <button class="btn" type="submit" name="btnI" value="I'm Feeling Lucky" formaction="https://www.google.com/search">I'm Feeling Lucky</button>
+      </div>
+      <!-- Hidden param for "I'm Feeling Lucky" is handled via btnI -->
+    </form>
+  </main>
+
+  <footer>
+    <div class="footer-top">Zambia</div>
+    <div class="footer-bottom">
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Advertising</a>
+        <a href="#">Business</a>
+        <a href="#">How Search works</a>
+      </div>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Settings</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
