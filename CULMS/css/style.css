@@ -436,6 +436,49 @@ h6,
     background-size: cover;
 }
 
+.culms-hero-mark {
+    max-width: 310px;
+    padding: 28px 30px 24px;
+    color: var(--dark);
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(255, 255, 255, .8);
+    border-radius: 8px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, .22);
+    animation: culms-logo-reveal .8s ease-out both;
+}
+
+.culms-hero-logo {
+    display: block;
+    width: min(100%, 230px);
+    height: auto;
+    margin: 0 auto 18px;
+}
+
+.culms-hero-mark p {
+    color: var(--primary);
+    font-family: 'Rubik', sans-serif;
+    font-size: .9rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+@keyframes culms-logo-reveal {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .culms-hero-mark {
+        animation: none;
+    }
+}
+
 .culms-footer-bar {
     background: #061429;
 }
