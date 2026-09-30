@@ -44,9 +44,9 @@ function renderFooter() {
                     </div>
                     <div class="col-lg-4">
                         <h4 class="text-white mb-3">Visit the library</h4>
-                        <p class="mb-2"><i class="bi bi-geo-alt text-primary me-2"></i>Copperbelt University Library, Kitwe, Zambia</p>
-                        <p class="mb-2"><i class="bi bi-telephone text-primary me-2"></i><!-- TODO: add confirmed library phone number -->Phone number to be confirmed</p>
-                        <p class="mb-0"><i class="bi bi-envelope-open text-primary me-2"></i><!-- TODO: add confirmed library email address -->Email address to be confirmed</p>
+                        <p class="mb-2"><i class="bi bi-geo-alt text-primary me-2"></i>Jambo Drive, Riverside, Kitwe, Zambia</p>
+                        <p class="mb-2"><i class="bi bi-telephone text-primary me-2"></i><a class="text-light" href="tel:0212290811">0212-290811</a></p>
+                        <p class="mb-0"><i class="bi bi-envelope-open text-primary me-2"></i><a class="text-light" href="mailto:library@cbu.ac.zm">library@cbu.ac.zm</a></p>
                     </div>
                 </div>
             </div>

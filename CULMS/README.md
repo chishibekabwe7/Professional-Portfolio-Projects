@@ -220,12 +220,4 @@ Because the application uses browser `localStorage` and has no backend, each bro
 | Chishibe Kabwe | Process Recommendation |
 | Mandla Peme | Noun-Verb Method |
 
-## Credits and Licence
 
-The site was adapted from the HTML Codex **Startup** free template. The required attribution is retained in the site footer: [HTML Codex](https://htmlcodex.com).
-
-Libraries used in the site include Bootstrap, jQuery, Font Awesome, Bootstrap Icons, WOW.js, animate.css, Counter-Up, jQuery Easing and Waypoints.
-
-### Licence
-
-The project licence is to be confirmed by the team.
