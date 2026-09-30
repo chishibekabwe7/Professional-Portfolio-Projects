@@ -49,8 +49,8 @@ CULMS is designed as a digital, object-oriented library system for online catalo
 | Seeded demonstration data | Sample books, copies, patrons, staff, loans, reservations, fines, notifications and settings can populate storage. | Implemented |
 | Catalogue search | Repository-level search supports title, author and ISBN text plus campus filtering; the public page search form is currently presentational. | Implemented |
 | Business rules | Core eligibility checks, borrow/return logic, renewals, reservations, fines, catalogue workflows, reporting and staff permissions are implemented in the business layer. | Implemented |
-| Login and authentication | A login placeholder page exists, but authentication and session handling are not implemented. | Planned |
-| Role-specific screens | Student, professor, librarian and administrator workflows are planned. | Planned |
+| Login and authentication | Browser-only demo login, sessions, role guards and notifications are implemented. | Implemented |
+| Role-specific screens | Role home pages are available; detailed workflows remain planned. | In progress |
 | Borrowing history and reporting | Loan data structures exist; user history views and administrator reports are planned. | Planned |
 | Backend and shared database | The project currently uses browser storage and has no backend or shared server database. | Planned |
 
@@ -196,12 +196,34 @@ The project can be deployed on Vercel's free tier as a static site:
 
 Because the application uses browser `localStorage` and has no backend, each browser has its own independent data. A Vercel deployment does not create a shared library database.
 
+## Demo accounts and login
+
+The application uses a simulated browser-only login with no passwords. Demo data remains in the current browser.
+
+| Role | Demo accounts |
+| --- | --- |
+| Student | Chanda Mwansa (`STU-0001`), Martha Chileshe (`STU-0002`), Brian Phiri (`STU-0003`), Natasha Banda (`STU-0004`) |
+| Professor | Dr. Joseph Mulenga (`STAFF-0004`), Prof. Ruth Tembo (`STAFF-0005`) |
+| Librarian | Moses Nkole (`LIB-0001`), Agnes Zulu (`LIB-0002`) |
+| Administrator | Peter Chanda (`ADM-0001`) |
+
+## Demo accounts and login
+
+The application uses a simulated browser-only login with no passwords. Demo data remains in the current browser.
+
+| Role | Demo accounts |
+| --- | --- |
+| Student | Chanda Mwansa (`STU-0001`), Martha Chileshe (`STU-0002`), Brian Phiri (`STU-0003`), Natasha Banda (`STU-0004`) |
+| Professor | Dr. Joseph Mulenga (`STAFF-0004`), Prof. Ruth Tembo (`STAFF-0005`) |
+| Librarian | Moses Nkole (`LIB-0001`), Agnes Zulu (`LIB-0002`) |
+| Administrator | Peter Chanda (`ADM-0001`) |
+
 ## Roadmap
 
 1. [x] Clean up the starter template and apply CULMS branding.
 2. [x] Build the domain model and data layer.
 3. [x] Build the business layer and enforce borrowing, reservation and fine rules.
-4. [ ] Build the application shell and working login flow.
+4. [x] Build the application shell and working login flow.
 5. [ ] Build student and professor screens.
 6. [ ] Build librarian screens.
 7. [ ] Build administrator screens and reports.

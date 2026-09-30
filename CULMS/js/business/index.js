@@ -11,6 +11,7 @@ import {
   Student,
   Professor,
   LibraryAdministrator,
+  Librarian,
   LoanRecord,
   BookRepository,
   PatronRepository,
@@ -24,6 +25,7 @@ import {
   readableId,
   SCHEMA_VERSION_KEY
 } from '../data/index.js';
+import { resetToSeed } from '../data/seed/seed.js';
 
 export { PERMISSIONS };
 
@@ -815,6 +817,19 @@ export class SettingsControl {
   }
 }
 
+export class AuthControl {
+  constructor(adapter) { this.patrons = new PatronRepository(adapter); this.staff = new StaffRepository(adapter); }
+  listDemoAccounts() { return [...this.patrons.getAll(), ...this.staff.getAll()].map(item => ({ id: item.patronId || item.staffId, name: item.name, role: item instanceof Student ? 'Student' : item instanceof Professor ? 'Professor' : item instanceof Librarian ? 'Librarian' : 'Administrator', campus: item.campus })); }
+  resolve(accountId, role) {
+    const account = this.listDemoAccounts().find(item => item.id === accountId && item.role === role);
+    if (!account) return failure('AUTHENTICATION_FAILED', 'Demo account not found for the selected role');
+    const entity = this.patrons.getById(accountId) || this.staff.getById(accountId);
+    return success({ ...account, permissions: entity.permissions || [] });
+  }
+  login(accountId, role) { return this.resolve(accountId, role); }
+}
+
+
 export function createCULMS(adapter) {
   return {
     borrowing: new BorrowingControl(adapter),
@@ -824,8 +839,10 @@ export function createCULMS(adapter) {
     reports: new ReportControl(adapter),
     notifications: new NotificationControl(adapter),
     staff: new StaffControl(adapter),
-    settings: new SettingsControl(adapter)
+    settings: new SettingsControl(adapter),
+    auth: new AuthControl(adapter),
+    resetDemoData() { resetToSeed(adapter); return success(true); }
   };
 }
 
-export const business = { BorrowingControl, ReservationControl, FineControl, CatalogueControl, ReportControl, NotificationControl, StaffControl, SettingsControl };
+export const business = { AuthControl, BorrowingControl, ReservationControl, FineControl, CatalogueControl, ReportControl, NotificationControl, StaffControl, SettingsControl };

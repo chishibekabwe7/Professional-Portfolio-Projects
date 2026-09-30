@@ -30,3 +30,13 @@
 | `tests/business/` | boundary | Business-layer regression tests and architecture guard checks |
 
 Data modules import only within `js/data/`; they do not import business or presentation code. The business layer imports from `js/data/` only and contains no DOM, storage, or browser API access. Dates are persisted as ISO strings and rehydrated as `Date` objects.
+
+
+## Browser session and navigation flow
+
+`js/presentation/app.js` creates the browser instance through the business bootstrap, while `session.js` stores only an account id and role. Protected pages call `guard.js` before revealing their main content. The guard re-resolves the full user through `AuthControl`, redirects guests to `login.html`, and redirects unauthorized users to their role home with a toast. `navConfig.js` describes enabled links and planned screens without rendering pages that do not exist. Presentation code imports business modules only; the bootstrap is the single business-layer entry point that is allowed to construct the browser storage adapter.
+
+
+## Browser session and navigation flow
+
+`js/presentation/app.js` creates the browser instance through the business bootstrap, while `session.js` stores only an account id and role. Protected pages call `guard.js` before revealing their main content. The guard re-resolves the full user through `AuthControl`, redirects guests to `login.html`, and redirects unauthorized users to their role home with a toast. `navConfig.js` describes enabled links and planned screens without rendering pages that do not exist. Presentation code imports business modules only; the bootstrap is the single business-layer entry point that is allowed to construct the browser storage adapter.

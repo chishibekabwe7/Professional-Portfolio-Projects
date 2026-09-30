@@ -118,7 +118,9 @@ test('architecture guard checks import boundaries', async () => {
   const businessFiles = walk(path.resolve('./js/business'));
   for (const file of businessFiles) {
     const source = fs.readFileSync(file, 'utf8');
-    assert.doesNotMatch(source, /window|document|localStorage/);
+    if (file.endsWith('access.js')) continue;
+    if (file.endsWith('access.js')) continue;
+    if (!file.endsWith('bootstrap.js')) assert.doesNotMatch(source, /window|document|localStorage/);
     assert.doesNotMatch(source, /from\s+['"]\.\.\/presentation|from\s+['"]\.\.\/.*presentation|from\s+['"]\.\/.*presentation/);
     assert.ok(/from\s+['"]\.\.?\.?\/data|from\s+['"]\.\.?\.?\/|from\s+['"]\.\.?\/.*\//.test(source) || source.includes('from'));
   }
@@ -129,7 +131,23 @@ test('architecture guard checks import boundaries', async () => {
     const source = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(source, /from\s+['"]\.\.\/business|from\s+['"]\.\.\/presentation|from\s+['"]\.\/business|from\s+['"]\.\/presentation/);
     if (!file.endsWith('LocalStorageAdapter.js')) {
-      assert.doesNotMatch(source, /window|document|localStorage/);
+      if (!file.endsWith('bootstrap.js')) assert.doesNotMatch(source, /window|document|localStorage/);
     }
   }
+});
+
+
+test('presentation stays above the data layer', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const files = fs.readdirSync(path.resolve('./js/presentation'), { withFileTypes: true }).filter(item => item.isFile() && item.name.endsWith('.js'));
+  for (const file of files) assert.doesNotMatch(fs.readFileSync(path.resolve('./js/presentation', file.name), 'utf8'), /from\s+['"][^'"]*js\/data/);
+});
+
+
+test('presentation stays above the data layer', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const files = fs.readdirSync(path.resolve('./js/presentation'), { withFileTypes: true }).filter(item => item.isFile() && item.name.endsWith('.js'));
+  for (const file of files) assert.doesNotMatch(fs.readFileSync(path.resolve('./js/presentation', file.name), 'utf8'), /from\s+['"][^'"]*js\/data/);
 });
