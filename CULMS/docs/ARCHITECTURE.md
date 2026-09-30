@@ -56,3 +56,8 @@ Credentials are stored as browser-local PBKDF2 metadata in the data layer. Seede
 ## Student and professor self-service
 
 `my-fines.html` and `my-history.html` expose patron views backed by `FineControl.getFineView` and `BorrowingControl.getLoanHistory`. Professors additionally use `course-reserve.html` and `acquisitions.html`; placement, removal, ownership, copy availability and request validation remain business-layer decisions. Navigation groups these pages under the `My Library` dropdown while preserving role-specific access guards.
+
+
+## Librarian circulation desk
+
+`checkout.html`, `return.html` and `overdue.html` are guarded librarian pages backed by `BorrowingControl`. The desk modules use patron and copy preview methods before writes, render the checkout stepper and return/overdue tables with escaped values, and pass the signed-in staff actor to permission-enforced business operations. `navConfig.js` gates circulation links by `PROCESS_LOANS`; planned catalogue and fines desk entries remain disabled.

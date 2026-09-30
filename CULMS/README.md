@@ -27,7 +27,7 @@ A browser-based library management system concept for searching, borrowing and m
 
 Many library activities are traditionally recorded manually. Borrowing records and fine calculations can be delayed, while members have limited access to catalogue and account information outside the library.
 
-CULMS is designed as a digital, object-oriented library system for online catalogue search, reservations, loan management, automated fine handling, borrowing history and administrative reporting across multiple campus libraries. The current repository contains the responsive public-facing pages, the domain model, repositories, storage adapters and seeded demonstration data. The user-facing workflows and role-specific application screens remain planned work.
+CULMS is designed as a digital, object-oriented library system for online catalogue search, reservations, loan management, automated fine handling, borrowing history and administrative reporting across multiple campus libraries. The current repository contains the responsive public-facing pages, the domain model, repositories, storage adapters and seeded demonstration data. The public catalogue, patron self-service screens and librarian circulation desk workflows are implemented; later administrative desk workflows remain planned.
 
 ## Actors and Roles
 
@@ -52,9 +52,10 @@ CULMS is designed as a digital, object-oriented library system for online catalo
 | Login and authentication | Client-side demo login accepts seeded IDs or emails, supports password changes, session expiry and notifications. | Implemented |
 | Book detail and reservations | Public book details, campus/copy availability and student or professor reservations are implemented. | Implemented |
 | My loans and reservations | Students and professors can review, renew eligible loans and manage reservations. | Implemented |
+| Librarian circulation desk | Librarians can preview and process checkout/return transactions, review overdue loans and send reminders. | Implemented |
 | Student and professor self-service | My Fines, My History, Course Reserve and Acquisition Requests complete the student and professor side. | Implemented |
 | Role-specific screens | Role home pages are available; detailed workflows remain planned. | In progress |
-| Borrowing history and reporting | Loan data structures exist; user history views and administrator reports are planned. | Planned |
+| Borrowing history and reporting | Students and professors can review loan history; administrator reports remain planned. | Implemented |
 | Backend and shared database | The project currently uses browser storage and has no backend or shared server database. | Planned |
 
 ## Business Rules
@@ -219,6 +220,7 @@ The application uses a simulated client-side login. The default password for eve
 5A. [x] Build the public catalogue, book details and reserve action.
 5B. [x] Add password demo login, account management, student/professor loans and reservations.
 5C. [x] Complete student and professor self-service screens.
+6A. [x] Add librarian checkout, return, overdue review and reminders.
 5. [ ] Build student and professor screens.
 6. [ ] Build librarian screens.
 7. [ ] Build administrator screens and reports.

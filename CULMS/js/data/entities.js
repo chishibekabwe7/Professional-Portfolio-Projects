@@ -102,11 +102,11 @@ export class BookCopy extends Entity {
 /** A borrowing transaction. */
 export class LoanRecord extends Entity {
     /** @param {string} loanId @param {string} barcode @param {string} patronId @param {Date|string} issueDate @param {Date|string} dueDate @param {Date|string|null} returnDate @param {boolean} renewed @param {boolean} isCourseReserve */
-    constructor(loanId, barcode, patronId, issueDate, dueDate, returnDate = null, renewed = false, isCourseReserve = false) { super(); Object.assign(this, { loanId, barcode, patronId, issueDate: date(issueDate), dueDate: date(dueDate), returnDate: returnDate ? date(returnDate) : null, renewed, isCourseReserve }); }
+    constructor(loanId, barcode, patronId, issueDate, dueDate, returnDate = null, renewed = false, isCourseReserve = false, lastReminderAt = null) { super(); Object.assign(this, { loanId, barcode, patronId, issueDate: date(issueDate), dueDate: date(dueDate), returnDate: returnDate ? date(returnDate) : null, renewed, isCourseReserve, lastReminderAt: lastReminderAt ? date(lastReminderAt) : null }); }
     /** @param {Date|string} referenceDate @returns {number} */ calculateOverdueDays(referenceDate = new Date()) { const end = this.returnDate || date(referenceDate); return Math.max(0, Math.ceil((end - this.dueDate) / 86400000)); }
     /** @returns {boolean} */ isActive() { return this.returnDate === null; }
-    toJSON() { return { ...super.toJSON(), issueDate: iso(this.issueDate), dueDate: iso(this.dueDate), returnDate: this.returnDate ? iso(this.returnDate) : null }; }
-    static fromJSON(value) { return new LoanRecord(value.loanId, value.barcode, value.patronId, value.issueDate, value.dueDate, value.returnDate, value.renewed, value.isCourseReserve); }
+    toJSON() { return { ...super.toJSON(), issueDate: iso(this.issueDate), dueDate: iso(this.dueDate), returnDate: this.returnDate ? iso(this.returnDate) : null, lastReminderAt: this.lastReminderAt ? iso(this.lastReminderAt) : null }; }
+    static fromJSON(value) { return new LoanRecord(value.loanId, value.barcode, value.patronId, value.issueDate, value.dueDate, value.returnDate, value.renewed, value.isCourseReserve, value.lastReminderAt || null); }
 }
 
 /** A hold placed on a title or copy. */

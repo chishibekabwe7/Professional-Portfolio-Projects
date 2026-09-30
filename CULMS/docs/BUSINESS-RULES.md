@@ -51,3 +51,10 @@ The client-side demonstration uses `culms-demo` as the default password for seed
 ## Course reserves
 
 Only professors may place an available copy on course reserve. A course code is required and may contain letters, numbers, spaces and hyphens, up to 20 characters. Only the professor who placed a reserve may remove it, and removal is allowed only while the copy is available. Course-reserve loans use the configured course-reserve duration and cannot be renewed.
+
+
+## Circulation desk
+
+When an actor is supplied, checkout, return and overdue reminders require `PROCESS_LOANS`; legacy calls without an actor remain supported for existing integrations. Patron snapshots accept an ID or case-insensitive email. Preview operations validate the same eligibility, availability, due-date, reservation and fine rules as their write operations without changing storage.
+
+Overdue reminders can be sent only for active overdue loans and only once per loan within 24 hours. The reminder timestamp is persisted on the loan, and the patron receives an overdue notice containing the title and due date. Overdue listings expose campus, days overdue, projected fine at the current rate, and the last reminder timestamp.

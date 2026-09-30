@@ -13,3 +13,7 @@ export function fineStatusLabel(status) { return status === 'Paid' ? 'Paid' : 'U
 export function historyStatusClass(status) { return { Active: 'bg-success', Overdue: 'bg-danger', Returned: 'bg-secondary', 'Returned late': 'bg-warning text-dark' }[status] || 'bg-secondary'; }
 export function historyFilter(status, filter) { return filter === 'All' || status === filter; }
 export function formatCost(value) { return value === null || value === '' || value == null ? '?' : `K${Number(value).toFixed(2)}`; }
+
+export function stepperBadgeClass(status) { return { done: 'bg-success', failed: 'bg-danger', skipped: 'bg-secondary' }[status] || 'bg-secondary'; }
+export function eligibilityLabel(eligibility) { return eligibility?.eligible ? 'Eligible to borrow' : (eligibility?.reason || 'Borrowing Blocked'); }
+export function relativeDaysLabel(days) { return days === 1 ? '1 day' : `${days} days`; }

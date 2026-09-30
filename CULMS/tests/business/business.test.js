@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { createCULMS, PERMISSIONS } from '../../js/business/index.js';
 import { MemoryStorageAdapter } from '../../js/data/storage/MemoryStorageAdapter.js';
 import { resetToSeed } from '../../js/data/seed/seed.js';
-import { AcquisitionRequest, Settings } from '../../js/data/entities.js';
+import { AcquisitionRequest, Settings, LoanRecord } from '../../js/data/entities.js';
 
 function seedWithAdapter() {
   const adapter = new MemoryStorageAdapter();
@@ -247,4 +247,58 @@ test("student and professor self-service business views enforce 5C rules", () =>
   assert.equal(culms.catalogue.requestNewAcquisition("STAFF-0004", { title: "New title", author: "Author", justification: "Useful for teaching", estimatedCost: 20 }).ok, true);
   assert.equal(culms.catalogue.requestNewAcquisition("STAFF-0004", { title: "New title", author: "Author", justification: "short" }).error.code, "VALIDATION_ERROR");
   assert.equal(culms.catalogue.listMyAcquisitionRequests("STAFF-0004").data.length, 2);
+});
+
+
+test('circulation desk permissions, previews and patron snapshots work', () => {
+  const culms = seedWithAdapter();
+  const available = culms.catalogue.books.getAll().flatMap(book => book.copies).find(copy => copy.status === 'Available' && !copy.courseReserve);
+  const before = JSON.stringify({ books: culms.catalogue.books.getAll(), loans: culms.borrowing.loans.getAll(), fines: culms.fines.fines.getAll() });
+  assert.equal(culms.borrowing.borrowBook('STU-0001', available.barcode, new Date('2026-09-30'), { actor: 'ADM-0001' }).ok, true);
+  const blockedActor = culms.borrowing.borrowBook('STU-0001', available.barcode, new Date('2026-09-30'), { actor: 'STU-0001' });
+  assert.equal(blockedActor.error.code, 'NOT_AUTHORISED');
+  const snapshot = culms.borrowing.getPatronSnapshot('chanda.mwansa@cbu.ac.zm');
+  assert.equal(snapshot.ok, true);
+  assert.equal(snapshot.data.limit, 5);
+  const preview = culms.borrowing.previewBorrow('STU-0001', available.barcode, new Date('2026-09-30'));
+  assert.equal(preview.error.code, 'COPY_NOT_AVAILABLE');
+  const after = JSON.stringify({ books: culms.catalogue.books.getAll(), loans: culms.borrowing.loans.getAll(), fines: culms.fines.fines.getAll() });
+  assert.notEqual(before, after);
+  const notLoan = culms.borrowing.previewReturn('BC-99999');
+  assert.equal(notLoan.error.message, 'This copy is not currently on loan');
+  assert.equal(culms.borrowing.returnBook(available.barcode, new Date('2026-10-01'), { actor: 'STU-0001' }).error.code, 'NOT_AUTHORISED');
+});
+
+test('overdue desk reminders and filtered projections work', () => {
+  const culms = seedWithAdapter();
+  const now = new Date();
+  const overdue = culms.borrowing.getOverdueLoans(now);
+  assert.equal(overdue.ok, true);
+  assert.ok(overdue.data.every(row => row.daysOverdue > 0 && row.projectedFine >= 0));
+  const row = overdue.data[0];
+  assert.equal(culms.borrowing.sendOverdueReminder('STU-0001', row.loanId, now).error.code, 'NOT_AUTHORISED');
+  assert.equal(culms.borrowing.sendOverdueReminder('LIB-0001', row.loanId, now).ok, true);
+  assert.equal(culms.borrowing.sendOverdueReminder('LIB-0001', row.loanId, now).error.code, 'VALIDATION_ERROR');
+  const refreshed = culms.borrowing.getOverdueLoans(now).data.find(item => item.loanId === row.loanId);
+  assert.ok(refreshed.lastReminderAt instanceof Date);
+  assert.equal(culms.borrowing.getOverdueLoans(now, '__missing__').data.length, 0);
+});
+
+test('librarian navigation is permission filtered and circulation routes are allowed', async () => {
+  const { visibleNav } = await import('../../js/presentation/navConfig.js');
+  const { safeNextUrl } = await import('../../js/business/access.js');
+  const withLoans = visibleNav('Librarian', ['PROCESS_LOANS']).map(item => item.href);
+  assert.ok(withLoans.includes('checkout.html') && withLoans.includes('return.html') && withLoans.includes('overdue.html'));
+  const withoutLoans = visibleNav('Librarian', []).map(item => item.href);
+  assert.equal(withoutLoans.includes('checkout.html'), false);
+  assert.equal(safeNextUrl('checkout.html', { role: 'Librarian' }), 'checkout.html');
+  assert.equal(safeNextUrl('checkout.html', { role: 'Administrator' }), 'admin.html');
+});
+
+
+test('loan reminder timestamps survive JSON round trips', () => {
+  const reminder = new Date('2026-09-30T12:00:00Z');
+  const loan = new LoanRecord('LN-TEST', 'BC-TEST', 'STU-0001', new Date('2026-09-01'), new Date('2026-09-10'), null, false, false, reminder);
+  const restored = LoanRecord.fromJSON(loan.toJSON());
+  assert.equal(restored.lastReminderAt.toISOString(), reminder.toISOString());
 });

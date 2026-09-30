@@ -75,6 +75,7 @@ export class BorrowingControl {
     this.adapter = adapter;
     this.books = new BookRepository(adapter);
     this.patrons = new PatronRepository(adapter);
+    this.staff = new StaffRepository(adapter);
     this.loans = new LoanRepository(adapter);
     this.reservations = new ReservationRepository(adapter);
     this.fines = new FineRepository(adapter);
@@ -82,7 +83,8 @@ export class BorrowingControl {
     this.settingsRepo = new SettingsRepository(adapter);
   }
 
-  borrowBook(patronId, barcode, now = new Date()) {
+  borrowBook(patronId, barcode, now = new Date(), options = {}) {
+    if (options.actor !== undefined) { const actor = getStaffMember(this.staff, options.actor); if (!hasPermission(actor, PERMISSIONS.PROCESS_LOANS)) return failure('NOT_AUTHORISED', 'Not authorised'); }
     const current = asDate(now);
     const flow = LOAN_STEPS.map(item => ({ ...item }));
     const patron = this.patrons.getById(patronId);
@@ -155,7 +157,8 @@ export class BorrowingControl {
     return success({ flow, loan, dueDate, patron, copy, reservation });
   }
 
-  returnBook(barcode, now = new Date()) {
+  returnBook(barcode, now = new Date(), options = {}) {
+    if (options.actor !== undefined) { const actor = getStaffMember(this.staff, options.actor); if (!hasPermission(actor, PERMISSIONS.PROCESS_LOANS)) return failure('NOT_AUTHORISED', 'Not authorised'); }
     const current = asDate(now);
     const loan = this.loans.getAll().find(item => item.barcode === barcode && item.returnDate === null);
     if (!loan) return failure('NOT_FOUND', 'Active loan not found');
@@ -252,14 +255,45 @@ export class BorrowingControl {
     return success(rows);
   }
 
-  getOverdueLoans(now = new Date()) {
-    const current = asDate(now);
-    const rows = this.loans.findOverdue(current).map(loan => {
-      const patron = this.patrons.getById(loan.patronId);
-      const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode));
-      const overdueDays = loan.calculateOverdueDays(current);
-      return { ...buildLoanSummary(loan, patron, book?.title || 'Unknown title'), overdueDays, loan };
-    });
+  getPatronSnapshot(identifier) {
+    const value = String(identifier || '').toLowerCase();
+    const patron = this.patrons.getAll().find(item => item.patronId.toLowerCase() === value || item.email.toLowerCase() === value);
+    if (!patron) return failure('NOT_FOUND', 'Patron not found');
+    const activeLoans = this.getActiveLoans(patron.patronId).data;
+    const eligibility = patron.checkEligibility(activeLoans.length, this.settingsRepo.get().maxUnpaidFine);
+    return success({ patron: { id: patron.patronId, name: patron.name, type: patron.constructor.name, campus: patron.campus, email: patron.email }, activeLoans, loanCount: activeLoans.length, limit: patron.maximumBorrowLimit, fineBalance: patron.fineBalance, eligibility });
+  }
+
+  previewBorrow(identifier, barcode, now = new Date()) {
+    const snapshot = this.getPatronSnapshot(identifier); if (!snapshot.ok) return snapshot;
+    const patron = this.patrons.getById(snapshot.data.patron.id); const current = asDate(now); const copy = this.books.findCopyByBarcode(barcode);
+    if (!snapshot.data.eligibility.eligible) return failure(snapshot.data.eligibility.reason === 'Borrowing Blocked' ? 'BORROWING_BLOCKED' : 'MAX_LIMIT_REACHED', snapshot.data.eligibility.reason);
+    if (!copy) return failure('NOT_FOUND', 'Copy not found');
+    let heldForAnotherPatron = false;
+    if (copy.status === 'Reserved') { const ready = this.reservations.getAll().find(item => item.barcode === barcode && item.status === 'Ready'); if (!ready || ready.patronId !== patron.patronId) heldForAnotherPatron = true; }
+    if (copy.status !== 'Available' && copy.status !== 'CourseReserve' && copy.status !== 'Reserved') return failure('COPY_NOT_AVAILABLE', 'Copy not available');
+    if (copy.status === 'Reserved' && heldForAnotherPatron) return failure('COPY_NOT_AVAILABLE', 'Copy not available');
+    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode));
+    return success({ title: book?.title || 'Unknown title', campus: copy.campus, status: copy.status, courseReserve: !!copy.courseReserve, dueDate: addDays(current, copy.courseReserve ? this.settingsRepo.get().courseReserveLoanDays : patron.loanPeriodDays), heldForAnotherPatron });
+  }
+
+  previewReturn(barcode, now = new Date()) {
+    const loan = this.loans.getAll().find(item => item.barcode === barcode && item.returnDate === null);
+    if (!loan) return failure('NOT_FOUND', 'This copy is not currently on loan');
+    const current = asDate(now); const patron = this.patrons.getById(loan.patronId); const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === barcode)); const settings = this.settingsRepo.get(); const overdueDays = loan.calculateOverdueDays(current); const fine = overdueDays > 0 ? overdueDays * settings.fineRatePerDay : 0;
+    const reservation = this.reservations.getAll().find(item => item.isbn === book?.isbn && item.barcode === barcode && item.status === 'Pending');
+    return success({ loan, patron: patron ? { id: patron.patronId, name: patron.name, email: patron.email } : null, title: book?.title || 'Unknown title', overdueDays, fine, reservation: reservation ? { patronId: reservation.patronId, patron: this.patrons.getById(reservation.patronId)?.name || null } : null });
+  }
+
+  sendOverdueReminder(actor, loanId, now = new Date()) {
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.PROCESS_LOANS)) return failure('NOT_AUTHORISED', 'Not authorised');
+    const current = asDate(now); const loan = this.loans.getById(loanId); if (!loan || !loan.isActive()) return failure('NOT_FOUND', 'Active loan not found'); if (loan.calculateOverdueDays(current) <= 0) return failure('VALIDATION_ERROR', 'Loan is not overdue'); if (loan.lastReminderAt && current - loan.lastReminderAt < 86400000) return failure('VALIDATION_ERROR', 'Overdue reminder already sent within 24 hours');
+    const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode)); const patron = this.patrons.getById(loan.patronId); const message = `Overdue notice: ${book?.title || 'Unknown title'} was due on ${loan.dueDate.toISOString().slice(0, 10)}. Please return it to avoid further fines.`; this.notifications.add(new Notification(readableId('NT', this.notifications.getAll().length + 1), loan.patronId, message, current)); loan.lastReminderAt = current; this.loans.update(loan.loanId, { lastReminderAt: current }); return success({ loan, notification: message });
+  }
+
+  getOverdueLoans(now = new Date(), campus = '') {
+    const current = asDate(now); const settings = this.settingsRepo.get();
+    const rows = this.loans.findOverdue(current).map(loan => { const patron = this.patrons.getById(loan.patronId); const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode)); const copy = this.books.findCopyByBarcode(loan.barcode); const daysOverdue = loan.calculateOverdueDays(current); return { loanId: loan.loanId, patronId: loan.patronId, patronName: patron?.name || '', patronEmail: patron?.email || '', title: book?.title || 'Unknown title', barcode: loan.barcode, campus: copy?.campus || '', dueDate: loan.dueDate, daysOverdue, projectedFine: daysOverdue * settings.fineRatePerDay, lastReminderAt: loan.lastReminderAt }; }).filter(item => !campus || item.campus === campus);
     return success(rows);
   }
 }
