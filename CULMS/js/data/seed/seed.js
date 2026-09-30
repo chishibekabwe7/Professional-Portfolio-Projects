@@ -26,7 +26,7 @@ export function resetToSeed(adapter) {
         const isbn = `978-9982-${String(index + 1).padStart(5, '0')}`;
         const copies = [];
         const copyCount = index % 4 + 1;
-        for (let copy = 1; copy <= copyCount; copy++) copies.push(new BookCopy(`BC-${String(index * 4 + copy).padStart(5, '0')}`, isbn, `${String.fromCharCode(65 + index % 6)}-${100 + copy}`, 'Good', campuses[(index + copy) % campuses.length], 'Available', index === 8 && copy === 1));
+        for (let copy = 1; copy <= copyCount; copy++) copies.push(new BookCopy(`BC-${String(index * 4 + copy).padStart(5, '0')}`, isbn, `${String.fromCharCode(65 + index % 6)}-${100 + copy}`, 'Good', campuses[(index + copy) % campuses.length], 'Available', index === 8 && copy === 1, index === 8 && copy === 1 ? 'IS-230' : null, index === 8 && copy === 1 ? 'STAFF-0004' : null, index === 8 && copy === 1 ? ago(10) : null));
         books.add(new Book(isbn, title, author, category, copies));
     });
     const students = [

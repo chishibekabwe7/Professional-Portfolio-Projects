@@ -8,3 +8,8 @@ export function campusAvailability(campusStats = {}) { const entries = Object.va
 export function daysRemaining(dueDate, now = new Date()) { return Math.ceil((new Date(dueDate).getTime() - new Date(now).getTime()) / 86400000); }
 export function loanStatusLabel(loan, now = new Date()) { if (loan.isCourseReserve) return 'Course reserve'; const days = daysRemaining(loan.dueDate, now); if (days < 0) return `Overdue by ${Math.abs(days)} days`; if (days <= 2) return 'Due soon'; return 'On time'; }
 export function reservationStatusLabel(status) { return { Pending: 'Pending', Ready: 'Ready', Fulfilled: 'Fulfilled', Expired: 'Expired', Cancelled: 'Cancelled' }[status] || status; }
+
+export function fineStatusLabel(status) { return status === 'Paid' ? 'Paid' : 'Unpaid'; }
+export function historyStatusClass(status) { return { Active: 'bg-success', Overdue: 'bg-danger', Returned: 'bg-secondary', 'Returned late': 'bg-warning text-dark' }[status] || 'bg-secondary'; }
+export function historyFilter(status, filter) { return filter === 'All' || status === filter; }
+export function formatCost(value) { return value === null || value === '' || value == null ? '?' : `K${Number(value).toFixed(2)}`; }

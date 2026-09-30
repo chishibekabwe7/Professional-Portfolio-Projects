@@ -90,12 +90,13 @@ export class Book extends Entity {
 /** A physical copy of a book. */
 export class BookCopy extends Entity {
     /** @param {string} barcode @param {string} isbn @param {string} shelfLocation @param {string} conditionStatus @param {string} campus @param {CopyStatus} status @param {boolean} courseReserve */
-    constructor(barcode, isbn, shelfLocation, conditionStatus, campus, status = 'Available', courseReserve = false) {
-        super(); if (!copyStatuses.has(status)) throw new RangeError(`Invalid copy status: ${status}`); Object.assign(this, { barcode, isbn, shelfLocation, conditionStatus, campus, status, courseReserve });
+    constructor(barcode, isbn, shelfLocation, conditionStatus, campus, status = 'Available', courseReserve = false, courseCode = null, placedBy = null, placedDate = null) {
+        super(); if (!copyStatuses.has(status)) throw new RangeError(`Invalid copy status: ${status}`); if (courseCode !== null && (typeof courseCode !== 'string' || courseCode.length > 20 || !/^[A-Za-z0-9 -]+$/.test(courseCode))) throw new RangeError('Invalid course code'); Object.assign(this, { barcode, isbn, shelfLocation, conditionStatus, campus, status, courseReserve, courseCode, placedBy, placedDate: placedDate ? date(placedDate) : null });
     }
     /** @param {CopyStatus} status @returns {void} */ updateStatus(status) { if (!copyStatuses.has(status)) throw new RangeError(`Invalid copy status: ${status}`); this.status = status; }
     /** @returns {boolean} */ checkAvailability() { return this.status === 'Available'; }
-    static fromJSON(value) { return new BookCopy(value.barcode, value.isbn, value.shelfLocation, value.conditionStatus, value.campus, value.status, value.courseReserve); }
+    toJSON() { return { ...super.toJSON(), placedDate: this.placedDate ? iso(this.placedDate) : null }; }
+    static fromJSON(value) { return new BookCopy(value.barcode, value.isbn, value.shelfLocation, value.conditionStatus, value.campus, value.status, value.courseReserve, value.courseCode || null, value.placedBy || null, value.placedDate || null); }
 }
 
 /** A borrowing transaction. */

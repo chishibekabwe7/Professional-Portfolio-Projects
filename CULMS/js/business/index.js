@@ -242,10 +242,13 @@ export class BorrowingControl {
   getLoanHistory(patronId) {
     const loans = this.loans.getAll().filter(item => item.patronId === patronId);
     const rows = loans.map(loan => {
-      const patron = this.patrons.getById(loan.patronId);
       const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode));
-      return { ...buildLoanSummary(loan, patron, book?.title || 'Unknown title'), loan, bookIsbn: book?.isbn || null, campus: this.books.findCopyByBarcode(loan.barcode)?.campus || null };
-    });
+      const copy = this.books.findCopyByBarcode(loan.barcode);
+      const fine = this.fines.getAll().find(item => item.loanId === loan.loanId);
+      const reference = loan.returnDate || new Date();
+      const overdue = loan.calculateOverdueDays(reference) > 0;
+      return { loanId: loan.loanId, isbn: book?.isbn || null, title: book?.title || 'Unknown title', barcode: loan.barcode, campus: copy?.campus || null, issueDate: loan.issueDate, dueDate: loan.dueDate, returnDate: loan.returnDate, renewed: !!loan.renewed, isCourseReserve: !!loan.isCourseReserve, status: loan.returnDate ? (overdue ? 'Returned late' : 'Returned') : (overdue ? 'Overdue' : 'Active'), fineAmount: Number(fine?.amountAccumulated || 0) };
+    }).sort((left, right) => new Date(right.issueDate) - new Date(left.issueDate));
     return success(rows);
   }
 
@@ -377,6 +380,7 @@ export class FineControl {
   constructor(adapter) {
     this.adapter = adapter;
     this.patrons = new PatronRepository(adapter);
+    this.books = new BookRepository(adapter);
     this.fines = new FineRepository(adapter);
     this.loans = new LoanRepository(adapter);
     this.staff = new StaffRepository(adapter);
@@ -421,6 +425,13 @@ export class FineControl {
     return success({ fine });
   }
 
+  getFineView(patronId) {
+    const patron = this.patrons.getById(patronId); if (!patron) return failure('NOT_FOUND', 'Patron not found');
+    const settings = this.settingsRepo.get(); const fines = this.fines.findByPatron(patronId); const unpaidTotal = fines.filter(item => item.paymentStatus === 'Unpaid').reduce((sum, item) => sum + Number(item.amountAccumulated || 0), 0);
+    const rows = fines.map(fine => { const loan = this.loans.getById(fine.loanId); const book = loan ? this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode)) : null; return { fineId: fine.fineId, loanId: fine.loanId, title: book?.title || 'Unknown title', amount: Number(fine.amountAccumulated || 0), paymentStatus: fine.paymentStatus, dateCreated: fine.dateCreated, datePaid: fine.datePaid }; });
+    return success({ fines: rows, unpaidTotal, maxUnpaidFine: settings.maxUnpaidFine, blocked: unpaidTotal > settings.maxUnpaidFine });
+  }
+
   getFineSummary(now = new Date()) {
     const records = this.fines.getAll();
     const totalUnpaid = records.filter(item => item.paymentStatus === 'Unpaid').reduce((sum, item) => sum + Number(item.amountAccumulated || 0), 0);
@@ -436,6 +447,7 @@ export class CatalogueControl {
     this.patrons = new PatronRepository(adapter);
     this.staff = new StaffRepository(adapter);
     this.acquisitionRequests = new AcquisitionRequestRepository(adapter);
+    this.loans = new LoanRepository(adapter);
   }
 
   listCategories() {
@@ -499,7 +511,7 @@ export class CatalogueControl {
     if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
     const { isbn, title, author, category, copies = [] } = payload || {};
     if (!isbn || !title || !author || !category) return failure('VALIDATION_ERROR', 'Missing required fields');
-    const book = new Book(isbn, title, author, category, copies.map(copy => new BookCopy(copy.barcode, isbn, copy.shelfLocation, copy.conditionStatus || 'Good', copy.campus, copy.status || 'Available', Boolean(copy.courseReserve))));
+    const book = new Book(isbn, title, author, category, copies.map(copy => new BookCopy(copy.barcode, isbn, copy.shelfLocation, copy.conditionStatus || 'Good', copy.campus, copy.status || 'Available', Boolean(copy.courseReserve), copy.courseCode || null, copy.placedBy || null, copy.placedDate || null)));
     this.books.add(book);
     return success({ book });
   }
@@ -528,7 +540,7 @@ export class CatalogueControl {
     if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
     const { isbn, barcode, shelfLocation, conditionStatus, campus, status = 'Available', courseReserve = false } = payload || {};
     if (!isbn || !barcode || !shelfLocation || !campus) return failure('VALIDATION_ERROR', 'Missing required copy fields');
-    const copy = new BookCopy(barcode, isbn, shelfLocation, conditionStatus || 'Good', campus, status, courseReserve);
+    const copy = new BookCopy(barcode, isbn, shelfLocation, conditionStatus || 'Good', campus, status, courseReserve, null, null, null);
     this.books.addCopy(copy);
     return success({ copy });
   }
@@ -559,43 +571,33 @@ export class CatalogueControl {
     return success({ removed: true });
   }
 
-  placeOnCourseReserve(professorId, barcode) {
-    const patron = this.patrons.getById(professorId);
-    if (!patron || patron.constructor.name !== 'Professor') return failure('NOT_AUTHORISED', 'Only professors can place copies on course reserve');
-    const copy = this.books.findCopyByBarcode(barcode);
-    if (!copy) return failure('NOT_FOUND', 'Copy not found');
-    if (copy.status !== 'Available') return failure('COPY_NOT_AVAILABLE', 'Copy not available');
-    copy.courseReserve = true;
-    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode));
-    if (book) {
-      const index = book.copies.findIndex(itemCopy => itemCopy.barcode === barcode);
-      book.copies[index].courseReserve = true;
-      this.books.update(book.isbn, { copies: book.copies });
-    }
-    return success({ copy });
+  placeOnCourseReserve(professorId, barcode, courseCode) {
+    const professor = this.patrons.getById(professorId); if (!(professor instanceof Professor)) return failure('NOT_AUTHORISED', 'Only professors can place copies on course reserve');
+    const code = String(courseCode || '').trim(); if (!code) return failure('VALIDATION_ERROR', 'Course code is required'); if (code.length > 20 || !/^[A-Za-z0-9 -]+$/.test(code)) return failure('VALIDATION_ERROR', 'Course code must be 20 characters or fewer and use only letters, numbers, spaces and hyphens');
+    const copy = this.books.findCopyByBarcode(barcode); if (!copy) return failure('NOT_FOUND', 'Copy not found'); if (copy.status !== 'Available') return failure('COPY_NOT_AVAILABLE', 'Copy not available'); if (copy.courseReserve) return failure('VALIDATION_ERROR', 'Copy is already on course reserve');
+    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode)); const updated = { courseReserve: true, courseCode: code, placedBy: professorId, placedDate: new Date() }; Object.assign(copy, updated); if (book) this.books.update(book.isbn, { copies: book.copies }); return success({ copy });
   }
 
   removeFromCourseReserve(professorId, barcode) {
-    const patron = this.patrons.getById(professorId);
-    if (!patron || patron.constructor.name !== 'Professor') return failure('NOT_AUTHORISED', 'Only professors can manage course reserves');
-    const copy = this.books.findCopyByBarcode(barcode);
-    if (!copy) return failure('NOT_FOUND', 'Copy not found');
-    if (!copy.courseReserve) return failure('VALIDATION_ERROR', 'Copy is not on course reserve');
-    copy.courseReserve = false;
-    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode));
-    if (book) {
-      const index = book.copies.findIndex(itemCopy => itemCopy.barcode === barcode);
-      book.copies[index].courseReserve = false;
-      this.books.update(book.isbn, { copies: book.copies });
-    }
-    return success({ copy });
+    const professor = this.patrons.getById(professorId); if (!(professor instanceof Professor)) return failure('NOT_AUTHORISED', 'Only professors can manage course reserves');
+    const copy = this.books.findCopyByBarcode(barcode); if (!copy) return failure('NOT_FOUND', 'Copy not found'); if (!copy.courseReserve) return failure('VALIDATION_ERROR', 'Copy is not on course reserve'); if (copy.placedBy !== professorId) return failure('NOT_AUTHORISED', 'Only the placing professor can remove this copy'); if (copy.status !== 'Available') return failure('COPY_NOT_AVAILABLE', 'Copy is not available');
+    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode)); Object.assign(copy, { courseReserve: false, courseCode: null, placedBy: null, placedDate: null }); if (book) this.books.update(book.isbn, { copies: book.copies }); return success({ copy });
   }
+
+  listCourseReserveForProfessor(professorId) {
+    const professor = this.patrons.getById(professorId); if (!(professor instanceof Professor)) return failure('NOT_AUTHORISED', 'Only professors can view course reserves');
+    const loans = this.loans?.getAll ? this.loans.getAll() : [];
+    const items = this.books.getAll().flatMap(book => book.copies.filter(copy => copy.courseReserve && copy.placedBy === professorId).map(copy => ({ title: book.title, isbn: book.isbn, barcode: copy.barcode, campus: copy.campus, status: copy.status, courseCode: copy.courseCode, placedDate: copy.placedDate, timesBorrowed: loans.filter(loan => loan.barcode === copy.barcode && copy.placedDate && new Date(loan.issueDate) >= new Date(copy.placedDate)).length, canRemove: copy.status === 'Available' })));
+    return success(items);
+  }
+
+  listPlaceableCopies(isbn) { const book = this.books.findByIsbn(isbn); if (!book) return failure('NOT_FOUND', 'Book not found'); return success(book.copies.filter(copy => copy.status === 'Available' && !copy.courseReserve)); }
 
   requestNewAcquisition(professorId, payload = {}) {
     const patron = this.patrons.getById(professorId);
     if (!patron || patron.constructor.name !== 'Professor') return failure('NOT_AUTHORISED', 'Only professors can request acquisitions');
     const { title, author, isbn = null, justification, estimatedCost = null } = payload;
-    if (!title || !author || !justification) return failure('VALIDATION_ERROR', 'Missing required acquisition fields');
+    if (!String(title || '').trim() || !String(author || '').trim()) return failure('VALIDATION_ERROR', 'Title and author are required'); if (String(justification || '').trim().length < 10) return failure('VALIDATION_ERROR', 'Justification must be at least 10 characters'); if (estimatedCost !== null && (typeof estimatedCost !== 'number' || estimatedCost < 0)) return failure('VALIDATION_ERROR', 'Estimated cost must be non-negative');
     const request = new AcquisitionRequest(
       readableId('AR', this.acquisitionRequests.getAll().length + 1),
       professorId,
@@ -610,6 +612,8 @@ export class CatalogueControl {
     this.acquisitionRequests.add(request);
     return success({ request });
   }
+
+  listMyAcquisitionRequests(professorId) { const professor = this.patrons.getById(professorId); if (!(professor instanceof Professor)) return failure('NOT_AUTHORISED', 'Only professors can view acquisition requests'); return success(this.acquisitionRequests.getAll().filter(item => item.professorId === professorId).sort((left, right) => new Date(right.dateCreated) - new Date(left.dateCreated))); }
 
   listAcquisitionRequests(actor) {
     const staffMember = getStaffMember(this.staff, actor);

@@ -46,3 +46,8 @@ The control-layer implementation keeps all business decisions in the `js/busines
 ## Demo passwords and sessions
 
 The client-side demonstration uses `culms-demo` as the default password for seeded accounts. Changed passwords require at least eight characters, one letter and one number, and cannot equal the current password. Credentials and sessions remain in the browser; this is not a security boundary and a real deployment requires server-side authentication. Sessions expire after eight hours.
+
+
+## Course reserves
+
+Only professors may place an available copy on course reserve. A course code is required and may contain letters, numbers, spaces and hyphens, up to 20 characters. Only the professor who placed a reserve may remove it, and removal is allowed only while the copy is available. Course-reserve loans use the configured course-reserve duration and cannot be renewed.

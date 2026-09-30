@@ -183,7 +183,7 @@ test('access and navigation allow catalogue pages safely', async () => {
   assert.equal(safeNextUrl('//example.com/book.html', null), 'index.html');
   assert.equal(safeNextUrl('book.html%2f..%2fadmin.html', null), 'index.html');
   assert.equal(safeNextUrl('unknown.html?x=1', null), 'index.html');
-  for (const items of Object.values(navConfig)) for (const item of items.filter(entry => entry.enabled)) assert.equal(fs.existsSync(`./${item.href}`), true);
+  for (const items of Object.values(navConfig)) for (const item of items.filter(entry => entry.enabled)) { const entries = item.children || [item]; for (const entry of entries.filter(child => child.enabled)) assert.equal(fs.existsSync('./' + entry.href), true); }
 });
 
 
@@ -224,4 +224,27 @@ test('loan and reservation format helpers classify statuses', async () => {
   assert.equal(loanStatusLabel({ dueDate: '2026-09-29T00:00:00Z', isCourseReserve: false }, now), 'Overdue by 1 days');
   assert.equal(loanStatusLabel({ dueDate: '2026-10-20T00:00:00Z', isCourseReserve: true }, now), 'Course reserve');
   assert.equal(reservationStatusLabel('Ready'), 'Ready');
+});
+
+
+test("student and professor self-service business views enforce 5C rules", () => {
+  const culms = seedWithAdapter();
+  const history = culms.borrowing.getLoanHistory("STU-0002");
+  assert.equal(history.ok, true);
+  assert.equal(history.data[0].status, "Overdue");
+  assert.equal(history.data[0].fineAmount, 64);
+
+  const fines = culms.fines.getFineView("STU-0002");
+  assert.equal(fines.ok, true);
+  assert.equal(fines.data.unpaidTotal, 64);
+  assert.equal(fines.data.blocked, true);
+
+  const reserves = culms.catalogue.listCourseReserveForProfessor("STAFF-0004");
+  assert.equal(reserves.ok, true);
+  assert.equal(reserves.data[0].courseCode, "IS-230");
+  assert.equal(culms.catalogue.placeOnCourseReserve("STU-0001", reserves.data[0].barcode, "IS-230").error.code, "NOT_AUTHORISED");
+
+  assert.equal(culms.catalogue.requestNewAcquisition("STAFF-0004", { title: "New title", author: "Author", justification: "Useful for teaching", estimatedCost: 20 }).ok, true);
+  assert.equal(culms.catalogue.requestNewAcquisition("STAFF-0004", { title: "New title", author: "Author", justification: "short" }).error.code, "VALIDATION_ERROR");
+  assert.equal(culms.catalogue.listMyAcquisitionRequests("STAFF-0004").data.length, 2);
 });

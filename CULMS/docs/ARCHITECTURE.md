@@ -51,3 +51,8 @@ Data modules import only within `js/data/`; they do not import business or prese
 Credentials are stored as browser-local PBKDF2 metadata in the data layer. Seeded accounts use the configured `culms-demo` default until a user changes the password; only the salt, hash, iteration count and update timestamp are persisted after a change. This is a client-side demonstration, not real authentication: a production deployment requires a secure server. Sessions store an account id, role and start time and expire after eight hours.
 
 `account.html`, `my-loans.html` and `my-reservations.html` are guarded presentation pages. Their page modules call business controls for password changes, loan renewals and reservation cancellation, and dispatch `culms:changed` so the shared notification dropdown refreshes.
+
+
+## Student and professor self-service
+
+`my-fines.html` and `my-history.html` expose patron views backed by `FineControl.getFineView` and `BorrowingControl.getLoanHistory`. Professors additionally use `course-reserve.html` and `acquisitions.html`; placement, removal, ownership, copy availability and request validation remain business-layer decisions. Navigation groups these pages under the `My Library` dropdown while preserving role-specific access guards.
