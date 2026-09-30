@@ -49,8 +49,9 @@ CULMS is designed as a digital, object-oriented library system for online catalo
 | Seeded demonstration data | Sample books, copies, patrons, staff, loans, reservations, fines, notifications and settings can populate storage. | Implemented |
 | Catalogue search | Public catalogue search supports title, author, ISBN, campus, category, availability filtering, sorting and pagination. | Implemented |
 | Business rules | Core eligibility checks, borrow/return logic, renewals, reservations, fines, catalogue workflows, reporting and staff permissions are implemented in the business layer. | Implemented |
-| Login and authentication | Browser-only demo login, sessions, role guards and notifications are implemented. | Implemented |
+| Login and authentication | Client-side demo login accepts seeded IDs or emails, supports password changes, session expiry and notifications. | Implemented |
 | Book detail and reservations | Public book details, campus/copy availability and student or professor reservations are implemented. | Implemented |
+| My loans and reservations | Students and professors can review, renew eligible loans and manage reservations. | Implemented |
 | Role-specific screens | Role home pages are available; detailed workflows remain planned. | In progress |
 | Borrowing history and reporting | Loan data structures exist; user history views and administrator reports are planned. | Planned |
 | Backend and shared database | The project currently uses browser storage and has no backend or shared server database. | Planned |
@@ -199,18 +200,7 @@ Because the application uses browser `localStorage` and has no backend, each bro
 
 ## Demo accounts and login
 
-The application uses a simulated browser-only login with no passwords. Demo data remains in the current browser.
-
-| Role | Demo accounts |
-| --- | --- |
-| Student | Chanda Mwansa (`STU-0001`), Martha Chileshe (`STU-0002`), Brian Phiri (`STU-0003`), Natasha Banda (`STU-0004`) |
-| Professor | Dr. Joseph Mulenga (`STAFF-0004`), Prof. Ruth Tembo (`STAFF-0005`) |
-| Librarian | Moses Nkole (`LIB-0001`), Agnes Zulu (`LIB-0002`) |
-| Administrator | Peter Chanda (`ADM-0001`) |
-
-## Demo accounts and login
-
-The application uses a simulated browser-only login with no passwords. Demo data remains in the current browser.
+The application uses a simulated client-side login. The default password for every seeded account is `culms-demo`; users can change it from My Account. Credentials and all data remain in the current browser. This is not real security; a production deployment requires a secure server-side authentication system.
 
 | Role | Demo accounts |
 | --- | --- |
@@ -226,6 +216,7 @@ The application uses a simulated browser-only login with no passwords. Demo data
 3. [x] Build the business layer and enforce borrowing, reservation and fine rules.
 4. [x] Build the application shell and working login flow.
 5A. [x] Build the public catalogue, book details and reserve action.
+5B. [x] Add password demo login, account management, student/professor loans and reservations.
 5. [ ] Build student and professor screens.
 6. [ ] Build librarian screens.
 7. [ ] Build administrator screens and reports.
