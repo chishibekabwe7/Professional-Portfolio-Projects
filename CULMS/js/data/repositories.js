@@ -1,4 +1,4 @@
-import { Book, BookCopy, Fine, LoanRecord, Notification, Patron, Professor, Reservation, Settings, Staff, Student } from './entities.js';
+import { AcquisitionRequest, Book, BookCopy, Fine, LoanRecord, Notification, Patron, Professor, Reservation, Settings, Staff, Student } from './entities.js';
 
 export const STORAGE_PREFIX = 'culms:v1:';
 export const SCHEMA_VERSION_KEY = `${STORAGE_PREFIX}schemaVersion`;
@@ -23,7 +23,7 @@ export class BaseRepository {
     /** @param {string} id @param {Partial<any>} changes @returns {any} */ update(id, changes) { const items = this.getAll(); const index = items.findIndex(item => this.idOf(item) === id); if (index < 0) throw new Error('Entity not found'); Object.assign(items[index], changes); this.save(items); return items[index]; }
     /** @param {string} id @returns {boolean} */ remove(id) { const items = this.getAll(); const next = items.filter(item => this.idOf(item) !== id); if (next.length === items.length) return false; this.save(next); return true; }
     /** @returns {void} */ clear() { this.adapter.remove(this.key); }
-    /** @param {any} item @returns {string} */ idOf(item) { return item.id || item.isbn || item.barcode || item.patronId || item.staffId || item.loanId || item.reservationId || item.fineId || item.notificationId; }
+    /** @param {any} item @returns {string} */ idOf(item) { return item.loanId || item.reservationId || item.fineId || item.notificationId || item.requestId || item.staffId || item.patronId || item.isbn || item.barcode || item.id; }
     /** @param {any[]} items @returns {void} */ save(items) { this.adapter.set(this.key, encode(items.map(item => item.toJSON()))); }
 }
 
@@ -44,6 +44,7 @@ export class LoanRepository extends BaseRepository { constructor(adapter) { supe
 export class ReservationRepository extends BaseRepository { constructor(adapter) { super(adapter, 'reservations', Reservation); } findPendingByIsbn(isbn) { return this.getAll().filter(item => item.isbn === isbn && item.status === 'Pending'); } findByPatron(id) { return this.getAll().filter(item => item.patronId === id); } }
 export class FineRepository extends BaseRepository { constructor(adapter) { super(adapter, 'fines', Fine); } findByPatron(id) { return this.getAll().filter(item => item.patronId === id); } findUnpaidByPatron(id) { return this.findByPatron(id).filter(item => item.paymentStatus === 'Unpaid'); } }
 export class NotificationRepository extends BaseRepository { constructor(adapter) { super(adapter, 'notifications', Notification); } }
+export class AcquisitionRequestRepository extends BaseRepository { constructor(adapter) { super(adapter, 'acquisitionRequests', AcquisitionRequest); } }
 export class SettingsRepository extends BaseRepository {
     constructor(adapter) { super(adapter, 'settings', Settings); }
     get() { return this.getAll()[0] || new Settings(); }

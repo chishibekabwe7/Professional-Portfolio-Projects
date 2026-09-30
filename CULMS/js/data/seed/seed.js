@@ -1,5 +1,5 @@
-import { Book, BookCopy, Fine, Librarian, LibraryAdministrator, LoanRecord, Notification, Professor, Reservation, Settings, Student } from '../entities.js';
-import { BookRepository, FineRepository, LoanRepository, NotificationRepository, PatronRepository, ReservationRepository, SCHEMA_VERSION_KEY, SettingsRepository, StaffRepository, migrate, readableId } from '../repositories.js';
+import { AcquisitionRequest, Book, BookCopy, Fine, Librarian, LibraryAdministrator, LoanRecord, Notification, PERMISSIONS, Professor, Reservation, Settings, Student } from '../entities.js';
+import { AcquisitionRequestRepository, BookRepository, FineRepository, LoanRepository, NotificationRepository, PatronRepository, ReservationRepository, SCHEMA_VERSION_KEY, SettingsRepository, StaffRepository, migrate, readableId } from '../repositories.js';
 
 export const campuses = ['Main Campus (Kitwe)', 'Medical School (Ndola)', 'Engineering Library'];
 const categories = ['Computing', 'Information Systems', 'Engineering', 'Medicine', 'Business', 'Mathematics', 'General'];
@@ -21,7 +21,7 @@ export function seedIfEmpty(adapter) { if (!adapter.get(`${SCHEMA_VERSION_KEY}se
 export function resetToSeed(adapter) {
     for (const key of adapter.keys()) if (key.startsWith('culms:v1:')) adapter.remove(key);
     migrate(adapter);
-    const books = new BookRepository(adapter), patrons = new PatronRepository(adapter), staff = new StaffRepository(adapter), loans = new LoanRepository(adapter), reservations = new ReservationRepository(adapter), fines = new FineRepository(adapter), notifications = new NotificationRepository(adapter), settings = new SettingsRepository(adapter);
+    const books = new BookRepository(adapter), patrons = new PatronRepository(adapter), staff = new StaffRepository(adapter), loans = new LoanRepository(adapter), reservations = new ReservationRepository(adapter), fines = new FineRepository(adapter), notifications = new NotificationRepository(adapter), settings = new SettingsRepository(adapter), acquisitionRequests = new AcquisitionRequestRepository(adapter);
     titles.forEach(([title, author, category], index) => {
         const isbn = `978-9982-${String(index + 1).padStart(5, '0')}`;
         const copies = [];
@@ -34,9 +34,9 @@ export function resetToSeed(adapter) {
     ];
     const professors = [new Professor('STAFF-0004', 'Dr. Joseph Mulenga', 'joseph.mulenga@cbu.ac.zm', campuses[2], 'Electrical Engineering'), new Professor('STAFF-0005', 'Prof. Ruth Tembo', 'ruth.tembo@cbu.ac.zm', campuses[1], 'Public Health')];
     [...students, ...professors].forEach(item => patrons.add(item));
-    staff.add(new Librarian('LIB-0001', 'Moses Nkole', 'moses.nkole@cbu.ac.zm', campuses[0], ['circulation', 'catalogue']));
-    staff.add(new Librarian('LIB-0002', 'Agnes Zulu', 'agnes.zulu@cbu.ac.zm', campuses[1], ['circulation', 'fines']));
-    staff.add(new LibraryAdministrator('ADM-0001', 'Peter Chanda', 'peter.chanda@cbu.ac.zm', campuses[0], ['users', 'settings', 'reports']));
+    staff.add(new Librarian('LIB-0001', 'Moses Nkole', 'moses.nkole@cbu.ac.zm', campuses[0], [PERMISSIONS.PROCESS_LOANS, PERMISSIONS.MANAGE_CATALOGUE, PERMISSIONS.MANAGE_FINES]));
+    staff.add(new Librarian('LIB-0002', 'Agnes Zulu', 'agnes.zulu@cbu.ac.zm', campuses[1], [PERMISSIONS.PROCESS_LOANS, PERMISSIONS.MANAGE_CATALOGUE, PERMISSIONS.MANAGE_FINES]));
+    staff.add(new LibraryAdministrator('ADM-0001', 'Peter Chanda', 'peter.chanda@cbu.ac.zm', campuses[0], Object.values(PERMISSIONS)));
     let loanNumber = 1;
     const issue = (patronId, isbn, daysAgo, duration, course = false) => { const copy = books.findCopiesByIsbn(isbn).find(item => item.status === 'Available'); if (!copy) throw new Error('Seed copy unavailable'); copy.updateStatus(course ? 'CourseReserve' : 'OnLoan'); books.removeCopy(copy.barcode); books.addCopy(copy); const loan = new LoanRecord(readableId('LN', loanNumber++), copy.barcode, patronId, ago(daysAgo), ahead(duration - daysAgo), null, false, course); loans.add(loan); return loan; };
     const regularIsbns = books.getAll().slice(0, 8).map(book => book.isbn);
@@ -47,6 +47,7 @@ export function resetToSeed(adapter) {
     fines.add(new Fine('FN-000001', 'LN-000002', 'STU-0002', 64, 'Unpaid', ago(4)));
     students[0].fineBalance = 0; students[1].fineBalance = 64; students[2].fineBalance = 0; students[3].fineBalance = 0; patrons.clear(); [...students, ...professors].forEach(item => patrons.add(item));
     notifications.add(new Notification('NT-000001', 'STU-0002', 'Your borrowing is blocked until your unpaid fines are reduced.', ago(1)));
+    acquisitionRequests.add(new AcquisitionRequest('AR-000001', 'STAFF-0004', 'Applied Data Structures', 'Jane Doe', 'Needed for the final-year research methods module.', '978-1-23456-111-1', 35, 'Pending', new Date()));
     settings.saveSettings(new Settings());
     adapter.set(`${SCHEMA_VERSION_KEY}seeded`, '1');
 }

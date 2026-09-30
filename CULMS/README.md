@@ -48,7 +48,7 @@ CULMS is designed as a digital, object-oriented library system for online catalo
 | Data layer | Repositories, JSON serialization, date rehydration, schema metadata and storage adapters are available. | Implemented |
 | Seeded demonstration data | Sample books, copies, patrons, staff, loans, reservations, fines, notifications and settings can populate storage. | Implemented |
 | Catalogue search | Repository-level search supports title, author and ISBN text plus campus filtering; the public page search form is currently presentational. | Implemented |
-| Business rules | Core eligibility checks and configurable settings exist in the data model; complete use-case services for borrowing, renewals, reservations and fines are planned. | Planned |
+| Business rules | Core eligibility checks, borrow/return logic, renewals, reservations, fines, catalogue workflows, reporting and staff permissions are implemented in the business layer. | Implemented |
 | Login and authentication | A login placeholder page exists, but authentication and session handling are not implemented. | Planned |
 | Role-specific screens | Student, professor, librarian and administrator workflows are planned. | Planned |
 | Borrowing history and reporting | Loan data structures exist; user history views and administrator reports are planned. | Planned |
@@ -200,7 +200,7 @@ Because the application uses browser `localStorage` and has no backend, each bro
 
 1. [x] Clean up the starter template and apply CULMS branding.
 2. [x] Build the domain model and data layer.
-3. [ ] Build the business layer and enforce borrowing, reservation and fine rules.
+3. [x] Build the business layer and enforce borrowing, reservation and fine rules.
 4. [ ] Build the application shell and working login flow.
 5. [ ] Build student and professor screens.
 6. [ ] Build librarian screens.

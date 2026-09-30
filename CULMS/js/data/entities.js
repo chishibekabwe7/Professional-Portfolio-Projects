@@ -5,8 +5,21 @@
 const copyStatuses = new Set(['Available', 'OnLoan', 'Reserved', 'CourseReserve']);
 const reservationStatuses = new Set(['Pending', 'Ready', 'Fulfilled', 'Expired', 'Cancelled']);
 const paymentStatuses = new Set(['Unpaid', 'Paid']);
+const acquisitionStatuses = new Set(['Pending', 'Approved', 'Rejected']);
 const date = value => value instanceof Date ? value : new Date(value);
 const iso = value => value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+
+export const PERMISSIONS = {
+    PROCESS_LOANS: 'PROCESS_LOANS',
+    MANAGE_CATALOGUE: 'MANAGE_CATALOGUE',
+    MANAGE_FINES: 'MANAGE_FINES',
+    VIEW_REPORTS: 'VIEW_REPORTS',
+    MANAGE_STAFF: 'MANAGE_STAFF',
+    APPROVE_ACQUISITIONS: 'APPROVE_ACQUISITIONS',
+    MANAGE_SETTINGS: 'MANAGE_SETTINGS'
+};
+
+export const PERMISSION_VALUES = Object.values(PERMISSIONS);
 
 /** Base entity with a stable JSON representation. */
 export class Entity {
@@ -60,6 +73,7 @@ export class Professor extends Patron {
 export class Staff extends Entity {
     /** @param {string} staffId @param {string} name @param {string} email @param {string} campus @param {string} role @param {string[]} permissions */
     constructor(staffId, name, email, campus, role, permissions = []) { super(); Object.assign(this, { staffId, name, email, campus, role, permissions }); }
+    hasPermission(permission) { return this.permissions.includes(permission); }
     static fromJSON(value) { return value.role === 'Librarian' ? Librarian.fromJSON(value) : value.role === 'LibraryAdministrator' ? LibraryAdministrator.fromJSON(value) : new Staff(value.staffId, value.name, value.email, value.campus, value.role, value.permissions); }
 }
 /** Librarian employee. */
@@ -102,11 +116,22 @@ export class Reservation extends Entity {
     toJSON() { return { ...super.toJSON(), dateCreated: iso(this.dateCreated), expirationDate: iso(this.expirationDate) }; }
     static fromJSON(value) { const item = new Reservation(value.reservationId, value.isbn, value.barcode, value.patronId, value.dateCreated, value.status, value.confirmationCode); item.expirationDate = date(value.expirationDate); return item; }
 }
+/** A library acquisition request submitted by a professor. */
+export class AcquisitionRequest extends Entity {
+    constructor(requestId, professorId, title, author, justification, isbn = null, estimatedCost = null, status = 'Pending', dateCreated = new Date()) {
+        super();
+        if (!acquisitionStatuses.has(status)) throw new RangeError(`Invalid acquisition status: ${status}`);
+        Object.assign(this, { requestId, professorId, title, author, isbn, justification, estimatedCost, status, dateCreated: date(dateCreated) });
+    }
+    toJSON() { return { ...super.toJSON(), dateCreated: iso(this.dateCreated) }; }
+    static fromJSON(value) { return new AcquisitionRequest(value.requestId, value.professorId, value.title, value.author, value.justification, value.isbn || null, value.estimatedCost ?? null, value.status || 'Pending', value.dateCreated); }
+}
+
 /** A fine associated with a loan. */
 export class Fine extends Entity {
-    constructor(fineId, loanId, patronId, amountAccumulated, paymentStatus = 'Unpaid', dateCreated = new Date()) { super(); if (!paymentStatuses.has(paymentStatus)) throw new RangeError(`Invalid payment status: ${paymentStatus}`); Object.assign(this, { fineId, loanId, patronId, amountAccumulated, paymentStatus, dateCreated: date(dateCreated) }); }
-    toJSON() { return { ...super.toJSON(), dateCreated: iso(this.dateCreated) }; }
-    static fromJSON(value) { return new Fine(value.fineId, value.loanId, value.patronId, value.amountAccumulated, value.paymentStatus, value.dateCreated); }
+    constructor(fineId, loanId, patronId, amountAccumulated, paymentStatus = 'Unpaid', dateCreated = new Date(), datePaid = null) { super(); if (!paymentStatuses.has(paymentStatus)) throw new RangeError(`Invalid payment status: ${paymentStatus}`); Object.assign(this, { fineId, loanId, patronId, amountAccumulated, paymentStatus, dateCreated: date(dateCreated), datePaid: datePaid ? date(datePaid) : null }); }
+    toJSON() { return { ...super.toJSON(), dateCreated: iso(this.dateCreated), datePaid: this.datePaid ? iso(this.datePaid) : null }; }
+    static fromJSON(value) { return new Fine(value.fineId, value.loanId, value.patronId, value.amountAccumulated, value.paymentStatus, value.dateCreated, value.datePaid || null); }
 }
 /** A message for a library user. */
 export class Notification extends Entity {
@@ -116,8 +141,8 @@ export class Notification extends Entity {
 }
 /** Configurable library rules. */
 export class Settings extends Entity {
-    constructor(values = {}) { super(); Object.assign(this, { fineRatePerDay: 2, maxUnpaidFine: 50, courseReserveLoanDays: 2, reservationHoldDays: 7, studentLimit: 5, professorLimit: 15, studentLoanDays: 14, professorLoanDays: 30, currency: 'K' }, values); }
+    constructor(values = {}) { super(); Object.assign(this, { fineRatePerDay: 2, maxUnpaidFine: 50, maxActiveReservations: 3, courseReserveLoanDays: 2, reservationHoldDays: 7, studentLimit: 5, professorLimit: 15, studentLoanDays: 14, professorLoanDays: 30, currency: 'K' }, values); }
     static fromJSON(value) { return new Settings(value); }
 }
 
-export const entityTypes = { Book, BookCopy, Student, Professor, Staff, Librarian, LibraryAdministrator, LoanRecord, Reservation, Fine, Notification, Settings };
+export const entityTypes = { Book, BookCopy, Student, Professor, Staff, Librarian, LibraryAdministrator, LoanRecord, Reservation, Fine, Notification, Settings, AcquisitionRequest };
