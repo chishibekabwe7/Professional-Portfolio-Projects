@@ -146,10 +146,16 @@ export class Credential extends Entity {
     toJSON() { return { ...super.toJSON(), updatedAt: iso(this.updatedAt) }; }
     static fromJSON(value) { return new Credential(value.accountId, value.role, value.salt, value.hash, value.iterations, value.updatedAt); }
 }
+/** A receipt for a completed fine payment. */
+export class Receipt extends Entity {
+    constructor(receiptId, patronId, fineIds = [], total = 0, paidBy, dateCreated = new Date()) { super(); Object.assign(this, { receiptId, patronId, fineIds, total, paidBy, date: date(dateCreated) }); }
+    toJSON() { return { ...super.toJSON(), date: iso(this.date) }; }
+    static fromJSON(value) { return new Receipt(value.receiptId, value.patronId, value.fineIds || [], value.total, value.paidBy, value.date); }
+}
 /** Configurable library rules. */
 export class Settings extends Entity {
     constructor(values = {}) { super(); Object.assign(this, { fineRatePerDay: 2, maxUnpaidFine: 50, maxActiveReservations: 3, courseReserveLoanDays: 2, reservationHoldDays: 7, studentLimit: 5, professorLimit: 15, studentLoanDays: 14, professorLoanDays: 30, currency: 'K', defaultDemoPassword: 'culms-demo' }, values); }
     static fromJSON(value) { return new Settings(value); }
 }
 
-export const entityTypes = { Credential, Book, BookCopy, Student, Professor, Staff, Librarian, LibraryAdministrator, LoanRecord, Reservation, Fine, Notification, Settings, AcquisitionRequest };
+export const entityTypes = { Credential, Book, BookCopy, Student, Professor, Staff, Librarian, LibraryAdministrator, LoanRecord, Reservation, Fine, Notification, Receipt, Settings, AcquisitionRequest };

@@ -53,6 +53,7 @@ CULMS is designed as a digital, object-oriented library system for online catalo
 | Book detail and reservations | Public book details, campus/copy availability and student or professor reservations are implemented. | Implemented |
 | My loans and reservations | Students and professors can review, renew eligible loans and manage reservations. | Implemented |
 | Librarian circulation desk | Librarians can preview and process checkout/return transactions, review overdue loans and send reminders. | Implemented |
+| Catalogue management and fines desk | Librarians can manage books and copies, record fine payments and print receipts. | Implemented |
 | Student and professor self-service | My Fines, My History, Course Reserve and Acquisition Requests complete the student and professor side. | Implemented |
 | Role-specific screens | Role home pages are available; detailed workflows remain planned. | In progress |
 | Borrowing history and reporting | Students and professors can review loan history; administrator reports remain planned. | Implemented |
@@ -221,6 +222,7 @@ The application uses a simulated client-side login. The default password for eve
 5B. [x] Add password demo login, account management, student/professor loans and reservations.
 5C. [x] Complete student and professor self-service screens.
 6A. [x] Add librarian checkout, return, overdue review and reminders.
+6B. [x] Complete catalogue management and the fines desk.
 5. [ ] Build student and professor screens.
 6. [ ] Build librarian screens.
 7. [ ] Build administrator screens and reports.

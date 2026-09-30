@@ -1,7 +1,8 @@
-import { AcquisitionRequest, Credential, Book, BookCopy, Fine, LoanRecord, Notification, Patron, Professor, Reservation, Settings, Staff, Student } from './entities.js';
+import { AcquisitionRequest, Credential, Book, BookCopy, Fine, LoanRecord, Notification, Patron, Professor, Receipt, Reservation, Settings, Staff, Student } from './entities.js';
 
 export const STORAGE_PREFIX = 'culms:v1:';
 export const SCHEMA_VERSION_KEY = `${STORAGE_PREFIX}schemaVersion`;
+export const DATA_SCHEMA_VERSION = '2';
 
 /** @param {string} prefix @returns {string} */
 const keyFor = prefix => `${STORAGE_PREFIX}${prefix}`;
@@ -23,7 +24,7 @@ export class BaseRepository {
     /** @param {string} id @param {Partial<any>} changes @returns {any} */ update(id, changes) { const items = this.getAll(); const index = items.findIndex(item => this.idOf(item) === id); if (index < 0) throw new Error('Entity not found'); Object.assign(items[index], changes); this.save(items); return items[index]; }
     /** @param {string} id @returns {boolean} */ remove(id) { const items = this.getAll(); const next = items.filter(item => this.idOf(item) !== id); if (next.length === items.length) return false; this.save(next); return true; }
     /** @returns {void} */ clear() { this.adapter.remove(this.key); }
-    /** @param {any} item @returns {string} */ idOf(item) { return item.accountId || item.loanId || item.reservationId || item.fineId || item.notificationId || item.requestId || item.staffId || item.patronId || item.isbn || item.barcode || item.id; }
+    /** @param {any} item @returns {string} */ idOf(item) { return item.accountId || item.fineId || item.receiptId || item.loanId || item.reservationId || item.notificationId || item.requestId || item.staffId || item.patronId || item.isbn || item.barcode || item.id; }
     /** @param {any[]} items @returns {void} */ save(items) { this.adapter.set(this.key, encode(items.map(item => item.toJSON()))); }
 }
 
@@ -46,6 +47,7 @@ export class FineRepository extends BaseRepository { constructor(adapter) { supe
 export class NotificationRepository extends BaseRepository { constructor(adapter) { super(adapter, 'notifications', Notification); } }
 export class CredentialRepository extends BaseRepository { constructor(adapter) { super(adapter, 'credentials', Credential); } }
 export class AcquisitionRequestRepository extends BaseRepository { constructor(adapter) { super(adapter, 'acquisitionRequests', AcquisitionRequest); } }
+export class ReceiptRepository extends BaseRepository { constructor(adapter) { super(adapter, 'receipts', Receipt); } findByPatron(id) { return this.getAll().filter(item => item.patronId === id); } }
 export class SettingsRepository extends BaseRepository {
     constructor(adapter) { super(adapter, 'settings', Settings); }
     get() { return this.getAll()[0] || new Settings(); }
@@ -53,4 +55,4 @@ export class SettingsRepository extends BaseRepository {
 }
 
 /** Initialize storage metadata and invoke the current no-op migration hook. @param {any} adapter @returns {void} */
-export function migrate(adapter) { if (!adapter.get(SCHEMA_VERSION_KEY)) adapter.set(SCHEMA_VERSION_KEY, '1'); }
+export function migrate(adapter) { if (adapter.get(SCHEMA_VERSION_KEY) !== DATA_SCHEMA_VERSION) adapter.set(SCHEMA_VERSION_KEY, DATA_SCHEMA_VERSION); }

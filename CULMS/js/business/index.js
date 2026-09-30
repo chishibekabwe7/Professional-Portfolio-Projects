@@ -5,6 +5,7 @@ import {
   BookCopy,
   Fine,
   Notification,
+  Receipt,
   PERMISSIONS,
   Reservation,
   Settings,
@@ -21,6 +22,7 @@ import {
   ReservationRepository,
   FineRepository,
   NotificationRepository,
+  ReceiptRepository,
   SettingsRepository,
   AcquisitionRequestRepository,
   CredentialRepository,
@@ -48,6 +50,9 @@ const failure = (code, message) => ({ ok: false, error: { code, message } });
 const addDays = (date, amount) => { const next = new Date(date); next.setDate(next.getDate() + amount); return next; };
 const asDate = value => value instanceof Date ? new Date(value) : new Date(value);
 const asActorId = actor => typeof actor === 'string' ? actor : actor?.staffId || actor?.patronId || actor?.id || null;
+export function isValidIsbn(value) { const compact = String(value || '').replace(/[ -]/g, ''); return /^(?:\d{9}[\dX]|\d{13})$/.test(compact); }
+const normalizeIsbn = value => String(value || '').replace(/[ -]/g, '');
+const validConditions = new Set(['Good', 'Fair', 'Poor', 'Damaged']);
 const getStaffMember = (staffRepo, actor) => {
   const actorId = asActorId(actor);
   if (!actorId) return null;
@@ -418,6 +423,8 @@ export class FineControl {
     this.fines = new FineRepository(adapter);
     this.loans = new LoanRepository(adapter);
     this.staff = new StaffRepository(adapter);
+    this.books = new BookRepository(adapter);
+    this.receipts = new ReceiptRepository(adapter);
     this.settingsRepo = new SettingsRepository(adapter);
   }
 
@@ -440,24 +447,32 @@ export class FineControl {
     return success(sum);
   }
 
-  recordPayment(fineId, actor, now = new Date()) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_FINES)) {
-      return failure('NOT_AUTHORISED', 'Not authorised');
-    }
-    const fine = this.fines.getById(fineId);
-    if (!fine) return failure('NOT_FOUND', 'Fine not found');
-    if (fine.paymentStatus === 'Paid') return failure('VALIDATION_ERROR', 'Fine is already paid');
-    fine.paymentStatus = 'Paid';
-    fine.datePaid = asDate(now);
-    this.fines.update(fineId, { paymentStatus: 'Paid', datePaid: fine.datePaid });
-    const patron = this.patrons.getById(fine.patronId);
-    if (patron) {
-      patron.fineBalance = Math.max(0, patron.fineBalance - Number(fine.amountAccumulated || 0));
-      this.patrons.update(patron.patronId, { fineBalance: patron.fineBalance });
-    }
-    return success({ fine });
+  recordPaymentsForPatron(actor, patronId, fineIds, now = new Date()) {
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.MANAGE_FINES)) return failure('NOT_AUTHORISED', 'Not authorised');
+    const patron = this.patrons.getById(patronId); if (!patron) return failure('NOT_FOUND', 'Patron not found');
+    const ids = [...new Set(Array.isArray(fineIds) ? fineIds : [])]; if (!ids.length) return failure('VALIDATION_ERROR', 'Select at least one fine');
+    const selected = ids.map(id => this.fines.getById(id));
+    if (selected.some(fine => !fine || fine.patronId !== patronId)) return failure('VALIDATION_ERROR', 'All selected fines must belong to the patron');
+    if (selected.some(fine => fine.paymentStatus !== 'Unpaid')) return failure('VALIDATION_ERROR', 'All selected fines must be unpaid');
+    const current = asDate(now); const total = selected.reduce((sum, fine) => sum + Number(fine.amountAccumulated || 0), 0);
+    for (const fine of selected) this.fines.update(fine.fineId, { paymentStatus: 'Paid', datePaid: current });
+    patron.fineBalance = Math.max(0, Number((patron.fineBalance - total).toFixed(2))); this.patrons.update(patron.patronId, { fineBalance: patron.fineBalance });
+    const receipt = new Receipt(readableId('RC', this.receipts.getAll().length + 1), patronId, selected.map(fine => fine.fineId), total, asActorId(actor), current); this.receipts.add(receipt);
+    const lines = selected.map(fine => { const loan = this.loans.getById(fine.loanId); const book = loan ? this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode)) : null; return { fineId: fine.fineId, title: book?.title || 'Unknown title', amount: Number(fine.amountAccumulated || 0) }; });
+    return success({ receipt, patron: { id: patron.patronId, name: patron.name }, lines, total, receivedBy: staffMember.name });
   }
+
+  recordPayment(fineId, actor, now = new Date()) {
+    const fine = this.fines.getById(fineId); if (!fine) return failure('NOT_FOUND', 'Fine not found');
+    return this.recordPaymentsForPatron(actor, fine.patronId, [fineId], now);
+  }
+
+  listPatronsWithUnpaidFines(limit = 10) {
+    const settings = this.settingsRepo.get(); const rows = this.patrons.getAll().map(patron => { const fines = this.fines.findUnpaidByPatron(patron.patronId); const total = fines.reduce((sum, fine) => sum + Number(fine.amountAccumulated || 0), 0); return { id: patron.patronId, name: patron.name, type: patron.constructor.name, campus: patron.campus, unpaidTotal: total, unpaidCount: fines.length, blocked: total > settings.maxUnpaidFine }; }).filter(row => row.unpaidCount).sort((a,b) => b.unpaidTotal - a.unpaidTotal); return success(rows.slice(0, Math.max(0, limit)));
+  }
+
+  getReceipt(receiptId) { const receipt = this.receipts.getById(receiptId); return receipt ? success(receipt) : failure('NOT_FOUND', 'Receipt not found'); }
+  listReceiptsForPatron(patronId) { return success(this.receipts.findByPatron(patronId)); }
 
   getFineView(patronId) {
     const patron = this.patrons.getById(patronId); if (!patron) return failure('NOT_FOUND', 'Patron not found');
@@ -470,7 +485,8 @@ export class FineControl {
     const records = this.fines.getAll();
     const totalUnpaid = records.filter(item => item.paymentStatus === 'Unpaid').reduce((sum, item) => sum + Number(item.amountAccumulated || 0), 0);
     const totalCollected = records.filter(item => item.paymentStatus === 'Paid').reduce((sum, item) => sum + Number(item.amountAccumulated || 0), 0);
-    return success({ totalUnpaid, totalCollected, unpaidCount: records.filter(item => item.paymentStatus === 'Unpaid').length, collectedCount: records.filter(item => item.paymentStatus === 'Paid').length });
+    const blockedPatrons = this.listPatronsWithUnpaidFines(Number.MAX_SAFE_INTEGER).data.filter(item => item.blocked).length;
+    return success({ totalUnpaid, totalCollected, unpaidCount: records.filter(item => item.paymentStatus === 'Unpaid').length, collectedCount: records.filter(item => item.paymentStatus === 'Paid').length, blockedPatrons });
   }
 }
 
@@ -540,70 +556,37 @@ export class CatalogueControl {
     return success({ ...book.toJSON(), copies: book.copies.map(copy => ({ ...copy.toJSON() })) });
   }
 
-  addBook(actor, payload) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
-    const { isbn, title, author, category, copies = [] } = payload || {};
-    if (!isbn || !title || !author || !category) return failure('VALIDATION_ERROR', 'Missing required fields');
-    const book = new Book(isbn, title, author, category, copies.map(copy => new BookCopy(copy.barcode, isbn, copy.shelfLocation, copy.conditionStatus || 'Good', copy.campus, copy.status || 'Available', Boolean(copy.courseReserve), copy.courseCode || null, copy.placedBy || null, copy.placedDate || null)));
-    this.books.add(book);
-    return success({ book });
+  nextBarcode() { const numbers = this.books.getAll().flatMap(book => book.copies).map(copy => Number(String(copy.barcode).match(/^BC-(\d+)$/)?.[1] || 0)); return `BC-${String(Math.max(0, ...numbers) + 1).padStart(5, '0')}`; }
+
+  addBook(actor, payload = {}) {
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
+    const { isbn, title, author, category, initialCopies = [], copies } = payload; const sourceCopies = initialCopies.length ? initialCopies : (copies || []);
+    if (!isValidIsbn(isbn)) return failure('VALIDATION_ERROR', 'ISBN must contain 10 or 13 digits'); if (String(title || '').trim().length < 2 || String(author || '').trim().length < 2 || !String(category || '').trim()) return failure('VALIDATION_ERROR', 'Title, author and category are required');
+    if (this.books.getAll().some(book => normalizeIsbn(book.isbn) === normalizeIsbn(isbn))) return failure('DUPLICATE_ISBN', 'A book with this ISBN already exists');
+    const campuses = this.listCampuses(); const invalid = sourceCopies.find(copy => !campuses.includes(copy.campus) || !String(copy.shelfLocation || '').trim() || !validConditions.has(copy.conditionStatus || 'Good')); if (invalid) return failure('VALIDATION_ERROR', 'Invalid initial copy details');
+    let next = Math.max(0, ...this.books.getAll().flatMap(book => book.copies).map(copy => Number(String(copy.barcode).replace('BC-', '')) || 0)); const built = sourceCopies.map(copy => new BookCopy(`BC-${String(++next).padStart(5, '0')}`, isbn, copy.shelfLocation, copy.conditionStatus || 'Good', copy.campus));
+    const book = new Book(String(isbn).trim(), String(title).trim(), String(author).trim(), String(category).trim(), built); this.books.add(book); return success({ book });
   }
 
-  updateBook(actor, isbn, changes) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
-    const book = this.books.findByIsbn(isbn);
-    if (!book) return failure('NOT_FOUND', 'Book not found');
-    const updated = this.books.update(isbn, changes);
-    return success({ book: updated });
+  updateBook(actor, isbn, changes = {}) {
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised'); const book = this.books.findByIsbn(isbn); if (!book) return failure('NOT_FOUND', 'Book not found');
+    const next = {}; for (const key of ['title', 'author', 'category']) if (changes[key] !== undefined) next[key] = String(changes[key]).trim(); if (next.title !== undefined && next.title.length < 2 || next.author !== undefined && next.author.length < 2 || next.category !== undefined && !next.category) return failure('VALIDATION_ERROR', 'Title, author and category are required'); const updated = this.books.update(isbn, next); return success({ book: updated });
   }
 
   deleteBook(actor, isbn) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
-    const book = this.books.findByIsbn(isbn);
-    if (!book) return failure('NOT_FOUND', 'Book not found');
-    if (book.copies.some(copy => copy.status === 'OnLoan' || copy.status === 'Reserved')) return failure('VALIDATION_ERROR', 'Book cannot be deleted while copies are on loan or reserved');
-    this.books.remove(isbn);
-    return success({ deleted: true });
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised'); const book = this.books.findByIsbn(isbn); if (!book) return failure('NOT_FOUND', 'Book not found'); if (book.copies.some(copy => copy.status === 'OnLoan' || copy.status === 'Reserved')) return failure('VALIDATION_ERROR', 'Book cannot be deleted while copies are on loan or reserved'); const deletedCopies = book.copies.length; this.books.remove(isbn); return success({ deleted: true, deletedCopies });
   }
 
-  addCopy(actor, payload) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
-    const { isbn, barcode, shelfLocation, conditionStatus, campus, status = 'Available', courseReserve = false } = payload || {};
-    if (!isbn || !barcode || !shelfLocation || !campus) return failure('VALIDATION_ERROR', 'Missing required copy fields');
-    const copy = new BookCopy(barcode, isbn, shelfLocation, conditionStatus || 'Good', campus, status, courseReserve, null, null, null);
-    this.books.addCopy(copy);
-    return success({ copy });
+  addCopy(actor, isbn, payload = {}) {
+    if (typeof isbn === 'object') { payload = isbn; isbn = payload.isbn; }
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised'); const { campus, shelfLocation, conditionStatus = 'Good' } = payload; if (!this.listCampuses().includes(campus) || !String(shelfLocation || '').trim() || !validConditions.has(conditionStatus)) return failure('VALIDATION_ERROR', 'Invalid copy details'); const book = this.books.findByIsbn(isbn); if (!book) return failure('NOT_FOUND', 'Book not found'); const copy = new BookCopy(this.nextBarcode(), isbn, shelfLocation, conditionStatus, campus); this.books.addCopy(copy); return success({ copy });
   }
 
-  updateCopy(actor, barcode, changes) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
-    const copy = this.books.findCopyByBarcode(barcode);
-    if (!copy) return failure('NOT_FOUND', 'Copy not found');
-    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode));
-    if (!book) return failure('NOT_FOUND', 'Book not found');
-    const index = book.copies.findIndex(itemCopy => itemCopy.barcode === barcode);
-    Object.assign(book.copies[index], changes);
-    this.books.update(book.isbn, { copies: book.copies });
-    return success({ copy: book.copies[index] });
+  updateCopy(actor, barcode, changes = {}) {
+    const staffMember = getStaffMember(this.staff, actor); if (!hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised'); const copy = this.books.findCopyByBarcode(barcode); if (!copy) return failure('NOT_FOUND', 'Copy not found'); if (Object.keys(changes).some(key => !['campus', 'shelfLocation', 'conditionStatus'].includes(key))) return failure('VALIDATION_ERROR', 'Copy status cannot be edited by hand'); if (changes.conditionStatus !== undefined && !validConditions.has(changes.conditionStatus)) return failure('VALIDATION_ERROR', 'Invalid condition'); if (changes.campus !== undefined && !this.listCampuses().includes(changes.campus)) return failure('VALIDATION_ERROR', 'Invalid campus'); if (changes.campus && changes.campus !== copy.campus && ['OnLoan', 'Reserved'].includes(copy.status)) return failure('VALIDATION_ERROR', 'Copy campus cannot change while it is on loan or reserved'); const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode)); const index = book.copies.findIndex(item => item.barcode === barcode); Object.assign(book.copies[index], changes); this.books.update(book.isbn, { copies: book.copies }); return success({ copy: book.copies[index] });
   }
 
-  removeCopy(actor, barcode) {
-    const staffMember = getStaffMember(this.staff, actor);
-    if (!staffMember || !hasPermission(staffMember, PERMISSIONS.MANAGE_CATALOGUE)) return failure('NOT_AUTHORISED', 'Not authorised');
-    const copy = this.books.findCopyByBarcode(barcode);
-    if (!copy) return failure('NOT_FOUND', 'Copy not found');
-    if (copy.status === 'OnLoan' || copy.status === 'Reserved') return failure('VALIDATION_ERROR', 'Copy cannot be removed while on loan or reserved');
-    const book = this.books.getAll().find(item => item.copies.some(itemCopy => itemCopy.barcode === barcode));
-    if (!book) return failure('NOT_FOUND', 'Book not found');
-    book.copies = book.copies.filter(itemCopy => itemCopy.barcode !== barcode);
-    this.books.update(book.isbn, { copies: book.copies });
-    return success({ removed: true });
-  }
+  listBooksForManagement({ query = '', category = '', campus = '', page = 1, pageSize = 10 } = {}) { const text = String(query).toLowerCase(); const all = this.books.getAll().filter(book => (!text || [book.title, book.author, book.isbn].some(value => String(value).toLowerCase().includes(text))) && (!category || book.category === category) && (!campus || book.copies.some(copy => copy.campus === campus))).map(book => ({ isbn: book.isbn, title: book.title, author: book.author, category: book.category, totalCopies: book.copies.length, availableCopies: book.copies.filter(copy => copy.status === 'Available').length, onLoanCopies: book.copies.filter(copy => copy.status === 'OnLoan').length })); const start = Math.max(0, (Number(page) - 1) * Number(pageSize)); return success({ rows: all.slice(start, start + Number(pageSize)), total: all.length }); }
 
   placeOnCourseReserve(professorId, barcode, courseCode) {
     const professor = this.patrons.getById(professorId); if (!(professor instanceof Professor)) return failure('NOT_AUTHORISED', 'Only professors can place copies on course reserve');

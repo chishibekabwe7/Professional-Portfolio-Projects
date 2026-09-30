@@ -58,3 +58,12 @@ Only professors may place an available copy on course reserve. A course code is 
 When an actor is supplied, checkout, return and overdue reminders require `PROCESS_LOANS`; legacy calls without an actor remain supported for existing integrations. Patron snapshots accept an ID or case-insensitive email. Preview operations validate the same eligibility, availability, due-date, reservation and fine rules as their write operations without changing storage.
 
 Overdue reminders can be sent only for active overdue loans and only once per loan within 24 hours. The reminder timestamp is persisted on the loan, and the patron receives an overdue notice containing the title and due date. Overdue listings expose campus, days overdue, projected fine at the current rate, and the last reminder timestamp.
+
+
+## Catalogue management
+
+ISBN validation accepts 10 or 13 digits after removing spaces and hyphens, with `X` permitted as the ISBN-10 final character; checksums are not evaluated. New books validate all initial copies before any record is created. Barcodes are sequential and unique. Staff may edit title, author and category, while copy status is controlled by circulation workflows; campus changes are blocked for on-loan and reserved copies. Books and copies cannot be deleted while affected copies are on loan or reserved.
+
+## Fine payments and receipts
+
+Only staff with `MANAGE_FINES` may record payments. A payment request must contain unpaid fines belonging to the selected patron; the whole request is rejected if any selected fine is invalid or already paid. Each fine is paid in full, the patron balance is reduced without going below zero, and a receipt records the patron, fine IDs, total, staff actor and date. There is no waiver function.

@@ -287,12 +287,17 @@ test('overdue desk reminders and filtered projections work', () => {
 test('librarian navigation is permission filtered and circulation routes are allowed', async () => {
   const { visibleNav } = await import('../../js/presentation/navConfig.js');
   const { safeNextUrl } = await import('../../js/business/access.js');
-  const withLoans = visibleNav('Librarian', ['PROCESS_LOANS']).map(item => item.href);
+  const withLoans = visibleNav('Librarian', ['PROCESS_LOANS']).flatMap(item => item.children || [item]).map(item => item.href);
   assert.ok(withLoans.includes('checkout.html') && withLoans.includes('return.html') && withLoans.includes('overdue.html'));
-  const withoutLoans = visibleNav('Librarian', []).map(item => item.href);
+  const withFines = visibleNav('Librarian', ['MANAGE_FINES']).flatMap(item => item.children || [item]).map(item => item.href);
+  assert.ok(withFines.includes('fines-desk.html'));
+  const withoutLoans = visibleNav('Librarian', []).flatMap(item => item.children || [item]).map(item => item.href);
   assert.equal(withoutLoans.includes('checkout.html'), false);
   assert.equal(safeNextUrl('checkout.html', { role: 'Librarian' }), 'checkout.html');
   assert.equal(safeNextUrl('checkout.html', { role: 'Administrator' }), 'admin.html');
+  assert.equal(safeNextUrl('manage-catalogue.html', { role: 'Librarian' }), 'manage-catalogue.html');
+  assert.equal(safeNextUrl('fines-desk.html', { role: 'Librarian' }), 'fines-desk.html');
+  assert.equal(safeNextUrl('book-copies.html?isbn=123', { role: 'Librarian' }), 'book-copies.html?isbn=123');
 });
 
 
@@ -301,4 +306,33 @@ test('loan reminder timestamps survive JSON round trips', () => {
   const loan = new LoanRecord('LN-TEST', 'BC-TEST', 'STU-0001', new Date('2026-09-01'), new Date('2026-09-10'), null, false, false, reminder);
   const restored = LoanRecord.fromJSON(loan.toJSON());
   assert.equal(restored.lastReminderAt.toISOString(), reminder.toISOString());
+});
+
+
+test('catalogue management validates ISBN, copies, permissions and pagination', () => {
+  const culms = seedWithAdapter();
+  assert.equal(culms.catalogue.addBook('STU-0001', { isbn: '1234567890', title: 'New', author: 'Author', category: 'Computing' }).error.code, 'NOT_AUTHORISED');
+  assert.equal(culms.catalogue.addBook('LIB-0001', { isbn: '123', title: 'New', author: 'Author', category: 'Computing' }).error.code, 'VALIDATION_ERROR');
+  const added = culms.catalogue.addBook('LIB-0001', { isbn: '123-456789-0', title: 'New Title', author: 'New Author', category: 'Computing', initialCopies: [{ campus: 'Main Campus (Kitwe)', shelfLocation: 'Z-1', conditionStatus: 'Good' }, { campus: 'Engineering Library', shelfLocation: 'Z-2', conditionStatus: 'Fair' }] });
+  assert.equal(added.ok, true); assert.equal(added.data.book.copies.length, 2); assert.equal(new Set(added.data.book.copies.map(copy => copy.barcode)).size, 2);
+  assert.equal(culms.catalogue.addBook('LIB-0001', { isbn: '1234567890', title: 'Duplicate', author: 'Author', category: 'Computing' }).error.code, 'DUPLICATE_ISBN');
+  const invalid = culms.catalogue.addBook('LIB-0001', { isbn: '1234567891', title: 'Atomic', author: 'Author', category: 'Computing', initialCopies: [{ campus: 'Unknown', shelfLocation: 'X', conditionStatus: 'Good' }] });
+  assert.equal(invalid.ok, false); assert.equal(culms.catalogue.getBookDetail('1234567891').error.code, 'NOT_FOUND');
+  assert.equal(culms.catalogue.updateBook('LIB-0001', added.data.book.isbn, { isbn: '9999999999' }).ok, true); assert.equal(culms.catalogue.getBookDetail(added.data.book.isbn).data.isbn, added.data.book.isbn);
+  const copy = added.data.book.copies[0]; assert.equal(culms.catalogue.updateCopy('LIB-0001', copy.barcode, { status: 'OnLoan' }).error.code, 'VALIDATION_ERROR');
+  const page = culms.catalogue.listBooksForManagement({ query: 'New', page: 1, pageSize: 1 }); assert.equal(page.data.total, 1); assert.equal(page.data.rows.length, 1);
+  assert.equal(culms.catalogue.deleteBook('LIB-0001', added.data.book.isbn).data.deletedCopies, 2);
+});
+
+test('fine payments create receipts, enforce ownership and report blocked patrons', () => {
+  const culms = seedWithAdapter();
+  const fine = culms.fines.fines.getAll().find(item => item.patronId === 'STU-0002');
+  const paid = culms.fines.recordPaymentsForPatron('LIB-0001', 'STU-0002', [fine.fineId], new Date('2026-09-30'));
+  assert.equal(paid.ok, true); assert.equal(paid.data.receipt.receiptId, 'RC-000001'); assert.equal(paid.data.total, 64);
+  assert.equal(culms.fines.getReceipt(paid.data.receipt.receiptId).data.date instanceof Date, true); assert.equal(culms.fines.listReceiptsForPatron('STU-0002').data.length, 1);
+  assert.equal(culms.fines.recordPaymentsForPatron('LIB-0001', 'STU-0002', [fine.fineId]).error.code, 'VALIDATION_ERROR');
+  const second = culms.fines.fines.getAll().find(item => item.paymentStatus === 'Unpaid' && item.patronId !== 'STU-0002');
+  if (second) assert.equal(culms.fines.recordPaymentsForPatron('LIB-0001', 'STU-0002', [second.fineId]).error.code, 'VALIDATION_ERROR');
+  const summary = culms.fines.getFineSummary(); assert.equal(summary.data.blockedPatrons, 0);
+  assert.equal(culms.fines.recordPaymentsForPatron('STU-0001', 'STU-0002', ['FN-000001']).error.code, 'NOT_AUTHORISED');
 });

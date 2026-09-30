@@ -61,3 +61,8 @@ Credentials are stored as browser-local PBKDF2 metadata in the data layer. Seede
 ## Librarian circulation desk
 
 `checkout.html`, `return.html` and `overdue.html` are guarded librarian pages backed by `BorrowingControl`. The desk modules use patron and copy preview methods before writes, render the checkout stepper and return/overdue tables with escaped values, and pass the signed-in staff actor to permission-enforced business operations. `navConfig.js` gates circulation links by `PROCESS_LOANS`; planned catalogue and fines desk entries remain disabled.
+
+
+## Catalogue management and fines desk
+
+`manage-catalogue.html` and `book-copies.html` use `CatalogueControl` for permission-checked book and copy maintenance, validation and pagination. `fines-desk.html` uses `FineControl` for whole-fine payments, patron summaries and receipt history. Receipt data is persisted through `ReceiptRepository`; receipts are the only print-visible section, using Bootstrap `d-print-none` and `d-print-block` utilities with no stylesheet changes.
