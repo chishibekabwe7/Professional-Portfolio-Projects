@@ -40,3 +40,7 @@ Data modules import only within `js/data/`; they do not import business or prese
 ## Browser session and navigation flow
 
 `js/presentation/app.js` creates the browser instance through the business bootstrap, while `session.js` stores only an account id and role. Protected pages call `guard.js` before revealing their main content. The guard re-resolves the full user through `AuthControl`, redirects guests to `login.html`, and redirects unauthorized users to their role home with a toast. `navConfig.js` describes enabled links and planned screens without rendering pages that do not exist. Presentation code imports business modules only; the bootstrap is the single business-layer entry point that is allowed to construct the browser storage adapter.
+
+## Public catalogue modules
+
+`books.html` and `book.html` are public presentation pages. Their page modules call the business catalogue and reservation controls through `app.js`; they do not import data modules or access storage directly. `ui/render.js` escapes every interpolated value before dynamic markup is assigned, while `ui/format.js` contains DOM-free date, money, availability and query-string helpers. Catalogue search state is represented in the URL so filters, sorting, pagination and browser history remain linkable.

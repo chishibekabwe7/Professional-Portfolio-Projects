@@ -362,6 +362,10 @@ export class ReservationControl {
     const items = this.reservations.getAll().filter(item => item.patronId === patronId);
     return success(items);
   }
+
+  getActiveReservation(patronId, isbn) {
+    return this.getReservationsForPatron(patronId).data.find(item => item.isbn === isbn && ['Pending', 'Ready'].includes(item.status)) || null;
+  }
 }
 
 export class FineControl {
@@ -429,7 +433,15 @@ export class CatalogueControl {
     this.acquisitionRequests = new AcquisitionRequestRepository(adapter);
   }
 
-  searchBooks({ query = '', campus = '', category = '', availableOnly = false } = {}) {
+  listCategories() {
+    return [...new Set(this.books.getAll().map(book => book.category))].sort((left, right) => left.localeCompare(right));
+  }
+
+  listCampuses() {
+    return [...new Set(this.books.getAll().flatMap(book => book.copies.map(copy => copy.campus)))].sort((left, right) => left.localeCompare(right));
+  }
+
+  searchBooks({ query = '', campus = '', category = '', availableOnly = false, sortBy = 'title' } = {}) {
     const text = (query || '').toLowerCase();
     const books = this.books.getAll().filter(book => {
       const matchesText = !text || [book.title, book.author, book.isbn].some(value => String(value).toLowerCase().includes(text));
@@ -448,6 +460,9 @@ export class CatalogueControl {
         const campusCopies = book.copies.filter(copy => copy.campus === campusName);
         campusStats[campusName] = { totalCopies: campusCopies.length, availableCopies: campusCopies.filter(copy => copy.status === 'Available').length };
       }
+      const hasReserved = book.copies.some(copy => copy.status === 'Reserved');
+      const hasCourseReserve = book.copies.some(copy => copy.status === 'CourseReserve' || copy.courseReserve);
+      const status = availableCopies > 0 ? 'Available' : hasReserved ? 'Reserved' : hasCourseReserve && book.copies.every(copy => copy.courseReserve || copy.status === 'CourseReserve') ? 'Course reserve only' : 'All copies on loan';
       return {
         isbn: book.isbn,
         title: book.title,
@@ -456,9 +471,15 @@ export class CatalogueControl {
         totalCopies,
         availableCopies,
         campusStats,
-        status: availableCopies > 0 ? 'Available' : 'Unavailable'
+        status
       };
     });
+    const comparators = {
+      title: (left, right) => left.title.localeCompare(right.title),
+      author: (left, right) => left.author.localeCompare(right.author),
+      availability: (left, right) => right.availableCopies - left.availableCopies || left.title.localeCompare(right.title)
+    };
+    rows.sort(comparators[sortBy] || comparators.title);
     return success(rows);
   }
 

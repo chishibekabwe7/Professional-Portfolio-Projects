@@ -47,9 +47,10 @@ CULMS is designed as a digital, object-oriented library system for online catalo
 | Domain model | Entities cover books and copies, students, professors, staff, loans, reservations, fines, notifications and settings. | Implemented |
 | Data layer | Repositories, JSON serialization, date rehydration, schema metadata and storage adapters are available. | Implemented |
 | Seeded demonstration data | Sample books, copies, patrons, staff, loans, reservations, fines, notifications and settings can populate storage. | Implemented |
-| Catalogue search | Repository-level search supports title, author and ISBN text plus campus filtering; the public page search form is currently presentational. | Implemented |
+| Catalogue search | Public catalogue search supports title, author, ISBN, campus, category, availability filtering, sorting and pagination. | Implemented |
 | Business rules | Core eligibility checks, borrow/return logic, renewals, reservations, fines, catalogue workflows, reporting and staff permissions are implemented in the business layer. | Implemented |
 | Login and authentication | Browser-only demo login, sessions, role guards and notifications are implemented. | Implemented |
+| Book detail and reservations | Public book details, campus/copy availability and student or professor reservations are implemented. | Implemented |
 | Role-specific screens | Role home pages are available; detailed workflows remain planned. | In progress |
 | Borrowing history and reporting | Loan data structures exist; user history views and administrator reports are planned. | Planned |
 | Backend and shared database | The project currently uses browser storage and has no backend or shared server database. | Planned |
@@ -224,6 +225,7 @@ The application uses a simulated browser-only login with no passwords. Demo data
 2. [x] Build the domain model and data layer.
 3. [x] Build the business layer and enforce borrowing, reservation and fine rules.
 4. [x] Build the application shell and working login flow.
+5A. [x] Build the public catalogue, book details and reserve action.
 5. [ ] Build student and professor screens.
 6. [ ] Build librarian screens.
 7. [ ] Build administrator screens and reports.

@@ -145,9 +145,41 @@ test('presentation stays above the data layer', async () => {
 });
 
 
-test('presentation stays above the data layer', async () => {
+
+
+
+test('catalogue helpers expose filters, availability and sorting', () => {
+  const culms = seedWithAdapter();
+  assert.deepEqual(culms.catalogue.listCategories(), [...culms.catalogue.listCategories()].sort());
+  assert.deepEqual(culms.catalogue.listCampuses(), [...culms.catalogue.listCampuses()].sort());
+  const rows = culms.catalogue.searchBooks({ sortBy: 'availability' }).data;
+  assert.ok(rows.every(row => row.isbn && row.title && row.author && row.category && row.totalCopies >= row.availableCopies && row.campusStats && row.status));
+  assert.ok(rows.every((row, index) => index === 0 || rows[index - 1].availableCopies >= row.availableCopies));
+  const reserved = culms.reservations.getActiveReservation('STU-0004', '978-9982-00011');
+  assert.equal(reserved?.status, 'Pending');
+});
+
+test('render and format helpers escape and round trip values', async () => {
+  const { escapeHtml, html } = await import('../../js/presentation/ui/render.js');
+  const { formatDate, formatMoney, buildBookQuery, parseBookQuery } = await import('../../js/presentation/ui/format.js');
+  assert.equal(escapeHtml(`<script>alert("x")</script> & 'q'`), '&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt; &amp; &#39;q&#39;');
+  assert.equal(html`<p>${`<script>&`}</p>`, '<p>&lt;script&gt;&amp;</p>');
+  assert.equal(formatDate('2026-03-12T00:00:00Z'), '12 Mar 2026');
+  assert.equal(formatMoney(2), 'K2.00');
+  const query = buildBookQuery({ query: 'Clean Code', campus: 'Main Campus (Kitwe)', availableOnly: true, page: 1 });
+  assert.deepEqual(parseBookQuery(query), { query: 'Clean Code', campus: 'Main Campus (Kitwe)', category: '', availableOnly: true, sortBy: 'title', page: 1 });
+});
+
+
+test('access and navigation allow catalogue pages safely', async () => {
+  const { safeNextUrl } = await import('../../js/business/access.js');
+  const { navConfig } = await import('../../js/presentation/navConfig.js');
   const fs = await import('node:fs');
-  const path = await import('node:path');
-  const files = fs.readdirSync(path.resolve('./js/presentation'), { withFileTypes: true }).filter(item => item.isFile() && item.name.endsWith('.js'));
-  for (const file of files) assert.doesNotMatch(fs.readFileSync(path.resolve('./js/presentation', file.name), 'utf8'), /from\s+['"][^'"]*js\/data/);
+  assert.equal(safeNextUrl('books.html?query=Clean%20Code', null), 'books.html?query=Clean%20Code');
+  assert.equal(safeNextUrl('book.html?isbn=978-9982-00001', null), 'book.html?isbn=978-9982-00001');
+  assert.equal(safeNextUrl('https://example.com/book.html', null), 'index.html');
+  assert.equal(safeNextUrl('//example.com/book.html', null), 'index.html');
+  assert.equal(safeNextUrl('book.html%2f..%2fadmin.html', null), 'index.html');
+  assert.equal(safeNextUrl('unknown.html?x=1', null), 'index.html');
+  for (const items of Object.values(navConfig)) for (const item of items.filter(entry => entry.enabled)) assert.equal(fs.existsSync(`./${item.href}`), true);
 });

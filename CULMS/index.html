@@ -24,7 +24,7 @@
                         <p class="text-uppercase fw-bold mb-3">Copperbelt University Library</p>
                         <h1 class="display-4 text-white mb-4">Find the knowledge you need.</h1>
                         <p class="lead mb-4">Search the CULMS catalogue and manage your library activities across our campuses.</p>
-                        <form class="bg-white rounded p-2 shadow" role="search">
+                        <form id="landing-search" class="bg-white rounded p-2 shadow" role="search">
                             <div class="input-group">
                                 <input type="search" class="form-control border-0 p-3" placeholder="Search books, authors or subjects" aria-label="Search books, authors or subjects">
                                 <button class="btn btn-primary px-4" type="submit"><i class="bi bi-search me-2"></i>Search</button>
@@ -68,6 +68,6 @@
     <script src="lib/waypoints/waypoints.min.js"></script>
     <script src="lib/counterup/counterup.min.js"></script>
     <script src="js/presentation/main.js"></script>
-    <script type="module" src="js/presentation/app.js"></script><script type="module" src="js/presentation/app.js"></script><script type="module" src="js/presentation/app.js"></script><script type="module" src="js/presentation/layout.js"></script>
+    <script type="module" src="js/presentation/app.js"></script><script type="module" src="js/presentation/layout.js"></script><script type="module">document.querySelector("#landing-search")?.addEventListener("submit", event => { event.preventDefault(); const query = event.currentTarget.querySelector("input").value.trim(); window.location.href = `books.html${query ? `?query=${encodeURIComponent(query)}` : ""}`; });</script>
 </body>
 </html>
