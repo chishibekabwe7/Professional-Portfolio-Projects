@@ -41,3 +41,8 @@ This document maps the enforced CULMS rules to the control-layer use cases and t
 ## Notes
 
 The control-layer implementation keeps all business decisions in the `js/business/` layer and relies on the data repositories for persistence. The presentation and HTML pages remain unchanged by design.
+
+
+## Demo passwords and sessions
+
+The client-side demonstration uses `culms-demo` as the default password for seeded accounts. Changed passwords require at least eight characters, one letter and one number, and cannot equal the current password. Credentials and sessions remain in the browser; this is not a security boundary and a real deployment requires server-side authentication. Sessions expire after eight hours.

@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { webcrypto } from 'node:crypto';
+globalThis.crypto = globalThis.crypto || webcrypto;
 import assert from 'node:assert/strict';
 import { createCULMS, PERMISSIONS } from '../../js/business/index.js';
 import { MemoryStorageAdapter } from '../../js/data/storage/MemoryStorageAdapter.js';
@@ -182,4 +184,44 @@ test('access and navigation allow catalogue pages safely', async () => {
   assert.equal(safeNextUrl('book.html%2f..%2fadmin.html', null), 'index.html');
   assert.equal(safeNextUrl('unknown.html?x=1', null), 'index.html');
   for (const items of Object.values(navConfig)) for (const item of items.filter(entry => entry.enabled)) assert.equal(fs.existsSync(`./${item.href}`), true);
+});
+
+
+test('credential authentication supports defaults, changes and reset', async () => {
+  const culms = seedWithAdapter();
+  const byId = await culms.auth.login('STU-0001', 'culms-demo');
+  const byEmail = await culms.auth.login('CHANDA.MWANSA@CBU.AC.ZM', 'culms-demo');
+  assert.equal(byId.ok, true); assert.equal(byEmail.ok, true);
+  const wrong = await culms.auth.login('STU-0001', 'wrong-password');
+  const unknown = await culms.auth.login('unknown@example.com', 'wrong-password');
+  assert.equal(wrong.error.message, 'Invalid ID or password'); assert.equal(unknown.error.message, wrong.error.message);
+  assert.equal((await culms.auth.changePassword('STU-0001', 'culms-demo', 'short')).ok, false);
+  assert.equal((await culms.auth.changePassword('STU-0001', 'culms-demo', 'passwordonly')).ok, false);
+  assert.equal((await culms.auth.changePassword('STU-0001', 'culms-demo', 'culms-demo')).ok, false);
+  assert.equal((await culms.auth.changePassword('STU-0001', 'culms-demo', 'Newpass1')).ok, true);
+  assert.equal((await culms.auth.login('STU-0001', 'culms-demo')).ok, false);
+  assert.equal((await culms.auth.login('STU-0001', 'Newpass1')).ok, true);
+  const stored = culms.auth.credentials.adapter.get('culms:v1:credentials');
+  assert.doesNotMatch(stored, /Newpass1/);
+  culms.auth.resetCredentials();
+  assert.equal((await culms.auth.login('STU-0001', 'culms-demo')).ok, true);
+});
+
+test('password helpers and session expiry rules work', async () => {
+  const { hashPassword, generateSalt, constantTimeEqual } = await import('../../js/business/credentials.js');
+  const salt = generateSalt(); const one = await hashPassword('demo', salt, 10); const two = await hashPassword('demo', salt, 10); const three = await hashPassword('demo', generateSalt(), 10);
+  assert.equal(constantTimeEqual(one, two), true); assert.equal(constantTimeEqual(one, three), false); assert.equal(constantTimeEqual('a', 'b'), false);
+  const { isSessionExpired } = await import('../../js/business/access.js');
+  assert.equal(isSessionExpired(new Date(0), new Date(7 * 60 * 60 * 1000)), false); assert.equal(isSessionExpired(new Date(0), new Date(8 * 60 * 60 * 1000)), true); assert.equal(isSessionExpired('bad', Date.now()), true);
+});
+
+
+test('loan and reservation format helpers classify statuses', async () => {
+  const { loanStatusLabel, daysRemaining, reservationStatusLabel } = await import('../../js/presentation/ui/format.js');
+  const now = new Date('2026-09-30T00:00:00Z');
+  assert.equal(daysRemaining('2026-10-02T00:00:00Z', now), 2);
+  assert.equal(loanStatusLabel({ dueDate: '2026-10-02T00:00:00Z', isCourseReserve: false }, now), 'Due soon');
+  assert.equal(loanStatusLabel({ dueDate: '2026-09-29T00:00:00Z', isCourseReserve: false }, now), 'Overdue by 1 days');
+  assert.equal(loanStatusLabel({ dueDate: '2026-10-20T00:00:00Z', isCourseReserve: true }, now), 'Course reserve');
+  assert.equal(reservationStatusLabel('Ready'), 'Ready');
 });

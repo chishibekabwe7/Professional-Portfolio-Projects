@@ -44,3 +44,10 @@ Data modules import only within `js/data/`; they do not import business or prese
 ## Public catalogue modules
 
 `books.html` and `book.html` are public presentation pages. Their page modules call the business catalogue and reservation controls through `app.js`; they do not import data modules or access storage directly. `ui/render.js` escapes every interpolated value before dynamic markup is assigned, while `ui/format.js` contains DOM-free date, money, availability and query-string helpers. Catalogue search state is represented in the URL so filters, sorting, pagination and browser history remain linkable.
+
+
+## Credentials, session expiry and member pages
+
+Credentials are stored as browser-local PBKDF2 metadata in the data layer. Seeded accounts use the configured `culms-demo` default until a user changes the password; only the salt, hash, iteration count and update timestamp are persisted after a change. This is a client-side demonstration, not real authentication: a production deployment requires a secure server. Sessions store an account id, role and start time and expire after eight hours.
+
+`account.html`, `my-loans.html` and `my-reservations.html` are guarded presentation pages. Their page modules call business controls for password changes, loan renewals and reservation cancellation, and dispatch `culms:changed` so the shared notification dropdown refreshes.

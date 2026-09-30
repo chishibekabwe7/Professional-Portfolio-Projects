@@ -1,5 +1,6 @@
 import {
   AcquisitionRequest,
+  Credential,
   Book,
   BookCopy,
   Fine,
@@ -22,10 +23,12 @@ import {
   NotificationRepository,
   SettingsRepository,
   AcquisitionRequestRepository,
+  CredentialRepository,
   readableId,
   SCHEMA_VERSION_KEY
 } from '../data/index.js';
 import { resetToSeed } from '../data/seed/seed.js';
+import { constantTimeEqual, generateSalt, hashPassword, base64 } from './credentials.js';
 
 export { PERMISSIONS };
 
@@ -229,17 +232,19 @@ export class BorrowingControl {
     const rows = loans.map(loan => {
       const patron = this.patrons.getById(loan.patronId);
       const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode));
-      return { ...buildLoanSummary(loan, patron, book?.title || 'Unknown title'), loan };
+      return { ...buildLoanSummary(loan, patron, book?.title || 'Unknown title'), loan, bookIsbn: book?.isbn || null, campus: this.books.findCopyByBarcode(loan.barcode)?.campus || null };
     });
     return success(rows);
   }
+
+  getPatronSummary(patronId) { const patron = this.patrons.getById(patronId); return patron ? success({ id: patron.patronId, name: patron.name, email: patron.email, campus: patron.campus, maximumBorrowLimit: patron.maximumBorrowLimit, activeLoans: this.loans.findActiveByPatron(patronId).length }) : failure('NOT_FOUND', 'Patron not found'); }
 
   getLoanHistory(patronId) {
     const loans = this.loans.getAll().filter(item => item.patronId === patronId);
     const rows = loans.map(loan => {
       const patron = this.patrons.getById(loan.patronId);
       const book = this.books.getAll().find(item => item.copies.some(copy => copy.barcode === loan.barcode));
-      return { ...buildLoanSummary(loan, patron, book?.title || 'Unknown title'), loan };
+      return { ...buildLoanSummary(loan, patron, book?.title || 'Unknown title'), loan, bookIsbn: book?.isbn || null, campus: this.books.findCopyByBarcode(loan.barcode)?.campus || null };
     });
     return success(rows);
   }
@@ -839,15 +844,15 @@ export class SettingsControl {
 }
 
 export class AuthControl {
-  constructor(adapter) { this.patrons = new PatronRepository(adapter); this.staff = new StaffRepository(adapter); }
-  listDemoAccounts() { return [...this.patrons.getAll(), ...this.staff.getAll()].map(item => ({ id: item.patronId || item.staffId, name: item.name, role: item instanceof Student ? 'Student' : item instanceof Professor ? 'Professor' : item instanceof Librarian ? 'Librarian' : 'Administrator', campus: item.campus })); }
-  resolve(accountId, role) {
-    const account = this.listDemoAccounts().find(item => item.id === accountId && item.role === role);
-    if (!account) return failure('AUTHENTICATION_FAILED', 'Demo account not found for the selected role');
-    const entity = this.patrons.getById(accountId) || this.staff.getById(accountId);
-    return success({ ...account, permissions: entity.permissions || [] });
-  }
-  login(accountId, role) { return this.resolve(accountId, role); }
+  constructor(adapter) { this.adapter = adapter; this.patrons = new PatronRepository(adapter); this.staff = new StaffRepository(adapter); this.credentials = new CredentialRepository(adapter); this.settingsRepo = new SettingsRepository(adapter); }
+  listDemoAccounts() { return [...this.patrons.getAll(), ...this.staff.getAll()].map(item => ({ id: item.patronId || item.staffId, name: item.name, email: item.email, role: item instanceof Student ? 'Student' : item instanceof Professor ? 'Professor' : item instanceof Librarian ? 'Librarian' : 'Administrator', campus: item.campus })); }
+  accountFor(identifier) { const value = String(identifier || '').trim().toLowerCase(); return this.listDemoAccounts().find(item => item.id.toLowerCase() === value || item.email.toLowerCase() === value) || null; }
+  userFor(account) { const entity = this.patrons.getById(account.id) || this.staff.getById(account.id); return { ...account, permissions: entity.permissions || [] }; }
+  async verify(account, password) { const credential = this.credentials.getById(account.id); if (!credential) return constantTimeEqual(password, this.settingsRepo.get().defaultDemoPassword); const hash = await hashPassword(password, credential.salt, credential.iterations); return constantTimeEqual(hash, credential.hash); }
+  resolve(accountId, role) { const account = this.listDemoAccounts().find(item => item.id === accountId && item.role === role); return account ? success(this.userFor(account)) : failure('AUTHENTICATION_FAILED', 'Demo account not found for the selected role'); }
+  async login(identifier, password) { if (!String(identifier || '').trim() || !String(password || '')) return failure('VALIDATION_ERROR', 'ID or email and password are required'); const account = this.accountFor(identifier); if (!account || !(await this.verify(account, password))) return failure('AUTHENTICATION_FAILED', 'Invalid ID or password'); return success(this.userFor(account)); }
+  async changePassword(userId, currentPassword, newPassword) { const account = this.listDemoAccounts().find(item => item.id === userId); if (!account) return failure('NOT_FOUND', 'Account not found'); if (!(await this.verify(account, currentPassword))) return failure('AUTHENTICATION_FAILED', 'Current password is incorrect'); if (newPassword.length < 8) return failure('VALIDATION_ERROR', 'New password must be at least 8 characters'); if (!/[A-Za-z]/.test(newPassword)) return failure('VALIDATION_ERROR', 'New password must contain at least one letter'); if (!/[0-9]/.test(newPassword)) return failure('VALIDATION_ERROR', 'New password must contain at least one number'); if (constantTimeEqual(currentPassword, newPassword)) return failure('VALIDATION_ERROR', 'New password must be different from the current password'); const salt = generateSalt(); const iterations = 100000; this.credentials.add(new Credential(userId, account.role, base64(salt), await hashPassword(newPassword, salt, iterations), iterations)); return success(this.userFor(account)); }
+  resetCredentials() { this.credentials.clear(); return success(true); }
 }
 
 
@@ -862,7 +867,7 @@ export function createCULMS(adapter) {
     staff: new StaffControl(adapter),
     settings: new SettingsControl(adapter),
     auth: new AuthControl(adapter),
-    resetDemoData() { resetToSeed(adapter); return success(true); }
+    resetDemoData() { resetToSeed(adapter); this.auth.resetCredentials(); return success(true); }
   };
 }
 

@@ -1,0 +1,6 @@
+import { culms } from '../app.js';
+import { currentUser } from '../guard.js';
+import { html } from '../ui/render.js';
+import { showResultError, showToast } from '../ui/toast.js';
+const user = currentUser(); if (user) { document.querySelector('#account-details').innerHTML = html`<p><strong>Name:</strong> ${user.name}</p><p><strong>Role:</strong> ${user.role}</p><p><strong>Campus:</strong> ${user.campus}</p><p><strong>Email:</strong> ${user.email}</p><p class="mb-0"><strong>ID:</strong> ${user.id}</p>`; }
+const form=document.querySelector('#password-form'); form.addEventListener('submit', async event => { event.preventDefault(); const result=await culms.auth.changePassword(user.id, document.querySelector('#current-password').value, document.querySelector('#new-password').value); if (!result.ok) { showResultError(result); return; } showToast('Password changed successfully.', 'success'); form.reset(); document.dispatchEvent(new CustomEvent('culms:changed')); }); document.querySelector('#toggle-account-password').addEventListener('click', () => { for (const input of form.querySelectorAll('input[type="password"], input[type="text"]')) input.type = input.type === 'password' ? 'text' : 'password'; });

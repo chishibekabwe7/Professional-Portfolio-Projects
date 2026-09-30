@@ -139,10 +139,16 @@ export class Notification extends Entity {
     toJSON() { return { ...super.toJSON(), dateCreated: iso(this.dateCreated) }; }
     static fromJSON(value) { return new Notification(value.notificationId, value.recipientId, value.message, value.dateCreated, value.read); }
 }
+/** Stored password credential metadata. */
+export class Credential extends Entity {
+    constructor(accountId, role, salt, hash, iterations = 100000, updatedAt = new Date()) { super(); Object.assign(this, { accountId, role, salt, hash, iterations, updatedAt: date(updatedAt) }); }
+    toJSON() { return { ...super.toJSON(), updatedAt: iso(this.updatedAt) }; }
+    static fromJSON(value) { return new Credential(value.accountId, value.role, value.salt, value.hash, value.iterations, value.updatedAt); }
+}
 /** Configurable library rules. */
 export class Settings extends Entity {
-    constructor(values = {}) { super(); Object.assign(this, { fineRatePerDay: 2, maxUnpaidFine: 50, maxActiveReservations: 3, courseReserveLoanDays: 2, reservationHoldDays: 7, studentLimit: 5, professorLimit: 15, studentLoanDays: 14, professorLoanDays: 30, currency: 'K' }, values); }
+    constructor(values = {}) { super(); Object.assign(this, { fineRatePerDay: 2, maxUnpaidFine: 50, maxActiveReservations: 3, courseReserveLoanDays: 2, reservationHoldDays: 7, studentLimit: 5, professorLimit: 15, studentLoanDays: 14, professorLoanDays: 30, currency: 'K', defaultDemoPassword: 'culms-demo' }, values); }
     static fromJSON(value) { return new Settings(value); }
 }
 
-export const entityTypes = { Book, BookCopy, Student, Professor, Staff, Librarian, LibraryAdministrator, LoanRecord, Reservation, Fine, Notification, Settings, AcquisitionRequest };
+export const entityTypes = { Credential, Book, BookCopy, Student, Professor, Staff, Librarian, LibraryAdministrator, LoanRecord, Reservation, Fine, Notification, Settings, AcquisitionRequest };

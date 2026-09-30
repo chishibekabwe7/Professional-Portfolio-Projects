@@ -1,0 +1,10 @@
+import { culms, setSession } from '../app.js';
+import { currentUser } from '../guard.js';
+import { safeNextUrl } from '../../business/access.js';
+import { html } from '../ui/render.js';
+const existing = currentUser(); const next = new URLSearchParams(location.search).get('next'); if (existing) location.href = safeNextUrl(next, existing);
+const form = document.querySelector('#login-form'); const identifier = document.querySelector('#identifier'); const password = document.querySelector('#password'); const submit = form.querySelector('button[type="submit"]'); const error = document.querySelector('#login-error');
+function fillAccounts() { const groups = {}; for (const account of culms.auth.listDemoAccounts()) (groups[account.role] ||= []).push(account); document.querySelector('#demo-accounts').innerHTML = Object.entries(groups).map(([role, accounts]) => html`<h5 class="mt-3">${role}</h5>${accounts.map(account => html`<div class="border-bottom py-2"><strong>${account.name}</strong><br><span>${account.id} ? ${account.email} ? ${account.campus}</span><button type="button" class="btn btn-link btn-sm use-account" data-id="${account.id}">Use this account</button></div>`).join('')}`).join(''); document.querySelectorAll('.use-account').forEach(button => button.addEventListener('click', () => { identifier.value = button.dataset.id; password.focus(); })); }
+form.addEventListener('submit', async event => { event.preventDefault(); error.classList.add('d-none'); submit.disabled = true; const result = await culms.auth.login(identifier.value, password.value); submit.disabled = false; if (!result.ok) { error.textContent = result.error.message; error.classList.remove('d-none'); password.focus(); return; } setSession(result.data); location.href = safeNextUrl(next, result.data); });
+document.querySelector('#toggle-password').addEventListener('click', () => { password.type = password.type === 'password' ? 'text' : 'password'; });
+document.querySelector('#reset').addEventListener('click', event => { event.preventDefault(); if (confirm('Reset all demo data?')) { culms.resetDemoData(); location.reload(); } }); fillAccounts();
