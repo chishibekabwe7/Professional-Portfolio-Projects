@@ -1,11 +1,18 @@
-import test from 'node:test';
-import { webcrypto } from 'node:crypto';
-globalThis.crypto = globalThis.crypto || webcrypto;
 import assert from 'node:assert/strict';
+import { webcrypto } from 'node:crypto';
+import test from 'node:test';
 import { createCULMS, PERMISSIONS } from '../../js/business/index.js';
-import { MemoryStorageAdapter } from '../../js/data/storage/MemoryStorageAdapter.js';
+import { LoanRecord } from '../../js/data/entities.js';
 import { resetToSeed } from '../../js/data/seed/seed.js';
-import { AcquisitionRequest, Settings, LoanRecord } from '../../js/data/entities.js';
+import { MemoryStorageAdapter } from '../../js/data/storage/MemoryStorageAdapter.js';
+const originalCrypto = globalThis.crypto;
+if (!originalCrypto) {
+  Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true, writable: true });
+}
+test.after(() => {
+  if (originalCrypto === undefined) delete globalThis.crypto;
+  else Object.defineProperty(globalThis, 'crypto', { value: originalCrypto, configurable: true, writable: true });
+});
 
 function seedWithAdapter() {
   const adapter = new MemoryStorageAdapter();
