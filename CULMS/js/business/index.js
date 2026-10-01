@@ -255,7 +255,23 @@ export class BorrowingControl {
       const fine = this.fines.getAll().find(item => item.loanId === loan.loanId);
       const reference = loan.returnDate || new Date();
       const overdue = loan.calculateOverdueDays(reference) > 0;
-      return { loanId: loan.loanId, isbn: book?.isbn || null, title: book?.title || 'Unknown title', barcode: loan.barcode, campus: copy?.campus || null, issueDate: loan.issueDate, dueDate: loan.dueDate, returnDate: loan.returnDate, renewed: !!loan.renewed, isCourseReserve: !!loan.isCourseReserve, status: loan.returnDate ? (overdue ? 'Returned late' : 'Returned') : (overdue ? 'Overdue' : 'Active'), fineAmount: Number(fine?.amountAccumulated || 0) };
+  return {
+    ...buildLoanSummary(loan, this.patrons.getById(loan.patronId), book?.title || 'Unknown title'),
+    loan,
+    bookIsbn: book?.isbn || null,
+    loanId: loan.loanId,
+    isbn: book?.isbn || null,
+    title: book?.title || 'Unknown title',
+    barcode: loan.barcode,
+    campus: copy?.campus || null,
+    issueDate: loan.issueDate,
+    dueDate: loan.dueDate,
+    returnDate: loan.returnDate,
+    renewed: !!loan.renewed,
+    isCourseReserve: !!loan.isCourseReserve,
+    status: loan.returnDate ? (overdue ? 'Returned late' : 'Returned') : (overdue ? 'Overdue' : 'Active'),
+    fineAmount: Number(fine?.amountAccumulated || 0)
+  };
     }).sort((left, right) => new Date(right.issueDate) - new Date(left.issueDate));
     return success(rows);
   }

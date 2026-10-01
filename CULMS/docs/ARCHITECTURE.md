@@ -51,8 +51,6 @@ Data modules import only within `js/data/`; they do not import business or prese
 Credentials are stored as browser-local PBKDF2 metadata in the data layer. Seeded accounts use the configured `culms-demo` default until a user changes the password; only the salt, hash, iteration count and update timestamp are persisted after a change. This is a client-side demonstration, not real authentication: a production deployment requires a secure server. Sessions store an account id, role and start time and expire after eight hours.
 
 `account.html`, `my-loans.html` and `my-reservations.html` are guarded presentation pages. Their page modules call business controls for password changes, loan renewals and reservation cancellation, and dispatch `culms:changed` so the shared notification dropdown refreshes.
-
-
 ## Student and professor self-service
 
 `my-fines.html` and `my-history.html` expose patron views backed by `FineControl.getFineView` and `BorrowingControl.getLoanHistory`. Professors additionally use `course-reserve.html` and `acquisitions.html`; placement, removal, ownership, copy availability and request validation remain business-layer decisions. Navigation groups these pages under the `My Library` dropdown while preserving role-specific access guards.
@@ -60,7 +58,7 @@ Credentials are stored as browser-local PBKDF2 metadata in the data layer. Seede
 
 ## Librarian circulation desk
 
-`checkout.html`, `return.html` and `overdue.html` are guarded librarian pages backed by `BorrowingControl`. The desk modules use patron and copy preview methods before writes, render the checkout stepper and return/overdue tables with escaped values, and pass the signed-in staff actor to permission-enforced business operations. `navConfig.js` gates circulation links by `PROCESS_LOANS`; planned catalogue and fines desk entries remain disabled.
+`checkout.html`, `return.html` and `overdue.html` are guarded librarian pages backed by `BorrowingControl`. The desk modules use patron and copy preview methods before writes, render the checkout stepper and return/overdue tables with escaped values, and pass the signed-in staff actor to permission-enforced business operations. `navConfig.js` gates circulation links by `PROCESS_LOANS` and catalogue/fines desk links by their respective staff permissions.
 
 
 ## Catalogue management and fines desk

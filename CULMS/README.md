@@ -223,8 +223,6 @@ The application uses a simulated client-side login. The default password for eve
 5C. [x] Complete student and professor self-service screens.
 6A. [x] Add librarian checkout, return, overdue review and reminders.
 6B. [x] Complete catalogue management and the fines desk.
-5. [ ] Build student and professor screens.
-6. [ ] Build librarian screens.
 7. [ ] Build administrator screens and reports.
 8. [ ] Polish accessibility, content and responsive interactions.
 9. [ ] Deploy the static release to Vercel.
