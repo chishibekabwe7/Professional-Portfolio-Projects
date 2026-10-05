@@ -1,0 +1,28 @@
+body {
+	font-family: Helvetica;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+h1 {
+	font-size: 60px;
+	padding: 10px;
+	margin: 0px;
+}
+
+h4 {
+	padding-top: 0px;
+	padding-bottom: 15px;
+	margin: 0px;
+}
+
+canvas {
+	box-shadow: black 10px 5px 25px;
+}
+
+#arrowmsg {
+	padding-top: 25px;
+	padding-bottom: 5px;
+}
