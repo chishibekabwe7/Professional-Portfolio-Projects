@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="icon" href="assets/favicon.png">
+	<link rel="stylesheet" href="assets/style.css">
+	<title>Chishibe's Snake Game</title>
+</head>
+<body>
+	<div id="loading" class="loading">Loading...</div>
+	<main class="app-shell hidden-until-ready">
+		<header class="game-header">
+			<h1 id="game-title">Chishibe's Snake Game</h1>
+			<div id="hud" class="hud" aria-live="polite">
+				<div class="hud-plaque"><span>Score</span><strong id="hud-score">0</strong></div>
+				<div class="hud-plaque"><span>High score</span><strong id="hud-highscore">0</strong></div>
+				<div class="hud-level-wrap"><span id="hud-level">Level 1</span><img id="hud-level-bar" src="assets/UI%20Assets/progress_0_of_5.png" alt="Level progress, 0 of 5" /></div>
+				<div id="hud-combo" class="hud-chip">Combo x1</div>
+				<div id="hud-length" class="hud-chip">Length 3</div>
+			</div>
+			<div id="hud-powerups" class="powerups" aria-live="polite"></div>
+		</header>
+		<section id="game-frame" class="game-frame" aria-label="Snake game board">
+			<canvas id="game" width="480" height="480" tabindex="0" aria-label="Snake game board"></canvas>
+			<div id="overlay-start" class="overlay hidden"><div class="overlay-panel"><h2>Chishibe's Snake Game</h2><fieldset><legend>Difficulty</legend><div class="choice-row"><button class="choice-button" data-difficulty="easy" aria-pressed="false" type="button">Easy<small>Slow start</small></button><button class="choice-button" data-difficulty="normal" aria-pressed="true" type="button">Normal<small>Balanced</small></button><button class="choice-button" data-difficulty="hard" aria-pressed="false" type="button">Hard<small>Obstacles now</small></button></div></fieldset><fieldset><legend>Mode</legend><div class="choice-row"><button class="choice-button mode-button" data-mode="classic" aria-pressed="true" type="button">Classic<small>Walls kill</small></button><button class="choice-button mode-button" data-mode="wrap" aria-pressed="false" type="button">Wrap<small>Cross edges</small></button></div></fieldset><button id="start-button" class="sprite-button start-button" type="button">Start Game</button><button id="help-button" class="sprite-button secondary-button" type="button">How to Play</button></div></div>
+			<div id="overlay-pause" class="overlay hidden"><div class="overlay-panel"><h2>Paused</h2><p>Press Space or P to continue.</p><button id="resume-button" class="sprite-button" type="button">Resume</button></div></div>
+			<div id="overlay-gameover" class="overlay hidden"><div class="overlay-panel"><h2>Game Over</h2><div id="gameover-stars" class="stars" aria-label="Run rating"></div><div id="new-highscore" class="new-highscore hidden">New high score</div><div id="gameover-stats" class="stats-grid"></div><button id="restart-button" class="sprite-button" type="button">Play Again</button><button id="menu-button" class="sprite-button secondary-button" type="button">Main Menu</button></div></div>
+			<div id="overlay-help" class="overlay hidden"><div class="overlay-panel help-panel"><button id="close-help-button" class="image-control close-button" type="button" aria-label="Close help" title="Close help"></button><h2>How to Play</h2><div class="help-columns"><div><h3>Controls</h3><p>Arrow keys or WASD steer. Space or P pauses. R restarts. M mutes. Esc opens the menu. Swipe on the board or use the touch pad.</p></div><div><h3>Food and power-ups</h3><p>Normal food grows by one. Golden food is worth five and expires. Slow-down, score multiplier, and shrink power-ups change the run.</p></div></div></div></div>
+			<div id="overlay-levelup" class="level-banner hidden">Level <strong id="level-banner-value">2</strong></div>
+			<nav class="game-controls" aria-label="Game controls"><button id="btn-pause" class="image-control" type="button" aria-label="Pause game" title="Pause game"></button><button id="btn-restart" class="image-control" type="button" aria-label="Restart game" title="Restart game"></button><button id="btn-sound" class="image-control" type="button" aria-label="Mute sound" title="Mute sound"></button><button id="btn-help" class="image-control" type="button" aria-label="How to play" title="How to play"></button><button id="btn-home" class="image-control" type="button" aria-label="Main menu" title="Main menu"></button><button id="btn-settings" class="image-control" type="button" aria-label="Settings" title="Settings"></button></nav>
+		</section>
+		<div class="game-footer"><span id="status-message">Choose a run to begin.</span></div>
+		<p class="credit">Made by Chishibe Kabwe.</p>
+	</main>
+	<script src="assets/snakescript.js"></script>
+</body>
+</html>
