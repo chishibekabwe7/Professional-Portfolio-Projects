@@ -25,7 +25,7 @@ const CONFIG = {
 };
 
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+const ctx = canvas ? canvas.getContext('2d') : null;
 const stage = document.getElementById('game-frame');
 const tile = CONFIG.grid.pixels / CONFIG.grid.size;
 
@@ -86,7 +86,7 @@ function handleKey(event) {
 }
 
 function setupTouchControls() {
-    if (!window.matchMedia('(pointer: coarse)').matches) return;
+    if (!stage || !window.matchMedia('(pointer: coarse)').matches || stage.querySelector('.dpad')) return;
     const dpad = document.createElement('div'); dpad.className = 'dpad'; dpad.setAttribute('aria-label', 'Touch controls');
     [['Up', 0, -1], ['Left', -1, 0], ['Down', 0, 1], ['Right', 1, 0]].forEach(([label, x, y]) => {
         const button = document.createElement('button'); button.type = 'button'; button.className = `dpad-${label.toLowerCase()}`; button.setAttribute('aria-label', `Move ${label}`); button.addEventListener('click', () => queueDirection({ x, y })); dpad.appendChild(button);
@@ -217,7 +217,7 @@ function allFreeCellsReachable(obstacles) {
 }
 
 // RENDER ---------------------------------------------------------------------
-function render(now) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawBoard(); drawObstacles(); drawFoods(now); drawParticles(now); drawSnake(now); updateHUD(now); }
+function render(now) { if (!ctx || !canvas) return; ctx.clearRect(0, 0, canvas.width, canvas.height); drawBoard(); drawObstacles(); drawFoods(now); drawParticles(now); drawSnake(now); updateHUD(now); }
 function drawBoard() { ctx.fillStyle = CONFIG.COLORS.plumDeep; ctx.fillRect(0, 0, canvas.width, canvas.height); for (let y = 0; y < CONFIG.grid.size; y += 1) for (let x = 0; x < CONFIG.grid.size; x += 1) if ((x + y) % 2 === 0) { ctx.fillStyle = CONFIG.COLORS.grid; ctx.fillRect(x * tile, y * tile, tile, tile); } }
 function drawObstacles() { state.obstacles.forEach(cell => { ctx.fillStyle = CONFIG.COLORS.obstacle; roundRect(cell.x * tile + 2, cell.y * tile + 3, tile - 4, tile - 5, 4); ctx.fill(); ctx.fillStyle = CONFIG.COLORS.woodDark; ctx.fillRect(cell.x * tile + 3, cell.y * tile + 3, tile - 6, 3); }); }
 function drawFoods(now) { state.foods = state.foods.filter(food => food.kind !== 'golden' || now - food.born < CONFIG.food.goldenLifetime); state.foods.forEach(food => { const colors = { normal: CONFIG.COLORS.food, golden: CONFIG.COLORS.gold, slow: CONFIG.COLORS.greenLight, multiplier: CONFIG.COLORS.woodLight, shrink: CONFIG.COLORS.greenHighlight }; const x = food.x * tile + tile / 2; const y = food.y * tile + tile / 2; ctx.fillStyle = colors[food.kind]; ctx.beginPath(); ctx.arc(x, y, food.kind === 'golden' ? tile * .34 : tile * .27, 0, Math.PI * 2); ctx.fill(); if (food.kind === 'normal') { ctx.fillStyle = CONFIG.COLORS.cream; ctx.beginPath(); ctx.arc(x - 2, y - 2, 2, 0, Math.PI * 2); ctx.fill(); } if (food.kind === 'golden') { ctx.strokeStyle = CONFIG.COLORS.gold; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, tile * .42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - (now - food.born) / CONFIG.food.goldenLifetime)); ctx.stroke(); } }); }
@@ -230,14 +230,14 @@ function ensureAudio() { if (!audioContext) audioContext = new (window.AudioCont
 function playTone(kind) { if (state.mute) return; ensureAudio(); const tones = { eat: [440, .06], golden: [720, .13], power: [560, .1], level: [880, .18], gameover: [130, .28] }; const [frequency, duration] = tones[kind]; const oscillator = audioContext.createOscillator(); const gain = audioContext.createGain(); oscillator.frequency.value = frequency; oscillator.type = kind === 'gameover' ? 'sawtooth' : 'sine'; gain.gain.setValueAtTime(.045, audioContext.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + duration); oscillator.connect(gain).connect(audioContext.destination); oscillator.start(); oscillator.stop(audioContext.currentTime + duration); }
 
 // UI -------------------------------------------------------------------------
-function updateHUD(now = performance.now()) { document.getElementById('hud-score').textContent = state.score; document.getElementById('hud-highscore').textContent = highScore(); document.getElementById('hud-level').textContent = `Level ${state.level}`; document.getElementById('hud-combo').textContent = `Combo x${state.combo}`; document.getElementById('hud-length').textContent = `Length ${state.snake.length}`; const progress = Math.min(5, Math.floor((state.score % CONFIG.level.points) / 2)); const levelBar = document.getElementById('hud-level-bar'); levelBar.src = UI_ASSETS[`progress${progress}`]; levelBar.alt = `Level progress, ${progress} of 5`; const powerups = []; if (state.powerups.slow > now) powerups.push(['Slow', state.powerups.slow - now]); if (state.powerups.multiplier > now) powerups.push(['x2 points', state.powerups.multiplier - now]); document.getElementById('hud-powerups').innerHTML = powerups.map(([label, remaining]) => `<span class="powerup-chip">${label} ${Math.ceil(remaining / 1000)}s</span>`).join(''); }
-function updateStatus(message) { document.getElementById('status-message').textContent = message; }
-function toggleOverlay(id, visible) { document.getElementById(id).classList.toggle('hidden', !visible); }
+function updateHUD(now = performance.now()) { const score = document.getElementById('hud-score'); const best = document.getElementById('hud-highscore'); const level = document.getElementById('hud-level'); const combo = document.getElementById('hud-combo'); const length = document.getElementById('hud-length'); const levelBar = document.getElementById('hud-level-bar'); const powerupsElement = document.getElementById('hud-powerups'); if (score) score.textContent = state.score; if (best) best.textContent = highScore(); if (level) level.textContent = `Level ${state.level}`; if (combo) combo.textContent = `Combo x${state.combo}`; if (length) length.textContent = `Length ${state.snake.length}`; const progress = Math.min(5, Math.floor((state.score % CONFIG.level.points) / 2)); if (levelBar) { levelBar.src = UI_ASSETS[`progress${progress}`]; levelBar.alt = `Level progress, ${progress} of 5`; } const powerups = []; if (state.powerups.slow > now) powerups.push(['Slow', state.powerups.slow - now]); if (state.powerups.multiplier > now) powerups.push(['x2 points', state.powerups.multiplier - now]); if (powerupsElement) powerupsElement.innerHTML = powerups.map(([label, remaining]) => `<span class="powerup-chip">${label} ${Math.ceil(remaining / 1000)}s</span>`).join(''); }
+function updateStatus(message) { const status = document.getElementById('status-message'); if (status) status.textContent = message; }
+function toggleOverlay(id, visible) { const overlay = document.getElementById(id); if (overlay) overlay.classList.toggle('hidden', !visible); }
 function showOverlay(id) { toggleOverlay(id, true); }
 function hideOverlay(id) { toggleOverlay(id, false); }
 function openMenu() { state.running = false; state.paused = false; state.menuOpen = true; hideOverlay('overlay-pause'); hideOverlay('overlay-gameover'); showOverlay('overlay-start'); updateStatus('Choose a run to begin.'); }
 function toggleMute() { state.mute = !state.mute; saveStorage(); updateMuteButton(); if (!state.mute) { ensureAudio(); playTone('eat'); } }
-function updateMuteButton() { const button = document.getElementById('btn-sound'); button.style.backgroundImage = `url("${state.mute ? UI_ASSETS.sqSoundOff : UI_ASSETS.sqSoundOn}")`; button.setAttribute('aria-label', state.mute ? 'Unmute sound' : 'Mute sound'); button.setAttribute('title', state.mute ? 'Unmute sound' : 'Mute sound'); }
+function updateMuteButton() { const button = document.getElementById('btn-sound'); if (!button) return; button.style.backgroundImage = `url("${state.mute ? UI_ASSETS.sqSoundOff : UI_ASSETS.sqSoundOn}")`; button.setAttribute('aria-label', state.mute ? 'Unmute sound' : 'Mute sound'); button.setAttribute('title', state.mute ? 'Unmute sound' : 'Mute sound'); }
 function formatTime(milliseconds) { const seconds = Math.floor(milliseconds / 1000); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`; }
 
 // HELPERS --------------------------------------------------------------------
@@ -256,16 +256,17 @@ function indexColor(index) { return index % 2 ? CONFIG.COLORS.woodRim : CONFIG.C
 
 // BOOT -----------------------------------------------------------------------
 function bindUI() {
-    document.addEventListener('keydown', handleKey); canvas.addEventListener('touchstart', handleTouchStart, { passive: true }); canvas.addEventListener('touchend', handleTouchEnd, { passive: true });
-    document.querySelectorAll('[data-difficulty]').forEach(button => button.addEventListener('click', () => { state.difficulty = button.dataset.difficulty; document.querySelectorAll('[data-difficulty]').forEach(item => item.classList.toggle('selected', item === button)); saveStorage(); }));
-    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { state.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.classList.toggle('selected', item === button)); saveStorage(); }));
-    document.getElementById('start-button').addEventListener('click', () => { ensureAudio(); resetGame(); startRun(); }); document.getElementById('restart-button').addEventListener('click', () => { ensureAudio(); resetGame(); startRun(); }); document.getElementById('resume-button').addEventListener('click', togglePause); document.getElementById('menu-button').addEventListener('click', openMenu); document.getElementById('btn-pause').addEventListener('click', togglePause); document.getElementById('btn-restart').addEventListener('click', () => { resetGame(); startRun(); }); document.getElementById('btn-sound').addEventListener('click', toggleMute); document.getElementById('btn-home').addEventListener('click', openMenu); document.getElementById('btn-settings').addEventListener('click', openMenu); document.getElementById('btn-help').addEventListener('click', () => showOverlay('overlay-help'));
-    document.getElementById('help-button').addEventListener('click', () => showOverlay('overlay-help')); document.getElementById('close-help-button').addEventListener('click', () => hideOverlay('overlay-help'));
+    document.addEventListener('keydown', handleKey); if (canvas) { canvas.addEventListener('touchstart', handleTouchStart, { passive: true }); canvas.addEventListener('touchend', handleTouchEnd, { passive: true }); }
+    const bindClick = (id, handler) => { const element = document.getElementById(id); if (element) element.addEventListener('click', handler); };
+    document.querySelectorAll('[data-difficulty]').forEach(button => button.addEventListener('click', () => { state.difficulty = button.dataset.difficulty; document.querySelectorAll('[data-difficulty]').forEach(item => { item.classList.toggle('selected', item === button); item.setAttribute('aria-pressed', String(item === button)); }); saveStorage(); }));
+    document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { state.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => { item.classList.toggle('selected', item === button); item.setAttribute('aria-pressed', String(item === button)); }); saveStorage(); }));
+    bindClick('start-button', () => { ensureAudio(); resetGame(); startRun(); }); bindClick('restart-button', () => { ensureAudio(); resetGame(); startRun(); }); bindClick('resume-button', togglePause); bindClick('menu-button', openMenu); bindClick('btn-pause', togglePause); bindClick('btn-restart', () => { resetGame(); startRun(); }); bindClick('btn-sound', toggleMute); bindClick('btn-home', openMenu); bindClick('btn-settings', openMenu); bindClick('btn-help', () => showOverlay('overlay-help'));
+    bindClick('help-button', () => showOverlay('overlay-help')); bindClick('close-help-button', () => hideOverlay('overlay-help'));
     document.addEventListener('visibilitychange', () => { if (document.hidden && state.running) togglePause(); });
 }
 
-function preloadAssets() { return Promise.all(Object.values(UI_ASSETS).map(source => new Promise(resolve => { const image = new Image(); image.onload = resolve; image.onerror = resolve; image.src = source; }))); }
+function preloadAssets() { return Promise.all(Object.values(UI_ASSETS).map(source => new Promise(resolve => { const image = new Image(); image.onload = resolve; image.onerror = () => { console.warn(`Snake asset failed to load: ${source}`); resolve(); }; image.src = source; }))); }
 
-async function boot() { loadSettings(); bindUI(); setupTouchControls(); updateMuteButton(); resetGame(); document.querySelector(`[data-difficulty="${state.difficulty}"]`).click(); document.querySelector(`[data-mode="${state.mode}"]`).click(); await preloadAssets(); document.getElementById('loading').classList.add('hidden'); document.querySelector('.app-shell').classList.remove('hidden-until-ready'); showOverlay('overlay-start'); requestAnimationFrame(animate); }
+async function boot() { loadSettings(); bindUI(); setupTouchControls(); updateMuteButton(); resetGame(); const difficultyButton = document.querySelector(`[data-difficulty="${state.difficulty}"]`); const modeButton = document.querySelector(`[data-mode="${state.mode}"]`); if (difficultyButton) difficultyButton.click(); if (modeButton) modeButton.click(); await preloadAssets(); const loading = document.getElementById('loading'); const appShell = document.querySelector('.app-shell'); if (loading) loading.classList.add('hidden'); if (appShell) appShell.classList.remove('hidden-until-ready'); showOverlay('overlay-start'); requestAnimationFrame(animate); }
 
-boot();
+document.addEventListener('DOMContentLoaded', boot, { once: true });
