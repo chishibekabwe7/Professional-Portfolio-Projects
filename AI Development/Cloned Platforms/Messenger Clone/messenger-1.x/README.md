@@ -1,0 +1,95 @@
+# Laravel Messenger
+
+[![Latest Version on Packagist][ico-version]][link-packagist]
+[![Total Downloads][ico-downloads]][link-downloads]
+[![Tests][ico-test]][link-test]
+[![StyleCI][ico-styleci]][link-styleci]
+[![License][ico-license]][link-license]
+
+
+
+### Prerequisites
+
+| Laravel |         PHP          |   Messenger |
+|---------|:--------------------:|------------:|
+| `8.x`   | `^7.4` `^8.0` `^8.1` | `<= 1.19.1` |
+| `9.x`   |   `^8.0.2` `^8.1`    | `>= 1.20.0` |
+| `10.x`  | `^8.1` `^8.2` `^8.3` | `>= 1.22.0` |
+| `11.x`  |    `^8.2` `^8.3`     | `>= 1.23.0` |
+| `12.x`  | `^8.2` `^8.3` `^8.4` | `>= 1.24.0` |
+
+- Route model binding enabled in your API / WEB middleware groups.
+
+### Features
+- Realtime messaging between multiple models.
+- RESTful API, allowing you to create your own UI or connect to your mobile app.
+- Private and group threads.
+- Message reactions, replies, edits, and deletion.
+- Send image, document, audio, and video messages.
+- Group thread chat-bots. [Ready-made bots][link-messenger-bots]
+- Customize and create your own chat-bot handlers and bot packages. See the [Chat Bots][link-chat-bots] documentation.
+- Add participants in a group thread from your friends list.
+- Permissions per participant within a group thread.
+- Friends, Search, and Online status systems.
+- Private thread approval when the two participants are not friends.
+- Provider avatars, group thread avatars, and bot avatars.
+- Underlying calling system you can extend. See the [Calling][link-calling] documentation.
+- Group thread invitation links (like discord).
+- All endpoints are protected behind policies.
+- Scheduled commands for automated cleanup and checks.
+- Queued jobs fired from our event subscribers.
+- Most features can be toggled at runtime using our `Messenger` facade.
+- `MessengerComposer` facade allows you to have easy access to the core actions anywhere within your own app, such as sending messages, images, reactions, and more.
+- You can implement or extend your own `BroadcastDriver`, `VideoDriver`, and `FriendDriver`, simply by binding your classes into the container.
+- Support for morph maps on your provider models. See: [Morph Maps][link-morph-maps]
+- Optional extra payload when sending messages to allow custom json to be stored with the message.
+- Owner relationships returns a `Ghost Profile` when not found (null-object pattern).
+- Private threads auto-lock when the recipient is not found / deleted.
+
+### Upcoming for v2
+- Please see the [2.x Branch][link-2x-branch] for more information.
+
+### Notes
+- This is a `Laravel` package and must be installed in a `laravel` application to run.
+- Read through the [`messenger.php`][link-config] config file before migrating!
+- This is a pure backend driven package providing an API to interact with, thus no web UI or websocket implementation will be setup for you.
+- Calling is disabled by default. You are responsible for implementing your own media server or connecting to a 3rd party provider.
+- Configure your laravel applications broadcast driver and set up your websocket implementation to utilize the real-time broadcast emitted.
+
+---
+
+# Installation
+
+### Composer
+
+```bash
+composer require rtippin/messenger
+```
+
+### To complete the setup, please refer to the installation documentation listed below:
+
+---
+
+# Documentation
+
+- ### [Install / Registering Providers][link-installation]
+- ### [Configuration][link-configuration]
+- ### [Commands][link-commands]
+- ### [Broadcasting][link-broadcasting]
+- ### [Events][link-events]
+- ### [Chat Bots][link-chat-bots]
+- ### [Calling][link-calling]
+- ### [Messenger Composer][link-messenger-composer]
+- ### [Helpers / Facades][link-helpers]
+- ### [API Explorer][link-api-explorer]
+
+---
+
+## Addons / Demo
+
+- [Messenger Bots][link-messenger-bots] - Pre-made bots you can register within this package.
+- [Messenger Faker][link-messenger-faker] - Adds commands useful in development environments to mock/seed realtime events and messages.
+- [Messenger Web UI][link-messenger-ui] - Ready-made web routes and publishable views / assets, including default images.
+- [Demo App][link-demo-source] - A demo laravel app with this core package installed, including a [Live Demo][link-live-demo].
+
+
