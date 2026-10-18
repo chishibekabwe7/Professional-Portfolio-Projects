@@ -1,0 +1,16 @@
+{
+  "name": "js-sliders-game",
+  "version": "1.0.0",
+  "description": "Sliders - a sliding puzzle game featuring random tile generation and a leaderboard.",
+  "main": "script.js",
+  "scripts": {
+    "vercel-dev": "vercel dev"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "vercel": "^50.28.0"
+  }
+}

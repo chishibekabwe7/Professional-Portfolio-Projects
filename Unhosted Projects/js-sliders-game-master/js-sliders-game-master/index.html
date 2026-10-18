@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>Sliders</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"
+    />
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico" />
+  </head>
+  <body>
+    <article>
+      <h2 class="m-b-10">Sliders</h2>
+
+      <section class="h-block m-t-10">
+        <p class="v-block m-r-10">
+          <span>Game size</span>
+          <span class="m-t-10">
+            <select id="game-size" title="game-size" onchange="startGame()">
+              <option value="2">2 x 2</option>
+              <option value="3" selected>3 x 3</option>
+              <option value="4">4 x 4</option>
+              <option value="5">5 x 5</option>
+              <option value="6">6 x 6</option>
+            </select>
+          </span>
+        </p>
+        <p class="v-block m-l-10">
+          <span class="m-t-8">Score</span>
+          <span class="score-display"></span>
+        </p>
+      </section>
+
+      <main></main>
+
+      <section class="shuffle-display hide text-center max-w-350"></section>
+
+      <!-- <span class="clock-display emoji-filter hidden"></span> -->
+
+      <section class="btn-group m-t-10">
+        <button class="btn m-r-10 m-b-10" onclick="startGame()">
+          New game <i class="fas fa-redo-alt"></i>
+        </button>
+        <button class="btn m-b-10" onclick="toggleHelp('add')">
+          Help <i class="fas fa-question-circle"></i>
+        </button>
+      </section>
+
+      <section class="text-center max-w-350">
+        <div class="help">
+          <h4 class="m-t-0 m-b-10">How to play</h4>
+          <button class="close-btn" onclick="toggleHelp('remove')">
+            &times;</button
+          ><br />
+          <ul>
+            <li>Choose the game size: 3x3, 4x4 etc...</li>
+            <li>
+              Slide pieces into the empty space from above, below or the side
+            </li>
+            <li>
+              Position numbers in the correct order in the fewest possible moves
+            </li>
+            <li>Each move reduces the total score by 1</li>
+            <li>Pieces turn green in the correct position</li>
+            <li>
+              When all the pieces are correct you can add your score to the
+              Leader Board
+            </li>
+          </ul>
+        </div>
+        <form id="add-score-form">
+          <span class="win-display m-t-10"></span>
+          <p>
+            <span class="player-name-wrapper"></span
+            ><button class="btn m-l-10" type="submit" id="add-score-button">
+              Add
+            </button>
+          </p>
+        </form>
+      </section>
+
+      <section class="text-center max-w-350">
+        <h3 class="m-b-20">
+          <i class="fas fa-trophy"></i> Leader Board
+          <sup class="top-200">top 200</sup>
+        </h3>
+        <div id="spinner" style="display: block">
+          <div class="spinner"></div>
+          <p class="loading-text">Loading scores...</p>
+        </div>
+        <div id="leader-board"></div>
+      </section>
+
+      <footer class="text-center m-t-30">
+        &copy; Roland Levy <span id="year"></span>
+        <a
+          href="https://rolandlevy.co.uk"
+          rel="noopener"
+          class="new-tab-icon"
+          target="_blank"
+          >see more of my projects</a
+        >
+      </footer>
+    </article>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.3.2/dist/purify.min.js"></script>
+    <script type="module" src="script.js" defer></script>
+    <script src="src/scores-data.js"></script>
+  </body>
+</html>

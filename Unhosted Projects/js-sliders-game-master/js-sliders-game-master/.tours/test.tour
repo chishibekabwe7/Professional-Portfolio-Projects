@@ -1,0 +1,12 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "Test",
+  "steps": [
+    {
+      "file": "style.css",
+      "description": "This is the mid-grey colour",
+      "line": 10
+    }
+  ],
+  "ref": "master"
+}
