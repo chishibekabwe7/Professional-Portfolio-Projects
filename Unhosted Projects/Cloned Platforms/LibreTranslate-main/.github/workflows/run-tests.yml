@@ -1,0 +1,72 @@
+name: Run tests
+# Run test at each push to main, if changes to package or tests files
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+    paths:
+    - '*.py'
+    - 'requirements.txt'
+    - 'libretranslate/**'
+    - '.github/workflows/run-tests.yml'
+
+jobs:
+
+  tests_python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        pipx install hatch
+        pipx inject hatch "virtualenv<20.29.0" --force
+        hatch run locales
+
+    - name: Test with pytest
+      run: hatch run test
+
+
+  test_docker_build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build
+        run: docker build -f docker/Dockerfile -t libretranslate .
+
+      - name: Docker build with some models
+        run: docker build -f docker/Dockerfile -t libretranslate --build-arg models=en,es  .
+
+  test_docker_healthcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker build
+        run: docker build -f docker/Dockerfile -t libretranslate/libretranslate:latest .
+      
+      - name: Docker compose up
+        run: docker compose up -d --pull never
+
+      - name: Check Healthcheck
+        run: |
+          for i in {1..60}; do
+            STATUS=$(docker inspect -f '{{ .State.Health.Status }}' libretranslate 2>/dev/null || echo 'no')
+            echo "Status: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "LibreTranslate did not become healthy"
+          exit 1

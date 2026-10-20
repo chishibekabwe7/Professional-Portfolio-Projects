@@ -1,0 +1,822 @@
+# Tamil translations for LibreTranslate.
+# Copyright (C) 2024 LibreTranslate Authors
+# This file is distributed under the same license as the LibreTranslate
+# project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: LibreTranslate 1.6.2\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-01-21 10:25-0500\n"
+"PO-Revision-Date: 2026-03-20 12:09+0000\n"
+"Last-Translator: தமிழ்நேரம் <tamilneram247@gmail.com>\n"
+"Language-Team: Tamil <https://hosted.weblate.org/projects/libretranslate/app/"
+"ta/>\n"
+"Language: ta\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.17-dev\n"
+"Generated-By: Babel 2.12.1\n"
+
+#: libretranslate/app.py:97
+msgid "Invalid JSON format"
+msgstr "தவறான சாதொபொகு வடிவம்"
+
+#: libretranslate/app.py:214 libretranslate/templates/app.js.template:480
+msgid "Auto Detect"
+msgstr "ஆட்டோ கண்டறிதல்"
+
+#: libretranslate/app.py:316
+msgid "Unauthorized"
+msgstr "அங்கீகரிக்கப்படாதது"
+
+#: libretranslate/app.py:334
+msgid "Too many request limits violations"
+msgstr "பல கோரிக்கை மீறல்களைக் கட்டுப்படுத்துகிறது"
+
+#: libretranslate/app.py:341
+msgid "Invalid API key"
+msgstr "தவறான பநிஇ விசை"
+
+#: libretranslate/app.py:376
+msgid "Please contact the server operator to get an API key"
+msgstr "பநிஇ விசையைப் பெற சேவையக ஆபரேட்டரைத் தொடர்பு கொள்ளவும்"
+
+#: libretranslate/app.py:378
+#, python-format
+msgid "Visit %(url)s to get an API key"
+msgstr "பநிஇ விசையைப் பெற %(url)s ஐப் பார்வையிடவும்"
+
+#: libretranslate/app.py:428
+msgid "Slowdown:"
+msgstr "மந்தநிலை:"
+
+#: libretranslate/app.py:735 libretranslate/app.py:737
+#: libretranslate/app.py:739 libretranslate/app.py:968
+#: libretranslate/app.py:970 libretranslate/app.py:972
+#: libretranslate/app.py:1137 libretranslate/app.py:1294
+#: libretranslate/app.py:1296 libretranslate/app.py:1298
+#: libretranslate/app.py:1300
+#, python-format
+msgid "Invalid request: missing %(name)s parameter"
+msgstr "தவறான கோரிக்கை: காணாமல் போன %(name)s அளவுரு"
+
+#: libretranslate/app.py:744
+#, python-format
+msgid "Invalid request: %(name)s parameter is not a number"
+msgstr "தவறான கோரிக்கை: %(name)s அளவுரு ஒரு எண் அல்ல"
+
+#: libretranslate/app.py:747
+#, python-format
+msgid "Invalid request: %(name)s parameter must be <= %(value)s"
+msgstr "தவறான கோரிக்கை: %(name)s அளவுரு <= %(value)s இருக்க வேண்டும்"
+
+#: libretranslate/app.py:764 libretranslate/app.py:781
+#, python-format
+msgid "Invalid request: request (%(size)s) exceeds text limit (%(limit)s)"
+msgstr "தவறான கோரிக்கை: கோரிக்கை (%(size)s வரி வரம்பை மீறுகிறது (%(limit)s)"
+
+#: libretranslate/app.py:800 libretranslate/app.py:805
+#: libretranslate/app.py:983 libretranslate/app.py:988
+#: libretranslate/app.py:1010
+#, python-format
+msgid "%(lang)s is not supported"
+msgstr "%(lang)s ஆதரிக்கப்படவில்லை"
+
+#: libretranslate/app.py:811
+#, python-format
+msgid "%(format)s format is not supported"
+msgstr "%(format)s வடிவமைப்பு ஆதரிக்கப்படவில்லை"
+
+#: libretranslate/app.py:820 libretranslate/app.py:846
+#, python-format
+msgid ""
+"%(tname)s (%(tcode)s) is not available as a target language from "
+"%(sname)s (%(scode)s)"
+msgstr ""
+"%(sname)s%(scode)s இலிருந்து %(tname)s%(tcode)s இலக்கு மொழியாகக் "
+"கிடைக்கவில்லை"
+
+#: libretranslate/app.py:873
+#, python-format
+msgid "Cannot translate text: %(text)s"
+msgstr "உரையை மொழிபெயர்க்க முடியாது: %(text)s"
+
+#: libretranslate/app.py:960 libretranslate/app.py:1029
+msgid "Files translation are disabled on this server."
+msgstr "இந்த சேவையகத்தில் கோப்புகள் மொழிபெயர்ப்பு முடக்கப்பட்டுள்ளது."
+
+#: libretranslate/app.py:975
+msgid "Invalid request: empty file"
+msgstr "தவறான கோரிக்கை: வெற்று கோப்பு"
+
+#: libretranslate/app.py:978
+msgid "Invalid request: file format not supported"
+msgstr "தவறான கோரிக்கை: கோப்பு வடிவம் ஆதரிக்கப்படவில்லை"
+
+#: libretranslate/app.py:1037
+msgid "Invalid filename"
+msgstr "தவறான கோப்பு பெயர்"
+
+#: libretranslate/app.py:1279
+msgid "Suggestions are disabled on this server."
+msgstr "இந்த சேவையகத்தில் பரிந்துரைகள் முடக்கப்பட்டுள்ளன."
+
+#: libretranslate/locales/.langs.py:1
+msgid "English"
+msgstr "ஆங்கிலம்"
+
+#: libretranslate/locales/.langs.py:2
+msgid "Albanian"
+msgstr "அல்பேனிய"
+
+#: libretranslate/locales/.langs.py:3
+msgid "Arabic"
+msgstr "அரபு"
+
+#: libretranslate/locales/.langs.py:4
+msgid "Azerbaijani"
+msgstr "அசர்பைசானி"
+
+#: libretranslate/locales/.langs.py:5
+msgid "Basque"
+msgstr "பாச்க்"
+
+#: libretranslate/locales/.langs.py:6
+msgid "Bengali"
+msgstr "பெங்காலி"
+
+#: libretranslate/locales/.langs.py:7
+msgid "Bulgarian"
+msgstr "பல்கேரியன்"
+
+#: libretranslate/locales/.langs.py:8
+msgid "Catalan"
+msgstr "கற்றலான்"
+
+#: libretranslate/locales/.langs.py:9
+msgid "Chinese"
+msgstr "சீன"
+
+#: libretranslate/locales/.langs.py:10
+msgid "Chinese (traditional)"
+msgstr "சீன (பாரம்பரிய)"
+
+#: libretranslate/locales/.langs.py:11
+msgid "Czech"
+msgstr "செக்"
+
+#: libretranslate/locales/.langs.py:12
+msgid "Danish"
+msgstr "டேனிச்"
+
+#: libretranslate/locales/.langs.py:13
+msgid "Dutch"
+msgstr "டச்சு"
+
+#: libretranslate/locales/.langs.py:14
+msgid "Esperanto"
+msgstr "எச்பெராண்டோ"
+
+#: libretranslate/locales/.langs.py:15
+msgid "Estonian"
+msgstr "எச்டோனிய"
+
+#: libretranslate/locales/.langs.py:16
+msgid "Finnish"
+msgstr "பின்னிச்"
+
+#: libretranslate/locales/.langs.py:17
+msgid "French"
+msgstr "பிரஞ்சு"
+
+#: libretranslate/locales/.langs.py:18
+msgid "Galician"
+msgstr "காலிசியன்"
+
+#: libretranslate/locales/.langs.py:19
+msgid "German"
+msgstr "செர்மன்"
+
+#: libretranslate/locales/.langs.py:20
+msgid "Greek"
+msgstr "கிரேக்கம்"
+
+#: libretranslate/locales/.langs.py:21
+msgid "Hebrew"
+msgstr "எபிரேய"
+
+#: libretranslate/locales/.langs.py:22
+msgid "Hindi"
+msgstr "இந்தி"
+
+#: libretranslate/locales/.langs.py:23
+msgid "Hungarian"
+msgstr "அங்கேரியன்"
+
+#: libretranslate/locales/.langs.py:24
+msgid "Indonesian"
+msgstr "இந்தோனேசிய"
+
+#: libretranslate/locales/.langs.py:25
+msgid "Irish"
+msgstr "ஐரிச்"
+
+#: libretranslate/locales/.langs.py:26
+msgid "Italian"
+msgstr "இத்தாலிய"
+
+#: libretranslate/locales/.langs.py:27
+msgid "Japanese"
+msgstr "சப்பானியர்கள்"
+
+#: libretranslate/locales/.langs.py:28
+msgid "Korean"
+msgstr "கொரிய"
+
+#: libretranslate/locales/.langs.py:29
+msgid "Kyrgyz"
+msgstr "கிர்கிச்"
+
+#: libretranslate/locales/.langs.py:30
+msgid "Latvian"
+msgstr "லாட்வியன்"
+
+#: libretranslate/locales/.langs.py:31
+msgid "Lithuanian"
+msgstr "லிதுவேனியன்"
+
+#: libretranslate/locales/.langs.py:32
+msgid "Malay"
+msgstr "மலாய்"
+
+#: libretranslate/locales/.langs.py:33
+msgid "Norwegian"
+msgstr "நோர்வே"
+
+#: libretranslate/locales/.langs.py:34
+msgid "Persian"
+msgstr "பெர்சியன்"
+
+#: libretranslate/locales/.langs.py:35
+msgid "Polish"
+msgstr "போலீச்"
+
+#: libretranslate/locales/.langs.py:36
+msgid "Portuguese"
+msgstr "போர்த்துகீசியம்"
+
+#: libretranslate/locales/.langs.py:37
+msgid "Portuguese (Brazil)"
+msgstr "போர்த்துகீசியம் (பிரேசில்)"
+
+#: libretranslate/locales/.langs.py:38
+msgid "Romanian"
+msgstr "ருமேனிய"
+
+#: libretranslate/locales/.langs.py:39
+msgid "Russian"
+msgstr "ரச்ய"
+
+#: libretranslate/locales/.langs.py:40
+msgid "Slovak"
+msgstr "ச்லோவாக்"
+
+#: libretranslate/locales/.langs.py:41
+msgid "Slovenian"
+msgstr "ச்லோவேனியன்"
+
+#: libretranslate/locales/.langs.py:42
+msgid "Spanish"
+msgstr "ச்பானிச்"
+
+#: libretranslate/locales/.langs.py:43
+msgid "Swedish"
+msgstr "ச்வீடிச்"
+
+#: libretranslate/locales/.langs.py:44
+msgid "Tagalog"
+msgstr "டாக்லாக்"
+
+#: libretranslate/locales/.langs.py:45
+msgid "Thai"
+msgstr "தாய்"
+
+#: libretranslate/locales/.langs.py:46
+msgid "Turkish"
+msgstr "துருக்கிய"
+
+#: libretranslate/locales/.langs.py:47
+msgid "Ukranian"
+msgstr "உக்ரேனிய"
+
+#: libretranslate/locales/.langs.py:48
+msgid "Urdu"
+msgstr "உருது"
+
+#: libretranslate/locales/.langs.py:49
+msgid "Vietnamese"
+msgstr "வியட்நாமிய"
+
+#: libretranslate/locales/.langs.py:50
+msgid "Serbian"
+msgstr "செர்பிய"
+
+#: libretranslate/locales/.langs.py:51
+msgid "Ukrainian"
+msgstr "உக்ரேனியன்"
+
+#: libretranslate/locales/.swag.py:1
+msgid "Get Supported Languages"
+msgstr "ஆதரிக்கப்படும் மொழிகளைப் பெறுங்கள்"
+
+#: libretranslate/locales/.swag.py:2
+msgid "List of supported languages"
+msgstr "ஆதரிக்கப்படும் மொழிகளின் பட்டியல்"
+
+#: libretranslate/locales/.swag.py:3
+msgid "translate"
+msgstr "மொழிபெயர்த்திடு"
+
+#: libretranslate/locales/.swag.py:4
+msgid "Health Check"
+msgstr "சுகாதார சோதனை"
+
+#: libretranslate/locales/.swag.py:5
+msgid "Service is healthy"
+msgstr "பணி ஆரோக்கியமானது"
+
+#: libretranslate/locales/.swag.py:6
+msgid "misc"
+msgstr "இதர"
+
+#: libretranslate/locales/.swag.py:7 libretranslate/templates/index.html:185
+msgid "Translate Text"
+msgstr "உரையை மொழிபெயர்க்கவும்"
+
+#: libretranslate/locales/.swag.py:8
+msgid "Translation"
+msgstr "மொழிபெயர்ப்பு"
+
+#: libretranslate/locales/.swag.py:9
+msgid "Invalid request"
+msgstr "தவறான கோரிக்கை"
+
+#: libretranslate/locales/.swag.py:10
+msgid "Translation error"
+msgstr "மொழிபெயர்ப்பு பிழை"
+
+#: libretranslate/locales/.swag.py:11
+msgid "Slow down"
+msgstr "மெதுவாக"
+
+#: libretranslate/locales/.swag.py:12
+msgid "Banned"
+msgstr "தடைசெய்யப்பட்டது"
+
+#: libretranslate/locales/.swag.py:13
+msgid "Hello world!"
+msgstr "வணக்கம் உலகம்!"
+
+#: libretranslate/locales/.swag.py:14
+msgid "Text(s) to translate"
+msgstr "மொழிபெயர்க்க உரை (கள்)"
+
+#: libretranslate/locales/.swag.py:15
+msgid "Source language code or \"auto\" for auto detection"
+msgstr "மூல மொழி குறியீடு அல்லது தானியங்கு கண்டறிதலுக்கான \"தானியங்கு\""
+
+#: libretranslate/locales/.swag.py:16
+msgid "Target language code"
+msgstr "இலக்கு மொழி குறியீடு"
+
+#: libretranslate/locales/.swag.py:17
+msgid "text"
+msgstr "உரை"
+
+#: libretranslate/locales/.swag.py:18
+msgid "html"
+msgstr "உஉகுமொ"
+
+#: libretranslate/locales/.swag.py:19
+msgid ""
+"Format of source text:\n"
+" * `text` - Plain text\n"
+" * `html` - HTML markup\n"
+msgstr ""
+"மூல உரையின் வடிவம்:\n"
+" * `உரை` - எளிய உரை\n"
+" * `html` - உஉகுமொ markup\n"
+
+#: libretranslate/locales/.swag.py:20
+msgid "Preferred number of alternative translations"
+msgstr "மாற்று மொழிபெயர்ப்புகளின் விருப்பமான எண்ணிக்கை"
+
+#: libretranslate/locales/.swag.py:21
+msgid "API key"
+msgstr "பநிஇ விசை"
+
+#: libretranslate/locales/.swag.py:22
+msgid "Translate a File"
+msgstr "ஒரு கோப்பை மொழிபெயர்க்கவும்"
+
+#: libretranslate/locales/.swag.py:23
+msgid "Translated file"
+msgstr "மொழிபெயர்க்கப்பட்ட கோப்பு"
+
+#: libretranslate/locales/.swag.py:24
+msgid "File to translate"
+msgstr "மொழிபெயர்க்க கோப்பு"
+
+#: libretranslate/locales/.swag.py:25
+msgid "Source language code  or \"auto\" for auto detection"
+msgstr "மூல மொழி குறியீடு அல்லது தானியங்கு கண்டறிதலுக்கான \"தானியங்கு\""
+
+#: libretranslate/locales/.swag.py:26
+msgid "Detect Language of Text"
+msgstr "உரையின் மொழியைக் கண்டறியவும்"
+
+#: libretranslate/locales/.swag.py:27
+msgid "Detections"
+msgstr "கண்டறிதல்கள்"
+
+#: libretranslate/locales/.swag.py:28
+msgid "Detection error"
+msgstr "கண்டறிதல் பிழை"
+
+#: libretranslate/locales/.swag.py:29
+msgid "Text to detect"
+msgstr "கண்டறிய உரை"
+
+#: libretranslate/locales/.swag.py:30
+msgid "Retrieve Frontend Settings"
+msgstr "முன்பக்கம் அமைப்புகளை மீட்டெடுக்கவும்"
+
+#: libretranslate/locales/.swag.py:31
+msgid "frontend settings"
+msgstr "ஃபிரான்டென்ட் அமைப்புகள்"
+
+#: libretranslate/locales/.swag.py:32
+msgid "Submit a Suggestion to Improve a Translation"
+msgstr "மொழிபெயர்ப்பை மேம்படுத்த ஒரு ஆலோசனையைச் சமர்ப்பிக்கவும்"
+
+#: libretranslate/locales/.swag.py:33
+msgid "Success"
+msgstr "செய்"
+
+#: libretranslate/locales/.swag.py:34
+msgid "Not authorized"
+msgstr "ஏற்பு இல்லை"
+
+#: libretranslate/locales/.swag.py:35
+msgid "Original text"
+msgstr "அசல் உரை"
+
+#: libretranslate/locales/.swag.py:36
+msgid "Suggested translation"
+msgstr "பரிந்துரைக்கப்பட்ட மொழிபெயர்ப்பு"
+
+#: libretranslate/locales/.swag.py:37
+msgid "Language of original text"
+msgstr "அசல் உரையின் மொழி"
+
+#: libretranslate/locales/.swag.py:38
+msgid "Language of suggested translation"
+msgstr "பரிந்துரைக்கப்பட்ட மொழிபெயர்ப்பின் மொழி"
+
+#: libretranslate/locales/.swag.py:39
+msgid "Supported language"
+msgstr "ஆதரிக்கப்படும் மொழி"
+
+#: libretranslate/locales/.swag.py:40
+msgid "Language code"
+msgstr "மொழி குறியீடு"
+
+#: libretranslate/locales/.swag.py:41
+msgid "Human-readable language name (in English)"
+msgstr "மனிதனால் படிக்கக்கூடிய மொழி பெயர் (ஆங்கிலத்தில்)"
+
+#: libretranslate/locales/.swag.py:42
+msgid "Supported target language codes"
+msgstr "ஆதரிக்கப்பட்ட இலக்கு மொழி குறியீடுகள்"
+
+#: libretranslate/locales/.swag.py:43
+msgid "Health status"
+msgstr "சுகாதார நிலை"
+
+#: libretranslate/locales/.swag.py:44
+msgid "Translated text(s)"
+msgstr "மொழிபெயர்க்கப்பட்ட உரை (கள்)"
+
+#: libretranslate/locales/.swag.py:45
+msgid "Confidence value"
+msgstr "நம்பிக்கை மதிப்பு"
+
+#: libretranslate/locales/.swag.py:46
+msgid "Alternative translations"
+msgstr "மாற்று மொழிபெயர்ப்புகள்"
+
+#: libretranslate/locales/.swag.py:47
+msgid "translatedText"
+msgstr "மொழிபெயர்க்கப்பட்ட உரை"
+
+#: libretranslate/locales/.swag.py:48
+msgid "Error message"
+msgstr "பிழை செய்தி"
+
+#: libretranslate/locales/.swag.py:49
+msgid "Reason for slow down"
+msgstr "மெதுவாக இருப்பதற்கான காரணம்"
+
+#: libretranslate/locales/.swag.py:50
+msgid "Translated file url"
+msgstr "மொழிபெயர்க்கப்பட்ட கோப்பு முகவரி"
+
+#: libretranslate/locales/.swag.py:51
+msgid "Character input limit for this language (-1 indicates no limit)"
+msgstr ""
+"இந்த மொழிக்கான எழுத்து உள்ளீட்டு வரம்பு (-1 வரம்பு இல்லை என்பதைக் "
+"குறிக்கிறது)"
+
+#: libretranslate/locales/.swag.py:52
+msgid "Frontend translation timeout"
+msgstr "ஃபிரான்டென்ட் மொழிபெயர்ப்பு நேரம் முடிந்தது"
+
+#: libretranslate/locales/.swag.py:53
+msgid "Whether the API key database is enabled."
+msgstr "பநிஇ விசை தரவுத்தளம் இயக்கப்பட்டதா என்பதை."
+
+#: libretranslate/locales/.swag.py:54
+msgid "Whether an API key is required."
+msgstr "பநிஇ விசை தேவையா என்பதை."
+
+#: libretranslate/locales/.swag.py:55
+msgid "Whether submitting suggestions is enabled."
+msgstr "பரிந்துரைகளை சமர்ப்பிப்பது இயக்கப்பட்டதா."
+
+#: libretranslate/locales/.swag.py:56
+msgid "Supported files format"
+msgstr "ஆதரிக்கப்பட்ட கோப்புகள் வடிவம்"
+
+#: libretranslate/locales/.swag.py:57
+msgid "Whether submission was successful"
+msgstr "சமர்ப்பிப்பு வெற்றிகரமாக இருந்ததா"
+
+#: libretranslate/templates/app.js.template:32
+#: libretranslate/templates/app.js.template:300
+#: libretranslate/templates/app.js.template:304
+msgid "Copy text"
+msgstr "உரையை நகலெடுக்கவும்"
+
+#: libretranslate/templates/app.js.template:82
+#: libretranslate/templates/app.js.template:88
+#: libretranslate/templates/app.js.template:93
+#: libretranslate/templates/app.js.template:287
+#: libretranslate/templates/app.js.template:357
+#: libretranslate/templates/app.js.template:446
+#: libretranslate/templates/app.js.template:500
+#, python-format
+msgid "Cannot load %(url)s"
+msgstr "%(url)s ஏற்ற முடியாது"
+
+#: libretranslate/templates/app.js.template:278
+#: libretranslate/templates/app.js.template:348
+#: libretranslate/templates/app.js.template:427
+#: libretranslate/templates/app.js.template:438
+msgid "Unknown error"
+msgstr "தெரியாத பிழை"
+
+#: libretranslate/templates/app.js.template:301
+msgid "Copied"
+msgstr "நகலெடுக்கப்பட்டது"
+
+#: libretranslate/templates/app.js.template:345
+msgid ""
+"Thanks for your correction. Note the suggestion will not take effect "
+"right away."
+msgstr ""
+"உங்கள் திருத்தத்திற்கு நன்றி. குறிப்பு பரிந்துரை இப்போதே நடைமுறைக்கு "
+"வராது."
+
+#: libretranslate/templates/app.js.template:470
+msgid "No languages available. Did you install the models correctly?"
+msgstr "மொழிகள் எதுவும் கிடைக்கவில்லை. நீங்கள் மாதிரிகளை சரியாக நிறுவினீர்களா?"
+
+#: libretranslate/templates/app.js.template:543
+#, python-format
+msgid "Type in your API Key. If you need an API key, %(instructions)s"
+msgstr ""
+"உங்கள் பநிஇ விசையில் தட்டச்சு செய்க. உங்களுக்கு பநிஇ விசை தேவைப்பட்டால், "
+"%(instructions)s"
+
+#: libretranslate/templates/app.js.template:543
+msgid "press the \"Get API Key\" link."
+msgstr "\"பநிஇ கீ\" இணைப்பை அழுத்தவும்."
+
+#: libretranslate/templates/app.js.template:543
+msgid "contact the server operator."
+msgstr "சேவையக ஆபரேட்டரைத் தொடர்பு கொள்ளுங்கள்."
+
+#: libretranslate/templates/index.html:9 libretranslate/templates/index.html:29
+#: libretranslate/templates/index.html:348
+msgid "Free and Open Source Machine Translation API"
+msgstr "இலவச மற்றும் திறந்த மூல இயந்திர மொழிபெயர்ப்பு பநிஇ"
+
+#: libretranslate/templates/index.html:10
+#: libretranslate/templates/index.html:33
+msgid ""
+"Free and Open Source Machine Translation API. Free to download, offline "
+"capable and easy to setup. Run your own API server in just a few minutes."
+msgstr ""
+"இலவச மற்றும் திறந்த மூல இயந்திர மொழிபெயர்ப்பு பநிஇ. சுய-ஓச்ட், "
+"இணைப்பில்லாத திறன் மற்றும் அமைக்க எளிதானது. உங்கள் சொந்த பநிஇ சேவையகத்தை "
+"சில நிமிடங்களில் இயக்கவும்."
+
+#: libretranslate/templates/index.html:11
+msgid "translation"
+msgstr "மொழிபெயர்ப்பு"
+
+#: libretranslate/templates/index.html:11
+msgid "api"
+msgstr "பநிஇ"
+
+#: libretranslate/templates/index.html:59
+msgid "API Docs"
+msgstr "பநிஇ டாக்ச்"
+
+#: libretranslate/templates/index.html:62
+msgid "Get API Key"
+msgstr "பநிஇ விசையைப் பெறுங்கள்"
+
+#: libretranslate/templates/index.html:64
+msgid "GitHub"
+msgstr "கிரப்"
+
+#: libretranslate/templates/index.html:66
+msgid "Set API Key"
+msgstr "பநிஇ விசையை அமைக்கவும்"
+
+#: libretranslate/templates/index.html:68
+msgid "Change language"
+msgstr "மொழியை மாற்றவும்"
+
+#: libretranslate/templates/index.html:74
+msgid "Edit"
+msgstr "தொகு"
+
+#: libretranslate/templates/index.html:76
+msgid "Toggle dark/light mode"
+msgstr "இருண்ட/ஒளி பயன்முறையை மாற்றவும்"
+
+#: libretranslate/templates/index.html:152
+msgid "Dismiss"
+msgstr "தள்ளுபடி"
+
+#: libretranslate/templates/index.html:170
+msgid ""
+"Due to bot abuse, translation requests are temporarily limited to users "
+"with a valid API key. Sorry for the inconvenience!"
+msgstr ""
+"போட் துஷ்பிரயோகம் காரணமாக, மொழிபெயர்ப்புக் கோரிக்கைகள் தற்காலிகமாகச் "
+"செல்லுபடியாகும் ஏபிஐ விசையுடன் பயனர்களுக்கு மட்டுமே. சிரமத்திற்கு "
+"மன்னிக்கவும்!"
+
+#: libretranslate/templates/index.html:179
+msgid "Translation API"
+msgstr "மொழிபெயர்ப்பு பநிஇ"
+
+#: libretranslate/templates/index.html:189
+msgid "Translate Files"
+msgstr "கோப்புகளை மொழிபெயர்க்கவும்"
+
+#: libretranslate/templates/index.html:195
+msgid "Translate from"
+msgstr "இருந்து மொழிபெயர்க்கவும்"
+
+#: libretranslate/templates/index.html:205
+msgid "Swap source and target languages"
+msgstr "மூலத்தை மாற்றவும் மற்றும் இலக்கு மொழிகள்"
+
+#: libretranslate/templates/index.html:208
+msgid "Translate into"
+msgstr "மொழிபெயர்க்கவும்"
+
+#: libretranslate/templates/index.html:220
+msgid "Text to translate"
+msgstr "மொழிபெயர்க்க உரை"
+
+#: libretranslate/templates/index.html:223
+msgid "Delete text"
+msgstr "உரையை நீக்கு"
+
+#: libretranslate/templates/index.html:232
+msgid "Translated text"
+msgstr "மொழிபெயர்க்கப்பட்ட உரை"
+
+#: libretranslate/templates/index.html:236
+msgid "Suggest translation"
+msgstr "மொழிபெயர்ப்பை பரிந்துரைக்கவும்"
+
+#: libretranslate/templates/index.html:240
+msgid "Cancel"
+msgstr "ரத்துசெய்"
+
+#: libretranslate/templates/index.html:243
+msgid "Send"
+msgstr "அனுப்பு"
+
+#: libretranslate/templates/index.html:259
+msgid "Supported file formats:"
+msgstr "உதவி கோப்பு வடிவங்கள்:"
+
+#: libretranslate/templates/index.html:263
+msgid "File"
+msgstr "கோப்பு"
+
+#: libretranslate/templates/index.html:278
+msgid "Remove file"
+msgstr "கோப்பை அகற்று"
+
+#: libretranslate/templates/index.html:285
+msgid "Translate"
+msgstr "மொழிபெயர்த்திடு"
+
+#: libretranslate/templates/index.html:286
+#: libretranslate/templates/index.html:332
+msgid "Download"
+msgstr "பதிவிறக்கம்"
+
+#: libretranslate/templates/index.html:306
+msgid "Request"
+msgstr "கோரிக்கை"
+
+#: libretranslate/templates/index.html:311
+msgid "Response"
+msgstr "பதில்"
+
+#: libretranslate/templates/index.html:327
+msgid "Open Source Machine Translation API"
+msgstr "திறந்த மூல இயந்திர மொழிபெயர்ப்பு பநிஇ"
+
+#: libretranslate/templates/index.html:328
+msgid "Free to download. Offline Capable. Easy to Setup."
+msgstr "சுய-ஓச்ட். இணைப்பில்லாத திறன். அமைக்க எளிதானது."
+
+#: libretranslate/templates/index.html:347
+msgid "LibreTranslate"
+msgstr "லிப்ரெட்ரான்ச்லேட்"
+
+#: libretranslate/templates/index.html:349
+msgid "License:"
+msgstr "உரிமம்:"
+
+#: libretranslate/templates/index.html:355
+#, python-format
+msgid "Made with %(heart)s by %(contributors)s and powered by %(engine)s"
+msgstr ""
+"%(heart)s %(contributors)s மூலம் தயாரிக்கப்படுகின்றன மற்றும் %(engine)s "
+"மூலம் இயக்கப்படுகின்றன"
+
+#: libretranslate/templates/index.html:355
+#, python-format
+msgid "%(libretranslate)s Contributors"
+msgstr "%(libretranslate)s பங்களிப்பாளர்கள்"
+
+#~ msgid "Basque"
+#~ msgstr "பாச்க்"
+
+#~ msgid "Galician"
+#~ msgstr "காலிசியன்"
+
+#~ msgid "Retrieve list of supported languages"
+#~ msgstr "உதவி மொழிகளின் பட்டியலை மீட்டெடுக்கவும்"
+
+#~ msgid "List of languages"
+#~ msgstr "மொழிகளின் பட்டியல்"
+
+#~ msgid "Translate text from a language to another"
+#~ msgstr "உரையை ஒரு மொழியிலிருந்து இன்னொரு மொழிக்கு மொழிபெயர்க்கவும்"
+
+#~ msgid "Source language code"
+#~ msgstr "மூல மொழி குறியீடு"
+
+#~ msgid "Translate file from a language to another"
+#~ msgstr "கோப்பை ஒரு மொழியிலிருந்து இன்னொரு மொழிக்கு மொழிபெயர்க்கவும்"
+
+#~ msgid "Detect the language of a single text"
+#~ msgstr "ஒற்றை உரையின் மொழியைக் கண்டறியவும்"
+
+#~ msgid "Retrieve frontend specific settings"
+#~ msgstr "ஃபிரான்டென்ட் குறிப்பிட்ட அமைப்புகளை மீட்டெடுக்கவும்"
+
+#~ msgid "frontend"
+#~ msgstr "ஃபிரான்ட்"
+
+#~ msgid "Submit a suggestion to improve a translation"
+#~ msgstr "மொழிபெயர்ப்பை மேம்படுத்த ஒரு ஆலோசனையை சமர்ப்பிக்கவும்"
+
+#~ msgid "feedback"
+#~ msgstr "கருத்து"

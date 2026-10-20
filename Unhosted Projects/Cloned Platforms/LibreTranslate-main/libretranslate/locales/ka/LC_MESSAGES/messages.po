@@ -1,0 +1,785 @@
+# Translations template for LibreTranslate.
+# Copyright (C) 2026 LibreTranslate Authors
+# This file is distributed under the same license as the LibreTranslate
+# project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: LibreTranslate 1.8.3\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-01-21 10:25-0500\n"
+"PO-Revision-Date: 2026-09-02 03:52+0000\n"
+"Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
+"Language-Team: Georgian <https://hosted.weblate.org/projects/libretranslate/"
+"app/ka/>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.12.1\n"
+"Language: ka\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 2026.9.dev0\n"
+
+#: libretranslate/app.py:97
+msgid "Invalid JSON format"
+msgstr "არასწორი JSON ფორმატი"
+
+#: libretranslate/app.py:214 libretranslate/templates/app.js.template:480
+msgid "Auto Detect"
+msgstr "ავტომატური აღმოჩენა"
+
+#: libretranslate/app.py:316
+msgid "Unauthorized"
+msgstr "არაავტორიზებული"
+
+#: libretranslate/app.py:334
+msgid "Too many request limits violations"
+msgstr "ნამეტანი ბევრი მოთხოვნის შეზღუდვის დარღვევა"
+
+#: libretranslate/app.py:341
+msgid "Invalid API key"
+msgstr "არასწორი API გასაღები"
+
+#: libretranslate/app.py:376
+msgid "Please contact the server operator to get an API key"
+msgstr "გთხოვთ, დაუკავშირდეთ სერვერის ოპერატორს API გასაღების მისაღებად"
+
+#: libretranslate/app.py:378
+#, python-format
+msgid "Visit %(url)s to get an API key"
+msgstr "ეწვიეთ %(url)s-ს API გასაღების მისაღებად"
+
+#: libretranslate/app.py:428
+msgid "Slowdown:"
+msgstr "შენელდით:"
+
+#: libretranslate/app.py:735 libretranslate/app.py:737
+#: libretranslate/app.py:739 libretranslate/app.py:968
+#: libretranslate/app.py:970 libretranslate/app.py:972
+#: libretranslate/app.py:1137 libretranslate/app.py:1294
+#: libretranslate/app.py:1296 libretranslate/app.py:1298
+#: libretranslate/app.py:1300
+#, python-format
+msgid "Invalid request: missing %(name)s parameter"
+msgstr "არასწორი მოთხოვნა: აკლია პარამეტრი %(name)s"
+
+#: libretranslate/app.py:744
+#, python-format
+msgid "Invalid request: %(name)s parameter is not a number"
+msgstr "არასწორი მოთხოვნა: %(name)s პარამეტრი არ არის რიცხვი"
+
+#: libretranslate/app.py:747
+#, python-format
+msgid "Invalid request: %(name)s parameter must be <= %(value)s"
+msgstr "არასწორი მოთხოვნა: %(name)s პარამეტრი უნდა იყოს <=%(value)s"
+
+#: libretranslate/app.py:764 libretranslate/app.py:781
+#, python-format
+msgid "Invalid request: request (%(size)s) exceeds text limit (%(limit)s)"
+msgstr ""
+"არასწორი მოთხოვნა: მოთხოვნა (%(size)s) აღემატება ტექსტის შეზღუდვას (%(limit)"
+"s)"
+
+#: libretranslate/app.py:800 libretranslate/app.py:805
+#: libretranslate/app.py:983 libretranslate/app.py:988
+#: libretranslate/app.py:1010
+#, python-format
+msgid "%(lang)s is not supported"
+msgstr "%(lang)s არ არის მხარდაჭერილი"
+
+#: libretranslate/app.py:811
+#, python-format
+msgid "%(format)s format is not supported"
+msgstr "ფორმატი %(format)s არ არის მხარდაჭერილი"
+
+#: libretranslate/app.py:820 libretranslate/app.py:846
+#, python-format
+msgid ""
+"%(tname)s (%(tcode)s) is not available as a target language from "
+"%(sname)s (%(scode)s)"
+msgstr ""
+"%(tname)s (%(tcode)s) ხელმიუწვდომელია როგორც სამიზნე ენა %(sname)s-დან (%"
+"(scode)s)"
+
+#: libretranslate/app.py:873
+#, python-format
+msgid "Cannot translate text: %(text)s"
+msgstr "ტექსტის თარგმნა ვერ ხერხდება: %(text)s"
+
+#: libretranslate/app.py:960 libretranslate/app.py:1029
+msgid "Files translation are disabled on this server."
+msgstr "ფაილების თარგმან გათიშულია ამ სერვერზე."
+
+#: libretranslate/app.py:975
+msgid "Invalid request: empty file"
+msgstr "არასწორი მოთხოვნა: ცარიელი ფაილი"
+
+#: libretranslate/app.py:978
+msgid "Invalid request: file format not supported"
+msgstr "არასწორი მოთხოვნა: ფაილის ფორმატი არ არის მხარდაჭერილი"
+
+#: libretranslate/app.py:1037
+msgid "Invalid filename"
+msgstr "არასწორი ფაილის სახელი"
+
+#: libretranslate/app.py:1279
+msgid "Suggestions are disabled on this server."
+msgstr "შეთავაზებები გათიშულია ამ სერვერზე."
+
+#: libretranslate/locales/.langs.py:1
+msgid "English"
+msgstr "ინგლისური"
+
+#: libretranslate/locales/.langs.py:2
+msgid "Albanian"
+msgstr "ალბანური"
+
+#: libretranslate/locales/.langs.py:3
+msgid "Arabic"
+msgstr "არაბული"
+
+#: libretranslate/locales/.langs.py:4
+msgid "Azerbaijani"
+msgstr "აზერბაიჯანული"
+
+#: libretranslate/locales/.langs.py:5
+msgid "Basque"
+msgstr "ბასკური"
+
+#: libretranslate/locales/.langs.py:6
+msgid "Bengali"
+msgstr "ბენგალი"
+
+#: libretranslate/locales/.langs.py:7
+msgid "Bulgarian"
+msgstr "ბულგარული"
+
+#: libretranslate/locales/.langs.py:8
+msgid "Catalan"
+msgstr "კატალანური"
+
+#: libretranslate/locales/.langs.py:9
+msgid "Chinese"
+msgstr "ჩინური"
+
+#: libretranslate/locales/.langs.py:10
+msgid "Chinese (traditional)"
+msgstr "ჩინური (ტრადიციული)"
+
+#: libretranslate/locales/.langs.py:11
+msgid "Czech"
+msgstr "ჩეხური"
+
+#: libretranslate/locales/.langs.py:12
+msgid "Danish"
+msgstr "დანური"
+
+#: libretranslate/locales/.langs.py:13
+msgid "Dutch"
+msgstr "ჰოლანდიური"
+
+#: libretranslate/locales/.langs.py:14
+msgid "Esperanto"
+msgstr "ესპერანტო"
+
+#: libretranslate/locales/.langs.py:15
+msgid "Estonian"
+msgstr "ესტონური"
+
+#: libretranslate/locales/.langs.py:16
+msgid "Finnish"
+msgstr "ფინური"
+
+#: libretranslate/locales/.langs.py:17
+msgid "French"
+msgstr "ფრანგული"
+
+#: libretranslate/locales/.langs.py:18
+msgid "Galician"
+msgstr "გალიციური"
+
+#: libretranslate/locales/.langs.py:19
+msgid "German"
+msgstr "გერმანული"
+
+#: libretranslate/locales/.langs.py:20
+msgid "Greek"
+msgstr "ბერძნული"
+
+#: libretranslate/locales/.langs.py:21
+msgid "Hebrew"
+msgstr "ებრაული"
+
+#: libretranslate/locales/.langs.py:22
+msgid "Hindi"
+msgstr "ჰინდი"
+
+#: libretranslate/locales/.langs.py:23
+msgid "Hungarian"
+msgstr "უნგრული"
+
+#: libretranslate/locales/.langs.py:24
+msgid "Indonesian"
+msgstr "ინდონეზიური"
+
+#: libretranslate/locales/.langs.py:25
+msgid "Irish"
+msgstr "ირლანდიური"
+
+#: libretranslate/locales/.langs.py:26
+msgid "Italian"
+msgstr "იტალიური"
+
+#: libretranslate/locales/.langs.py:27
+msgid "Japanese"
+msgstr "იაპონური"
+
+#: libretranslate/locales/.langs.py:28
+msgid "Korean"
+msgstr "კორეული"
+
+#: libretranslate/locales/.langs.py:29
+msgid "Kyrgyz"
+msgstr "ყირგიზული"
+
+#: libretranslate/locales/.langs.py:30
+msgid "Latvian"
+msgstr "ლატვიური"
+
+#: libretranslate/locales/.langs.py:31
+msgid "Lithuanian"
+msgstr "ლიეტუვური"
+
+#: libretranslate/locales/.langs.py:32
+msgid "Malay"
+msgstr "მალაიური"
+
+#: libretranslate/locales/.langs.py:33
+msgid "Norwegian"
+msgstr "ნორვეგიული"
+
+#: libretranslate/locales/.langs.py:34
+msgid "Persian"
+msgstr "სპარსული"
+
+#: libretranslate/locales/.langs.py:35
+msgid "Polish"
+msgstr "პოლონური"
+
+#: libretranslate/locales/.langs.py:36
+msgid "Portuguese"
+msgstr "პორტუგალიური"
+
+#: libretranslate/locales/.langs.py:37
+msgid "Portuguese (Brazil)"
+msgstr "პორტუგალიური (ბრაზილია)"
+
+#: libretranslate/locales/.langs.py:38
+msgid "Romanian"
+msgstr "რუმინული"
+
+#: libretranslate/locales/.langs.py:39
+msgid "Russian"
+msgstr "რუსული"
+
+#: libretranslate/locales/.langs.py:40
+msgid "Slovak"
+msgstr "სლოვაკური"
+
+#: libretranslate/locales/.langs.py:41
+msgid "Slovenian"
+msgstr "სლოვენური"
+
+#: libretranslate/locales/.langs.py:42
+msgid "Spanish"
+msgstr "ესპანური"
+
+#: libretranslate/locales/.langs.py:43
+msgid "Swedish"
+msgstr "შვედური"
+
+#: libretranslate/locales/.langs.py:44
+msgid "Tagalog"
+msgstr "ტაგალოგი"
+
+#: libretranslate/locales/.langs.py:45
+msgid "Thai"
+msgstr "ტაიური"
+
+#: libretranslate/locales/.langs.py:46
+msgid "Turkish"
+msgstr "თურქული"
+
+#: libretranslate/locales/.langs.py:47
+msgid "Ukranian"
+msgstr "უკრაინული"
+
+#: libretranslate/locales/.langs.py:48
+msgid "Urdu"
+msgstr "ურდუ"
+
+#: libretranslate/locales/.langs.py:49
+msgid "Vietnamese"
+msgstr "ვიეტნამური"
+
+#: libretranslate/locales/.langs.py:50
+msgid "Serbian"
+msgstr "სერბული"
+
+#: libretranslate/locales/.langs.py:51
+msgid "Ukrainian"
+msgstr "უკრაინული"
+
+#: libretranslate/locales/.swag.py:1
+msgid "Get Supported Languages"
+msgstr "მხარდაჭერილი ენების მიღება"
+
+#: libretranslate/locales/.swag.py:2
+msgid "List of supported languages"
+msgstr "მხარდაჭერილი ენების სია"
+
+#: libretranslate/locales/.swag.py:3
+msgid "translate"
+msgstr "თარგმნა"
+
+#: libretranslate/locales/.swag.py:4
+msgid "Health Check"
+msgstr "ჯანმრთელობის შემოწმება"
+
+#: libretranslate/locales/.swag.py:5
+msgid "Service is healthy"
+msgstr "სერვისი ჯანმრთელია"
+
+#: libretranslate/locales/.swag.py:6
+msgid "misc"
+msgstr "სხვა და სხვა"
+
+#: libretranslate/locales/.swag.py:7 libretranslate/templates/index.html:185
+msgid "Translate Text"
+msgstr "ტექსტის თარგმნა"
+
+#: libretranslate/locales/.swag.py:8
+msgid "Translation"
+msgstr "თარგმნა"
+
+#: libretranslate/locales/.swag.py:9
+msgid "Invalid request"
+msgstr "არასწორი მოთხოვნა"
+
+#: libretranslate/locales/.swag.py:10
+msgid "Translation error"
+msgstr "თარგმნის შეცდომა"
+
+#: libretranslate/locales/.swag.py:11
+msgid "Slow down"
+msgstr "შენელდით"
+
+#: libretranslate/locales/.swag.py:12
+msgid "Banned"
+msgstr "დაბლოკილი"
+
+#: libretranslate/locales/.swag.py:13
+msgid "Hello world!"
+msgstr "გამარჯობა, სამყარო!"
+
+#: libretranslate/locales/.swag.py:14
+msgid "Text(s) to translate"
+msgstr "სათარგმნი ტექსტი(-ები)"
+
+#: libretranslate/locales/.swag.py:15
+msgid "Source language code or \"auto\" for auto detection"
+msgstr "საწყისი ენის კოდი ან \"ავტო\" ავტომატური აღმოჩენისთვის"
+
+#: libretranslate/locales/.swag.py:16
+msgid "Target language code"
+msgstr "სამიზნე ენის კოდი"
+
+#: libretranslate/locales/.swag.py:17
+msgid "text"
+msgstr "ტექსტი"
+
+#: libretranslate/locales/.swag.py:18
+msgid "html"
+msgstr "html"
+
+#: libretranslate/locales/.swag.py:19
+msgid ""
+"Format of source text:\n"
+" * `text` - Plain text\n"
+" * `html` - HTML markup\n"
+msgstr ""
+"საწყისი ტექსტის ფორმატი:\n"
+" * `ტექსტი` - უბრალო ტექსტი\n"
+" * `html` - HTML კოდი\n"
+
+#: libretranslate/locales/.swag.py:20
+msgid "Preferred number of alternative translations"
+msgstr "ალტერნატიული თარგმანის სასურველი რიცხვი"
+
+#: libretranslate/locales/.swag.py:21
+msgid "API key"
+msgstr "API გასაღები"
+
+#: libretranslate/locales/.swag.py:22
+msgid "Translate a File"
+msgstr "ფაილის თარგმნა"
+
+#: libretranslate/locales/.swag.py:23
+msgid "Translated file"
+msgstr "გადათარგმნილი ფაილი"
+
+#: libretranslate/locales/.swag.py:24
+msgid "File to translate"
+msgstr "სათარგმნი ფაილი"
+
+#: libretranslate/locales/.swag.py:25
+msgid "Source language code  or \"auto\" for auto detection"
+msgstr "საწყისი ენის კოდი  ან \"ავტო\" ავტომატური აღმოჩენისთვის"
+
+#: libretranslate/locales/.swag.py:26
+msgid "Detect Language of Text"
+msgstr "ტექსტის ენის აღმოჩენა"
+
+#: libretranslate/locales/.swag.py:27
+msgid "Detections"
+msgstr "აღმოჩენები"
+
+#: libretranslate/locales/.swag.py:28
+msgid "Detection error"
+msgstr "აღმოჩენის შეცდომა"
+
+#: libretranslate/locales/.swag.py:29
+msgid "Text to detect"
+msgstr "ტექსტი აღმოჩენისთვის"
+
+#: libretranslate/locales/.swag.py:30
+msgid "Retrieve Frontend Settings"
+msgstr "ინტერფეისის პარამეტრების მიღება"
+
+#: libretranslate/locales/.swag.py:31
+msgid "frontend settings"
+msgstr "ინტერფეისის პარამეტრები"
+
+#: libretranslate/locales/.swag.py:32
+msgid "Submit a Suggestion to Improve a Translation"
+msgstr "შეთავაზების გაგზავნა თარგმნის გასაუმჯობესებლად"
+
+#: libretranslate/locales/.swag.py:33
+msgid "Success"
+msgstr "წარმატება"
+
+#: libretranslate/locales/.swag.py:34
+msgid "Not authorized"
+msgstr "არა ავტორიზებული"
+
+#: libretranslate/locales/.swag.py:35
+msgid "Original text"
+msgstr "ორიგინალი ტექსტი"
+
+#: libretranslate/locales/.swag.py:36
+msgid "Suggested translation"
+msgstr "შეთავაზებული თარგმანი"
+
+#: libretranslate/locales/.swag.py:37
+msgid "Language of original text"
+msgstr "ორიგინალი ტექსტის ენა"
+
+#: libretranslate/locales/.swag.py:38
+msgid "Language of suggested translation"
+msgstr "შეთავაზებული თარგმნის ენა"
+
+#: libretranslate/locales/.swag.py:39
+msgid "Supported language"
+msgstr "მხარდაჭერილი ენა"
+
+#: libretranslate/locales/.swag.py:40
+msgid "Language code"
+msgstr "ენის კოდი"
+
+#: libretranslate/locales/.swag.py:41
+msgid "Human-readable language name (in English)"
+msgstr "ადამიანური ენის სახელი (ინგლისურად)"
+
+#: libretranslate/locales/.swag.py:42
+msgid "Supported target language codes"
+msgstr "მხარდაჭერილი სამიზნე ენის კოდები"
+
+#: libretranslate/locales/.swag.py:43
+msgid "Health status"
+msgstr "ჯანმრთელობის სტატუსი"
+
+#: libretranslate/locales/.swag.py:44
+msgid "Translated text(s)"
+msgstr "ნათარგმნი ტექსტი (-ები)"
+
+#: libretranslate/locales/.swag.py:45
+msgid "Confidence value"
+msgstr "სანდოობის მნიშვნელობა"
+
+#: libretranslate/locales/.swag.py:46
+msgid "Alternative translations"
+msgstr "ალტერნატიული თარგმანი"
+
+#: libretranslate/locales/.swag.py:47
+msgid "translatedText"
+msgstr "translatedText"
+
+#: libretranslate/locales/.swag.py:48
+msgid "Error message"
+msgstr "შეცდომის შეტყობინება"
+
+#: libretranslate/locales/.swag.py:49
+msgid "Reason for slow down"
+msgstr "შენელების მიზეზი"
+
+#: libretranslate/locales/.swag.py:50
+msgid "Translated file url"
+msgstr "ნათარგმნი ფაილის url"
+
+#: libretranslate/locales/.swag.py:51
+msgid "Character input limit for this language (-1 indicates no limit)"
+msgstr "სიმბოლოთა შეყვანის შეზღუდვა ამ ენისთვის (-1 მიუთითებს შეზღუდვის გარეშე)"
+
+#: libretranslate/locales/.swag.py:52
+msgid "Frontend translation timeout"
+msgstr "ინტერფეისის თარგმნის დროის შეზღუდვა"
+
+#: libretranslate/locales/.swag.py:53
+msgid "Whether the API key database is enabled."
+msgstr "არის თუ არა ჩართული API გასაღებთა მონაცემთა ბაზა."
+
+#: libretranslate/locales/.swag.py:54
+msgid "Whether an API key is required."
+msgstr "არის თუ არა საჭირო API გასაღები."
+
+#: libretranslate/locales/.swag.py:55
+msgid "Whether submitting suggestions is enabled."
+msgstr "არის თუ არა ჩართული შეთავაზებების მიღება."
+
+#: libretranslate/locales/.swag.py:56
+msgid "Supported files format"
+msgstr "მხარდაჭერილი ფაილების ფორმატი"
+
+#: libretranslate/locales/.swag.py:57
+msgid "Whether submission was successful"
+msgstr "უყო თუ არა შეთავაზება წარმატებული"
+
+#: libretranslate/templates/app.js.template:32
+#: libretranslate/templates/app.js.template:300
+#: libretranslate/templates/app.js.template:304
+msgid "Copy text"
+msgstr "ტექსტის კოპირება"
+
+#: libretranslate/templates/app.js.template:82
+#: libretranslate/templates/app.js.template:88
+#: libretranslate/templates/app.js.template:93
+#: libretranslate/templates/app.js.template:287
+#: libretranslate/templates/app.js.template:357
+#: libretranslate/templates/app.js.template:446
+#: libretranslate/templates/app.js.template:500
+#, python-format
+msgid "Cannot load %(url)s"
+msgstr "%(url)s-ს ჩატვირთვა ვერ მოხერხდა"
+
+#: libretranslate/templates/app.js.template:278
+#: libretranslate/templates/app.js.template:348
+#: libretranslate/templates/app.js.template:427
+#: libretranslate/templates/app.js.template:438
+msgid "Unknown error"
+msgstr "უცნობი შეცდომა"
+
+#: libretranslate/templates/app.js.template:301
+msgid "Copied"
+msgstr "კოპირებული"
+
+#: libretranslate/templates/app.js.template:345
+msgid ""
+"Thanks for your correction. Note the suggestion will not take effect "
+"right away."
+msgstr ""
+"გმადლობთ შესწორებისთვის. გაითვალისწინეთ, რომ შეთავაზება ეგრევე არ შევა "
+"ძალაში."
+
+#: libretranslate/templates/app.js.template:470
+msgid "No languages available. Did you install the models correctly?"
+msgstr ""
+"არცერთი ენა არ არის ხელმისაწვდომი. დარწმუნებული ხართ, რომ სწორად დააყენეთ "
+"მოდელები?"
+
+#: libretranslate/templates/app.js.template:543
+#, python-format
+msgid "Type in your API Key. If you need an API key, %(instructions)s"
+msgstr ""
+"შეიყვანეთ თქვენი API გასაღები. თუ გჭირდებათ API გასაღები, %(instructions)s"
+
+#: libretranslate/templates/app.js.template:543
+msgid "press the \"Get API Key\" link."
+msgstr "დააჭირეთ \"API გასაღების მიღება\" ბმულს."
+
+#: libretranslate/templates/app.js.template:543
+msgid "contact the server operator."
+msgstr "დაუკავშირდით სერვერის ოპერატორს."
+
+#: libretranslate/templates/index.html:9 libretranslate/templates/index.html:29
+#: libretranslate/templates/index.html:348
+msgid "Free and Open Source Machine Translation API"
+msgstr "თავისუფალი და ღია კოდის მქონე მანქანური თარგმნის API"
+
+#: libretranslate/templates/index.html:10
+#: libretranslate/templates/index.html:33
+msgid ""
+"Free and Open Source Machine Translation API. Free to download, offline "
+"capable and easy to setup. Run your own API server in just a few minutes."
+msgstr ""
+"თავისუფალი და ღია კოდის მქონე მანქანური თარგმნის API. უფასო გადმოწერით, "
+"ქსელგარეშე მუშაობის საშუალებით და მარტივი დასაყენებლად. გაუშვით თქვენი "
+"პირადი API სერვერი სულ რამდენიმე წუთში."
+
+#: libretranslate/templates/index.html:11
+msgid "translation"
+msgstr "თარგმნა"
+
+#: libretranslate/templates/index.html:11
+msgid "api"
+msgstr "api"
+
+#: libretranslate/templates/index.html:59
+msgid "API Docs"
+msgstr "API დოკუმენტაცია"
+
+#: libretranslate/templates/index.html:62
+msgid "Get API Key"
+msgstr "API გასაღების მიღება"
+
+#: libretranslate/templates/index.html:64
+msgid "GitHub"
+msgstr "GitHub"
+
+#: libretranslate/templates/index.html:66
+msgid "Set API Key"
+msgstr "API გასაღების დაყენება"
+
+#: libretranslate/templates/index.html:68
+msgid "Change language"
+msgstr "ენის შეცვლა"
+
+#: libretranslate/templates/index.html:74
+msgid "Edit"
+msgstr "რედაქტირება"
+
+#: libretranslate/templates/index.html:76
+msgid "Toggle dark/light mode"
+msgstr "მუქი/ღია რეჟიმის გადართვა"
+
+#: libretranslate/templates/index.html:152
+msgid "Dismiss"
+msgstr "დახურვა"
+
+#: libretranslate/templates/index.html:170
+msgid ""
+"Due to bot abuse, translation requests are temporarily limited to users "
+"with a valid API key. Sorry for the inconvenience!"
+msgstr ""
+"ბოტების მიერ სპამის გამო, თარგმნის მოთხოვნები დროულად შეზღუდულია "
+"მომხმარებლებზე სწორი API გასაღებით. ბოდიშს გიხდით ნებისმიერი შეფერხებისთვის!"
+
+#: libretranslate/templates/index.html:179
+msgid "Translation API"
+msgstr "თარგმნის API"
+
+#: libretranslate/templates/index.html:189
+msgid "Translate Files"
+msgstr "ფაილების თარგმნა"
+
+#: libretranslate/templates/index.html:195
+msgid "Translate from"
+msgstr "თარგმნის წყარო"
+
+#: libretranslate/templates/index.html:205
+msgid "Swap source and target languages"
+msgstr "საწყისი და სამიზნე ენების ადგილების გაცვლა"
+
+#: libretranslate/templates/index.html:208
+msgid "Translate into"
+msgstr "თარგმნის მიზანი"
+
+#: libretranslate/templates/index.html:220
+msgid "Text to translate"
+msgstr "სათარგმნი ტექსტი"
+
+#: libretranslate/templates/index.html:223
+msgid "Delete text"
+msgstr "ტექსტის წაშლა"
+
+#: libretranslate/templates/index.html:232
+msgid "Translated text"
+msgstr "ნათარგმნი ტექსტი"
+
+#: libretranslate/templates/index.html:236
+msgid "Suggest translation"
+msgstr "თარგმნის შეთავაზება"
+
+#: libretranslate/templates/index.html:240
+msgid "Cancel"
+msgstr "გაუქმება"
+
+#: libretranslate/templates/index.html:243
+msgid "Send"
+msgstr "გაგზავნა"
+
+#: libretranslate/templates/index.html:259
+msgid "Supported file formats:"
+msgstr "მხარდაჭერილი ფაილის ფორმატები:"
+
+#: libretranslate/templates/index.html:263
+msgid "File"
+msgstr "ფაილი"
+
+#: libretranslate/templates/index.html:278
+msgid "Remove file"
+msgstr "ფაილის ამოშლა"
+
+#: libretranslate/templates/index.html:285
+msgid "Translate"
+msgstr "გადათარგმნა"
+
+#: libretranslate/templates/index.html:286
+#: libretranslate/templates/index.html:332
+msgid "Download"
+msgstr "გადმოტვირთვა"
+
+#: libretranslate/templates/index.html:306
+msgid "Request"
+msgstr "მოთხოვნა"
+
+#: libretranslate/templates/index.html:311
+msgid "Response"
+msgstr "პასუხი"
+
+#: libretranslate/templates/index.html:327
+msgid "Open Source Machine Translation API"
+msgstr "ღია კოდის მქონე მანქანური თარგმნის API"
+
+#: libretranslate/templates/index.html:328
+msgid "Free to download. Offline Capable. Easy to Setup."
+msgstr "უფასო გადმოსაწერად. ქსელგარეშე მუშაობისთვის მზა. მარტივი დასაყენებლად."
+
+#: libretranslate/templates/index.html:347
+msgid "LibreTranslate"
+msgstr "LibreTranslate"
+
+#: libretranslate/templates/index.html:349
+msgid "License:"
+msgstr "ლიცენზია:"
+
+#: libretranslate/templates/index.html:355
+#, python-format
+msgid "Made with %(heart)s by %(contributors)s and powered by %(engine)s"
+msgstr ""
+"დამზადებულია %(heart)s-თ %(contributors)s-ს მიერ და ბაზირებულია %(engine)s-ზე"
+
+#: libretranslate/templates/index.html:355
+#, python-format
+msgid "%(libretranslate)s Contributors"
+msgstr "%(libretranslate)s"
