@@ -1,7 +1,0 @@
-/target/
-*.class
-.idea
-
-/imgs/
-/outputs/
-!/imgs/avt.jpg
