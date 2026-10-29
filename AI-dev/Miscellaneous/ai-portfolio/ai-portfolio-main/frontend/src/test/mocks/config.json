@@ -1,0 +1,49 @@
+{
+  "personal": {
+    "name": "Test User",
+    "email": "test@example.com",
+    "profileImageAlt": "Test User"
+  },
+  "social": {
+    "github": {
+      "url": "https://github.com/testuser"
+    },
+    "linkedin": {
+      "url": "https://linkedin.com/in/alon-trugman"
+    },
+    "email": {
+      "url": "mailto:alon.xt@gmail.com"
+    }
+  },
+
+  "content": {
+    "intro": {
+      "cards": [
+        {
+          "title": "Years of Growth",
+          "description": "Documenting my journey from 2.5 years of therapy",
+          "icon": "Brain"
+        },
+        {
+          "title": "Knowledge Collection",
+          "description": "My insights from books, podcasts, blogs and social media posts",
+          "icon": "BookOpen"
+        },
+        {
+          "title": "AI Conversations",
+          "description": "Based on my real experince and content",
+          "icon": "MessageSquareText"
+        }
+      ],
+      "paragraphs": [
+        "Test paragraph",
+        "Test paragraph 2"
+      ]
+    }
+  },
+  
+  "chat": {
+    "inputPlaceholder": "Ask me anything about Alon...",
+    "initialMessage": "Hello!"
+  }
+} 

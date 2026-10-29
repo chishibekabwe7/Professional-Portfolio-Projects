@@ -1,0 +1,47 @@
+{
+  "personal": {
+    "name": "Alon Trugman",
+    "email": "alon.xt@gmail.com",
+    "profileImageAlt": "Alon Trugman"
+  },
+  "social": {
+    "github": {
+      "url": "https://github.com/alonxt"
+    },
+    "linkedin": {
+      "url": "https://linkedin.com/in/alon-trugman"
+    },
+    "email": {
+      "url": "mailto:alon.xt@gmail.com"
+    }
+  },
+  "content": {
+    "intro": {
+      "cards": [
+        {
+          "title": "Years of Growth",
+          "description": "Documenting my life's journey",
+          "icon": "Brain"
+        },
+        {
+          "title": "Knowledge Collection",
+          "description": "My insights from books, podcasts, blogs and social media posts",
+          "icon": "BookOpen"
+        },
+        {
+          "title": "AI Conversations",
+          "description": "Based on my real experince and content",
+          "icon": "MessageSquareText"
+        }
+      ],
+      "paragraphs": [
+        "For years, I've been documenting my journey. This space is where I share the intersection of my professional expertise and personal growth.",
+        "Using my authentic writings and reflections, you can explore my documented insights and experiences. While AI isn't perfect, I hope it will share my story as genuinely as possible."
+      ]
+    }
+  },
+  "chat": {
+    "inputPlaceholder": "Ask me anything about Alon...",
+    "initialMessage": "Hey there! 👋 I'm Alon's AI assistant, I have access to his writings, and life insights. Feel free to ask and explore about his professional path or personal growth!"
+  }
+} 

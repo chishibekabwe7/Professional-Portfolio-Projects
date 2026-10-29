@@ -1,0 +1,36 @@
+# fly.toml app configuration file generated for first-production on 2025-01-19T15:07:05+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'example-portfolio'
+primary_region = 'fra'
+
+[build]
+
+[env]
+  LLM_MODEL = 'anthropic/claude-3-5-sonnet-latest'
+  LLM_ROUTER_URL = 'https://router.requesty.ai/v1'
+  UVICORN_IP = '0.0.0.0'
+  UVICORN_PORT = '8000'
+  POSTGRES_SERVER="example-postgres-with-pg-vector.flycast"
+  POSTGRES_PORT="5432"
+  POSTGRES_DB="postgres"
+  POSTGRES_USER="postgres"
+  FRONTEND_URL='https://www.example.com'
+  EMBEDDING_MODEL="text-embedding-3-small"
+  GLOBAL_RATE_LIMIT="1000/hour"
+  CHAT_RATE_LIMIT="30/minute"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

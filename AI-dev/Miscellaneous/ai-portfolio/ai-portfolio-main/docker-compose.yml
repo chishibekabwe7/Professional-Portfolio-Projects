@@ -1,0 +1,90 @@
+services:
+  db:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.postgres
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata
+    env_file:
+      - .env
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    networks:
+      - backend-network
+    # Only expose ports in development
+    # ports:
+    #   - "${POSTGRES_PORT}:5432"
+  
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+    volumes:
+      - redis-data:/data
+  
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_SERVER=db
+      - REDIS_URL=redis://redis:6379
+      - UVICORN_IP=0.0.0.0
+      - FRONTEND_URL=http://localhost:3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - backend-network
+      - frontend-network
+    ports:
+      - "8000:8000"
+
+  
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - frontend-network
+    ports:
+      - "3000:80"
+
+
+networks:
+  backend-network:
+    internal: true  # This network is not accessible from outside Docker
+  frontend-network:
+    # External access is allowed for the frontend network
+
+volumes:
+  app-db-data:
+  redis-data:
