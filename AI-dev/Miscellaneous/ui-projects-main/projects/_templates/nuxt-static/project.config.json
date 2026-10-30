@@ -1,0 +1,13 @@
+{
+  "name": "Nuxt Static Template",
+  "slug": "nuxt-static",
+  "description": "Nuxt app configured for static generation.",
+  "type": "nuxt-static",
+  "sourceDir": ".",
+  "buildCommand": "pnpm generate",
+  "outputDir": ".output/public",
+  "devCommand": "pnpm dev",
+  "tags": ["nuxt", "vue", "static"],
+  "visibility": "public",
+  "enabled": true
+}

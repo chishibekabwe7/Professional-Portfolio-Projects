@@ -1,0 +1,13 @@
+{
+  "name": "demo-react",
+  "slug": "demo-react",
+  "description": "A React + Vite demo project in the monorepo.",
+  "type": "vite",
+  "sourceDir": "src",
+  "buildCommand": "npx vite build",
+  "outputDir": "dist",
+  "devCommand": "npx vite dev",
+  "tags": ["demo", "react", "vite"],
+  "visibility": "public",
+  "enabled": true
+}

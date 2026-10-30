@@ -1,0 +1,13 @@
+{
+  "name": "Astro Template",
+  "slug": "astro",
+  "description": "Astro project configured for subpath deployment.",
+  "type": "astro",
+  "sourceDir": "src",
+  "buildCommand": "pnpm build",
+  "outputDir": "dist",
+  "devCommand": "pnpm dev",
+  "tags": ["astro", "static"],
+  "visibility": "public",
+  "enabled": true
+}

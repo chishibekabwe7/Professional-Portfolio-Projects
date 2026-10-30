@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<!-- Connect style -->
+	<link rel="preload" as="style" type="text/css" href="css/main.min.css" onload="this.onload=null;this.rel='stylesheet'">
+	<link rel="preload" as="style" type="text/css" href="css/media.min.css" onload="this.onload=null;this.rel='stylesheet'">
+
+	<!-- <link rel="preload" as="style" type="text/css" href="css/main.css" onload="this.onload=null;this.rel='stylesheet'">
+	<link rel="preload" as="style" type="text/css" href="css/media.css" onload="this.onload=null;this.rel='stylesheet'"> -->
+
+	<!-- Connect fonts -->
+	<link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+
+	<!-- Preload stylesheet -->
+<style>
+		/* fonts */
+		.fa,.fab,.fal,.far,.fas {
+			-moz-osx-font-smoothing: grayscale;
+			-webkit-font-smoothing: antialiased;
+			display: inline-block;
+			font-style: normal;
+ 			font-variant: normal;
+			text-rendering: auto;
+			line-height: 1
+		}
+		.fa-facebook-f:before {
+			content: "\f39e"
+		}
+		.fa-instagram:before {
+			content: "\f16d"
+		}
+		.fa-pinterest-p:before {
+			content: "\f231"
+		}
+		.fa-twitter:before {
+			content: "\f099"
+		}
+		.fab {
+			font-family: "Font Awesome 5 Brands"
+		}
+
+		/* preloader */
+		.preloader.hide{
+			opacity: 0;
+			transform: translate(0%, -100%);
+		}
+		.preloader {
+			background: white;
+			position: fixed;
+			width: 100%;
+			height: 100%;
+			top: 0;
+			left: 0;
+			z-index: 999;
+			opacity: 1;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: column;
+			transition: all 1s;
+			font-family: 'Montserrat', sans-serif;
+		}
+		.preload_animation :nth-child(1) { 
+			color: #e85757; 
+		}
+		.preload_animation :nth-child(2) {
+			animation-delay: .3s;
+			color: #e4c454;
+		}
+		.preload_animation :nth-child(3) {
+			animation-delay: .6s;
+			color: #df7675;
+		}
+		.preload_animation :nth-child(4) {
+			animation-delay: .9s;
+			color: #efd98d;
+		}
+		.preload_animation span{
+			position: relative;
+			top: -50px;
+			font-size: 70px;
+			font-weight: bold;
+			animation-direction: alternate;
+			animation-timing-function: ease-in;
+		    animation-duration: 1.5s;
+		    animation-iteration-count: infinite;
+		    animation-name: preload_text;
+		}
+		.loadbar {
+			height: 10px;
+			width: 250px;
+			background-color: #fff;
+			display: block;
+		}
+		.loadbar_active {
+			background: linear-gradient(45deg, #e85757, #efd98d);
+			height: 10px;
+		}
+		.preload_percent {
+			font-size: 50px;
+			font-weight: bold;
+		}
+		/* preload animation */
+		@-webkit-keyframes preload_text {
+			0% { top: -50px; }
+			100% { top: 0px; }
+		}
+		@keyframes preload_text {
+			0% { top: -50px; }
+			100% { top: 0px; }
+		}
+	</style>
+
+
+	<title>MoGo</title>
+</head>
+<body>
+
+	<!-- preloader styles -->
+	<div class="preloader" id="preloader">
+		<div class="preload_animation">
+			<span>M</span>
+			<span>o</span>
+			<span>G</span>
+			<span>o</span>
+			<div class="loadbar">
+				<div class="loadbar_active" style="width: 0%;" id="load_done"></div>
+			</div>
+		</div>
+		<div class="preload_percent" id="preload_perc">0%</div>
+	</div>
+
+
+	<!-- Top navigation menu -->
+	<header class="header">
+	    <div class="container">
+	        <div class="header__inner">
+	            <a class="header__logo" href="#">MoGo</a>
+
+	            <nav class="nav">
+	                <a class="nav__link" href="#about">About</a>
+	                <a class="nav__link" href="#service">Service</a>
+	                <a class="nav__link" href="#blog">Blog</a>
+	                <a class="nav__link" href="#work">Work</a>
+	                <a class="nav__link" href="#contact">Contact</a>
+	                <a class="nav__link" href="#cart">
+	                  <i class="fas fa-shopping-cart"></i>
+	                </a>
+	                <a class="nav__link search">
+										<i class="fas fa-search"></i>
+										<input type="text" class="search__field" placeholder="Search...">
+	                </a>
+	            </nav>
+
+	            <!-- Drop-dwon menu (mobile version) -->
+	            <div class="menu" id="menu">
+								<div class="open_menu-icon" onclick="openMenu()">
+	            		<div></div>
+	            		<div></div>
+	            		<div></div>
+	            	</div>
+	            	
+	            	<div class="menu__inner">
+									<div class="close_menu-icon" onclick="openMenu()">
+										<div></div>
+										<div></div>
+										<div></div>
+									</div>
+	            		<div class="search">
+	            			<input type="text" placeholder="Поиск...">
+	            			<a class="icon__search" href="#">
+			                    <i class="fas fa-search"></i>
+			                </a>
+	            		</div>
+	            		<nav class="nav">
+			                <a class="dd-menu__link active" href="#about">About</a>
+			                <a class="dd-menu__link" href="#service">Service</a>
+			                <a class="dd-menu__link" href="#blog">Blog</a>
+			                <a class="dd-menu__link" href="#work">Work</a>
+			                <a class="dd-menu__link" href="#contact">Contact</a>
+											<a class="dd-menu__link" href="#cart">Cart</a>
+			            </nav>
+	            	</div>
+	            </div> <!-- /.menu -->
+
+	        </div> <!-- /.header__inner -->
+	    </div> <!-- /.container -->
+	</header>
+
+	<!-- Slider -->
+	<section class="header-slider" id="header_slider">
+		<div class="viewport">
+
+			<div class="btn__next_slide"></div>
+			<div class="btn__prev_slide"></div>
+
+			<ul class="slide_list" id="top_slider" style="width: calc(100vw * 4)">
+				<li class="slide_item" style="background-image: url('media/images/webp/topBannerSlide_1.webp');">
+					<div class="container slide__inner">
+						<h2 class="inner__suptitle">Creative Template</h2>
+						<h1 class="inner__title">Welcome to MoGo</h1>
+						<a href="#" class="inner__button">Learn More</a>
+					</div>
+				</li>
+				<li class="slide_item" style="background-image: url('media/images/webp/topBannerSlide_2.webp');">
+					<div class="container slide__inner">
+						<h2 class="inner__suptitle">Creative Template</h2>
+						<h1 class="inner__title">Welcome to MoGo</h1>
+						<a href="" class="inner__button">Learn More</a>
+					</div>
+				</li>
+				<li class="slide_item" style="background-image: url('media/images/webp/topBannerSlide_3.webp');">
+					<div class="container slide__inner">
+						<h2 class="inner__suptitle">Creative Template</h2>
+						<h1 class="inner__title">Welcome to MoGo</h1>
+						<a href="" class="inner__button">Learn More</a>
+					</div>
+				</li>
+				<li class="slide_item" style="background-image: url('media/images/webp/topBannerSlide_4.webp');">
+					<div class="container slide__inner">
+						<h2 class="inner__suptitle">Creative Template</h2>
+						<h1 class="inner__title">Welcome to MoGo</h1>
+						<a href="" class="inner__button">Learn More</a>
+					</div>
+				</li>
+			</ul>
+
+			<div class="slider_nav" id="top_slider_nav">
+		        <div class="container">
+		            <div class="slider_nav__inner">
+		                <div class="slNav__item slider_nav_item" data-slide-id="0">
+		                	<div class="timer_progress" style="width: 0%"></div>
+		                    <span class="slider__num">01</span>
+		                    <span class="slider__text">Intro</span>
+		                </div>
+		                <div class="slNav__item slider_nav_item" data-slide-id="1">
+		                	<div class="timer_progress" style="width: 0%"></div>
+		                    <span class="slider__num">02</span>
+		                    <span class="slider__text">Work</span>
+		                </div>
+		                <div class="slNav__item slider_nav_item" data-slide-id="2">
+		                	<div class="timer_progress" style="width: 0%"></div>
+		                    <span class="slider__num">03</span>
+		                    <span class="slider__text">About</span>
+		                </div>
+		                <div class="slNav__item slider_nav_item" data-slide-id="3">
+		                	<div class="timer_progress" style="width: 0%"></div>
+		                    <span class="slider__num">04</span>
+		                    <span class="slider__text">Contacts</span>
+		                </div>
+		            </div>
+		        </div>
+		    </div> <!-- /.slider_nav -->
+		</div>
+	</section>
+
+	<!-- Banner "about us" -->
+	<div class="about_us _anim-items" id="about">
+		<div class="container">
+			<h3 class="title__question">What we do</h3>
+			<h2 class="sub__title">Story about us</h2>
+			<p class="sup__title">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. </p>
+
+			<!-- Pictures of the banner "about us" -->
+			<div class="pictures">
+
+				<a href="#" class="picture">
+					<div class="pict">
+						<div class="pict__img">
+							<img src="media/images/webp/pict_1.webp">
+						</div>
+						<div class="pict__inner">
+							<img src="media/icons/users.png">
+							<p>team</p>
+						</div>
+					</div>
+				</a>
+
+				<a href="#" class="picture">
+					<div class="pict">
+						<div class="pict__img">
+							<img src="media/images/webp/pict_2.webp">
+						</div>
+						<div class="pict__inner">
+							<img src="media/icons/users.png">
+							<p>team</p>
+						</div>
+					</div>
+				</a>
+
+				<a href="#" class="picture">
+					<div class="pict">
+						<div class="pict__img">
+							<img src="media/images/webp/pict_3.webp">
+						</div>
+						<div class="pict__inner">
+							<img src="media/icons/users.png">
+							<p>team</p>
+						</div>
+					</div>
+				</a>
+
+			</div>
+
+		</div>
+	</div>
+
+	<!-- Banner "facts" -->
+	<div class="facts _anim-items" id="facts">
+		<div class="container" style="display: flex;">
+			<div class="facts__item">
+				<div>
+					<p>42</p>
+				    Web Design Projects
+				</div>
+			</div>
+			<div class="facts__item">
+				<div>
+					<p>123</p>
+				    Happy client
+				</div>
+			</div>
+			<div class="facts__item">
+				<div>
+					<p>15</p>
+				    Award winner
+				</div>
+			</div>
+			<div class="facts__item">
+				<div>
+					<p>99</p>
+				    Cup of coffee
+				</div>
+			</div>
+			<div class="facts__item">
+				<div>
+					<p>24</p>
+				    Members
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Banner about our partners -->
+	<div class="partners _anim-items" id="service">
+		<div class="container">
+
+			<h3 class="title__question">We work with</h3>
+			<h2 class="sub__title">Amazing Services</h2>
+
+			<div class="services">
+
+				<!-- First row -->
+				<div class="row" style="border-bottom: 1px solid #e5e5e5;">
+					<div class="serv_item">
+						<img src="media/icons/alarm.png" alt="" class="icon">
+						<div class="descript">
+							<h4>Photography</h4>
+							<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</p>
+						</div>
+					</div>
+					<div class="serv_item">
+						<img src="media/icons/line_graph.png" alt="" class="icon">
+						<div class="descript">
+							<h4>Web Design</h4>
+							<p>Ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</p>
+						</div>
+					</div>
+					<div class="serv_item">
+						<img src="media/icons/comp.png" alt="" class="icon">
+						<div class="descript">
+							<h4>Creativity</h4>
+							<p>Dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Second row -->
+				<div class="row">
+					<div class="serv_item">
+						<img src="media/icons/book.png" alt="" class="icon">
+						<div class="descript">
+							<h4>seo</h4>
+							<p>Ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod.</p>
+						</div>
+					</div>
+					<div class="serv_item">
+						<img src="media/icons/home.png" alt="" class="icon">
+						<div class="descript">
+							<h4>Css/Html</h4>
+							<p>Lorem dolor sit amet, consectetur adipiscing elit, sed do tempor.</p>
+						</div>
+					</div>
+					<div class="serv_item">
+						<img src="media/icons/image.png" alt="" class="icon">
+						<div class="descript">
+							<h4>digital</h4>
+							<p>Sit amet, consectetur adipiscing elit, sed do eiusmod tempor.</p>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+		</div>
+	</div>
+
+	<!-- banner "feature" -->
+	<div class="feature _anim-items">
+		<div class="container">
+			<h3 class="title__question">For all devices</h3>
+			<h2 class="sub__title">Unique design</h2>
+		</div>
+		<img src="media/images/webp/tablet.webp" class="feature_img_1" alt="">
+		<img src="media/images/webp/phone.webp" class="feature_img_2" alt="">
+	</div>
+
+	<!-- Banner service (2) -->
+	<div class="service _anim-items">
+		<div class="container">
+			<h3 class="title__question">Service</h3>
+			<h2 class="sub__title">what we do</h2>
+			<p class="sup__title">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. </p>
+
+			<!-- Service inner -->
+			<div class="service__inner">
+				<img src="media/images/webp/service__img.webp" alt="">
+				<div class="drop_down__menu">
+					<div class="menu__item active" id="menu__item_1">
+						<div class="menu__item_button" onclick="addActive('menu__item', '1')">
+							<img src="media/icons/picture.png" alt="" class="icon">
+							<div>Photography</div>
+						</div>
+						<div class="main__content">
+							Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+						</div>
+					</div>
+					<div class="menu__item" id="menu__item_2">
+						<div class="menu__item_button" onclick="addActive('menu__item', '2')">
+							<img src="media/icons/equalizer.png" alt="" class="icon">
+							<div>Creativity</div>
+						</div>
+						<div class="main__content">
+							Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+						</div>
+					</div>
+					<div class="menu__item" id="menu__item_3">
+						<div class="menu__item_button" onclick="addActive('menu__item', '3')">
+							<img src="media/icons/bullseye.png" alt="" class="icon">
+							<div>Web Design</div>
+						</div>
+						<div class="main__content">
+							Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Comments -->
+	<div class="comments" id="comments__slider">
+		
+		<div class="viewport">
+			<ul class="comments__inner slide_list" style="width: calc(100vw*3);">
+				<li class="container comments_item slider_item active">
+					<img src="media/icons/icon__messages.png" alt="">
+					<div class="comments__inner_content">
+						<p class="comments__text">“Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.”</p>
+					<p class="comments__author">Jon Doe</p>
+					</div>
+				</li>
+				<li class="container comments_item slider_item next">
+					<img src="media/icons/icon__messages.png" alt="">
+					<div class="comments__inner_content">
+						<p class="comments__text">“Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.”</p>
+					<p class="comments__author">Jon Doe</p>
+					</div>
+				</li>
+				<li class="container comments_item slider_item back">
+					<img src="media/icons/icon__messages.png" alt="">
+					<div class="comments__inner_content">
+						<p class="comments__text">“Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.”</p>
+					<p class="comments__author">Jon Doe</p>
+					</div>
+				</li>
+			</ul>
+		</div>
+		<a class="btn__prev_slide"></a>
+		<a class="btn__next_slide"></a>
+	</div>
+
+	<!-- Banner "Our team" -->
+	<div class="our_team">
+		<div class="container">
+			<h3 class="title__question">Who we are</h3>
+			<h2 class="sub__title">meet our team</h2>
+			<p class="sup__title">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. </p>
+			<div class="card">
+			    <div class="card__item">
+			        <div class="card__inner">
+			            <div class="card__img">
+			                <img src="media/images/webp/our_team__pict_1.webp" alt="">
+			            </div>
+			            <div class="card__text">
+			                <div class="social">
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-facebook-f"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-twitter"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-pinterest-p"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-instagram"></i>
+			                    </a>
+			                </div>
+			            </div>
+			        </div>
+			        <div class="card__info">
+			            <div class="card__name">Matthew Dix</div>
+			            <div class="card__prof">Graphic Design</div>
+			        </div>
+			    </div><!-- /.card__item -->
+
+			    <div class="card__item">
+			        <div class="card__inner">
+			            <div class="card__img">
+			                <img src="media/images/webp/our_team__pict_2.webp" alt="">
+			            </div>
+			            <div class="card__text">
+			                <div class="social">
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-facebook-f"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-twitter"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-pinterest-p"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-instagram"></i>
+			                    </a>
+			                </div>
+			            </div>
+			        </div>
+			        <div class="card__info">
+			            <div class="card__name">Christopher Campbell</div>
+			            <div class="card__prof">Branding/UX design</div>
+			        </div>
+			    </div><!-- /.card__item -->
+
+			    <div class="card__item">
+			        <div class="card__inner">
+			            <div class="card__img">
+			                <img src="media/images/webp/our_team__pict_3.webp" alt="">
+			            </div>
+			            <div class="card__text">
+			                <div class="social">
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-facebook-f"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-twitter"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-pinterest-p"></i>
+			                    </a>
+			                    <a class="social__item" href="#" target="_blank">
+			                        <i class="fab fa-instagram"></i>
+			                    </a>
+			                </div>
+			            </div>
+			        </div>
+			        <div class="card__info">
+			            <div class="card__name">Michael Fertig </div>
+			            <div class="card__prof">Developer</div>
+			        </div>
+			    </div><!-- /.card__item -->
+			</div> <!-- /.card -->
+		</div>
+	</div>
+
+	<!-- Logos -->
+	<div class="logos">
+		<div class="container">
+			<div class="logos__inner">
+				<div class="col">
+					<img src="media/images/logos/1.png" alt="">
+					<img src="media/images/logos/2.png" alt="">
+					<img src="media/images/logos/3.png" alt="">
+				</div>
+				<div class="col">
+					<img src="media/images/logos/4.png" alt="">
+					<img src="media/images/logos/5.png" alt="">
+					<img src="media/images/logos/6.png" alt="">
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Block "Some of our work" (portfolio) -->
+	<div class="portfolio" id="work">
+		<div class="conteiner">
+			<h3 class="title__question">What we do</h3>
+			<h2 class="sub__title">some of our work</h2>
+			<p class="sup__title">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. </p>
+		</div>
+		<div class="pfolio__inner">
+			<div>
+
+				<div class="row">
+					<a href="#">
+						<div class="active_bg">
+							<div class="content">
+								<img src="media/icons/white_picture.png">
+								<p>creatively designed</p>
+								<span>Lorem ipsum dolor sit</span>
+							</div>
+						</div>
+						<img src="media/images/webp/pf__work_1.webp" alt="">
+					</a>
+					<a href="#">
+						<div class="active_bg">
+							<div class="content">
+								<img src="media/icons/white_picture.png">
+								<p>creatively designed</p>
+								<span>Lorem ipsum dolor sit</span>
+							</div>
+						</div>
+						<img src="media/images/webp/pf__work_2.webp" alt="">
+					</a>
+				</div> <!-- /.row -->
+
+				<div class="row">
+					<a href="#">
+						<div class="active_bg">
+							<div class="content">
+								<img src="media/icons/white_picture.png">
+								<p>creatively designed</p>
+								<span>Lorem ipsum dolor sit</span>
+							</div>
+						</div>
+						<img src="media/images/webp/pf__work_3.webp" alt="">
+					</a>
+					<a href="#">
+						<div class="active_bg">
+							<div class="content">
+								<img src="media/icons/white_picture.png">
+								<p>creatively designed</p>
+								<span>Lorem ipsum dolor sit</span>
+							</div>
+						</div>
+						<img src="media/images/webp/pf__work_4.webp" alt="">
+					</a>
+				</div> <!-- /.row -->
+
+			</div>
+
+
+			<div>
+
+				<div>
+					<a href="#">
+						<div class="active_bg">
+							<div class="content">
+								<img src="media/icons/white_picture.png">
+								<p>creatively designed</p>
+								<span>Lorem ipsum dolor sit</span>
+							</div>
+						</div>
+						<img src="media/images/webp/pf__work_5.webp" alt="">
+					</a>
+				</div>
+
+				<div>
+					<a href="#">
+						<div class="active_bg">
+							<div class="content">
+								<img src="media/icons/white_picture.png">
+								<p>creatively designed</p>
+								<span>Lorem ipsum dolor sit</span>
+							</div>
+						</div>
+						<img src="media/images/webp/pf__work_6.webp" alt="">
+					</a>
+					<a href="#">
+						<div class="active_bg">
+								<div class="content">
+									<img src="media/icons/white_picture.png">
+									<p>creatively designed</p>
+									<span>Lorem ipsum dolor sit</span>
+								</div>
+							</div>
+						<img src="media/images/webp/pf__work_7.webp" alt="">
+					</a>
+				</div>
+
+			</div>
+
+		</div> <!-- /.portfolio__inner -->
+	</div> <!-- /.portfolio -->
+
+	<!-- "testimonial" -->
+	<div class="testimonial _anim-items" id="tcomments__slider">
+		
+		<div class="viewport">
+
+			<ul class="slide_list comments__inner" style="width: calc(100vw*3);">
+				<li class="container comments_item slider_item">
+					<img src="media/images/webp/testimonial__ava.webp" unselectable="on" alt="">
+					<div class="comments__inner_content">
+						<p class="comments__text">
+							“Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+							sed do eiusmod tempor incididunt ut labore et dolore magna 
+							aliqua. Ut enim ad minim veniam, quis nostrud exercitation.”
+						</p>
+						<p class="comments__author">Joshua Earle</p>
+					</div>
+				</li>
+				<li class="container comments_item slider_item">
+					<img src="media/images/webp/testimonial__ava.webp" alt="">
+					<div class="comments__inner_content">
+						<p class="comments__text">
+							“Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+							sed do eiusmod tempor incididunt ut labore et dolore magna 
+							aliqua. Ut enim ad minim veniam, quis nostrud exercitation.”
+						</p>
+						<p class="comments__author">Joshua Earle</p>
+					</div>
+				</li>
+				<li class="container comments_item slider_item">
+					<img src="media/images/webp/testimonial__ava.webp" alt="">
+					<div class="comments__inner_content">
+						<p class="comments__text">
+							“Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+							sed do eiusmod tempor incididunt ut labore et dolore magna 
+							aliqua. Ut enim ad minim veniam, quis nostrud exercitation.”
+						</p>
+						<p class="comments__author">Joshua Earle</p>
+					</div>
+				</li>
+			</ul>
+
+		</div> <!-- /.container -->
+
+		<a class="btn__prev_slide"></a>
+		<a class="btn__next_slide"></a>
+	</div> <!-- /.testimonial -->
+
+	<!-- Banner "What people say" -->
+	<div class="clients _anim-items">
+		<div class="container">
+			<h3 class="title__question">Happy Clients</h3>
+			<h2 class="sub__title">What people say</h2>
+			<div class="clients__inner">
+				<div class="col">
+					<div class="client">
+						<img src="media/images/webp/clients__cl_1.webp" alt="">
+						<div class="cl__inner">
+							<p class="name">Matthew Dix</p>
+							<p class="specialization">Graphic Design</p>
+							<p class="review">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim.</p>
+						</div>
+					</div>
+					<div class="client">
+						<img src="media/images/webp/clients__cl_3.webp" alt="">
+						<div class="cl__inner">
+							<p class="name">Jaelynn Castillo</p>
+							<p class="specialization">Graphic Design</p>
+							<p class="review">Ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam</p>
+						</div>
+					</div>
+				</div>
+				<div class="col">
+					<div class="client">
+						<img src="media/images/webp/clients__cl_2.webp" alt="">
+						<div class="cl__inner">
+							<p class="name">Nick Karvounis</p>
+							<p class="specialization">Graphic Design</p>
+							<p class="review">Sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam</p>
+						</div>
+					</div>
+					<div class="client">
+						<img src="media/images/webp/clients__cl_4.webp" alt="">
+						<div class="cl__inner">
+							<p class="name">Mike Petrucci</p>
+							<p class="specialization">Graphic Design</p>
+							<p class="review">Dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Blog -->
+	<div class="blog" id="blog">
+		<div class="container">
+
+			<h3 class="title__question _anim-items">Our stories</h3>
+			<h2 class="sub__title">Latest blog</h2>
+
+			<div class="blog__inner">
+
+				<div class="article">
+					<img src="media/images/webp/blog__pict_1.webp" alt="">
+
+					<div class="pub_date">
+						<div>
+							<p>15</p>
+							<p style="font-size: 15px">Jan</p>
+						</div>
+					</div>
+
+					<div class="article__inner">
+						<a href="#" class="article__name">Lorem ipsum dolor sit amet</a>
+						<p class="article__content">Consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+						<hr>
+						<span class="views">542</span>
+						<span class="blog__comments">17</span>
+					</div>
+				</div> <!-- /.article -->
+
+				<div class="article">
+					<img src="media/images/webp/blog__pict_2.webp" alt="">
+
+					<div class="pub_date">
+						<div style="">
+							<p>14</p>
+							<p style="font-size: 15px">Jan</p>
+						</div>
+					</div>
+
+					<div class="article__inner">
+						<a href="#" class="article__name">sed do eiusmod tempor</a>
+						<p class="article__content">Adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+						<hr>
+						<span class="views">992</span>
+						<span class="blog__comments">42</span>
+					</div>
+				</div> <!-- /.article -->
+
+				<div class="article">
+					<img src="media/images/webp/blog__pict_3.webp" alt="">
+
+					<div class="pub_date">
+						<div>
+							<p>12</p>
+							<p style="font-size: 15px">Jan</p>
+						</div>
+					</div>
+
+					<div class="article__inner">
+						<a href="#" class="article__name">incididunt ut labore et dolore</a>
+						<p class="article__content">Elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+						<hr>
+						<span class="views">1560</span>
+						<span class="blog__comments">98</span>
+					</div>
+
+				</div> <!-- /.article -->
+
+			</div> <!-- /.blog__inner -->
+
+		</div> <!-- /.container -->
+	</div>  <!-- /.blog -->
+
+	<!-- map -->
+	<div class="map">
+		<div class="map__inner">
+			<img src="media/icons/pin.png" alt="" class="icon">
+			<a href="#">open map</a>
+		</div>
+	</div>
+
+	<!-- Footer -->
+	<footer id="contact">
+		<div class="container">
+			<div class="col">
+				<h1 class="title">MoGo</h1>
+				<p class="sup__title">
+					Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+					sed do eiusmod tempor incididunt ut labore et dolore magna 
+					aliqua. Ut enim ad minim veniam, quis nostrud exercitation 
+					ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+					Duis aute irure dolor in reprehenderit in voluptate velit 
+					esse cillum dolore eu fugiat nulla pariatur. 
+				</p>
+				<div class="footer__subscribe">
+					<div class="followers">
+						<b>15k</b>
+						<span>followers</span>
+					</div>
+					<hr>
+					<div class="follow_us">
+						<span>Follow Us:</span>
+						<div class="icons">
+							<a href="#"><img src="media/icons/g_facebook.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_twitter.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_instagram.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_pinterest.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_google_plus.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_youtube.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_dribbble.png" alt="" class="icon"></a>
+							<a href="#"><img src="media/icons/g_tumblr.png" alt="" class="icon"></a>
+						</div>
+					</div>
+					<div class="subscribe">
+						<input type="text" class="email" placeholder="Your Email...">
+						<input type="submit" class="send__email" value="subscribe">
+					</div>
+				</div>
+			</div>
+
+			<!-- Short blod (blogs) -->
+			<div class="col">
+				<h4 class="blogs__title">blogs</h4>
+				<div class="blogs__inner">
+					<div class="article">
+						<img src="media/images/webp/footer__blogs_1.webp" alt="">
+						<div class="article__content">
+							<a href="#" class="a_title">Lorem ipsum dolor sit amet, consectetur adipiscing</a>
+							<p class="p_date">Jan 9, 2016</p>
+						</div>
+					</div>
+					<div class="article">
+						<img src="media/images/webp/footer__blogs_2.webp" alt="">
+						<div class="article__content">
+							<a href="#" class="a_title">Consectetur adipiscing elit, sed do eiusmod tempor</a>
+							<p class="p_date">Jan 9, 2016</p>
+						</div>
+					</div>
+					<div class="article">
+						<img src="media/images/webp/footer__blogs_3.webp" alt="">
+						<div class="article__content">
+							<a href="#" class="a_title">sed do eiusmod tempor incididunt ut labore</a>
+							<p class="p_date">Jan 9, 2016</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Instagram -->
+			<div class="col">
+				<h4 class="inst__title">intagram</h4>
+				<div class="row">
+					<div class="inst__pict" id="inst__pict_1" onclick="FullScreenPict(1)" style="background-image: url('media/images/webp/footer__inst_1.webp');"></div>
+					<div class="inst__pict" id="inst__pict_2" onclick="FullScreenPict(2)" style="background-image: url('media/images/webp/footer__inst_2.webp');"></div>
+					<div class="inst__pict" id="inst__pict_3" onclick="FullScreenPict(3)" style="background-image: url('media/images/webp/footer__inst_3.webp');"></div>
+				</div>
+				<div class="row">
+					<div class="inst__pict" id="inst__pict_4" onclick="FullScreenPict(4)" style="background-image: url('media/images/webp/footer__inst_4.webp');"></div>
+					<div class="inst__pict" id="inst__pict_5" onclick="FullScreenPict(5)" style="background-image: url('media/images/webp/footer__inst_5.webp');"></div>
+					<div class="inst__pict" id="inst__pict_6" onclick="FullScreenPict(6)" style="background-image: url('media/images/webp/footer__inst_6.webp');"></div>
+				</div>
+				<div class="row">
+					<div class="inst__pict" id="inst__pict_7" onclick="FullScreenPict(7)" style="background-image: url('media/images/webp/footer__inst_7.webp');"></div>
+					<div class="inst__pict" id="inst__pict_8" onclick="FullScreenPict(8)" style="background-image: url('media/images/webp/footer__inst_8.webp');"></div>
+					<div class="inst__pict" id="inst__pict_9" onclick="FullScreenPict(9)" style="background-image: url('media/images/webp/footer__inst_9.webp');"></div>
+				</div>
+				<a href="#" class="view_more">View more photos</a>
+			</div>
+		</div>
+		<hr>
+		<b class="copy" style="padding-bottom: 20px;">&copy 2016 MoGo free PSD template by <span style="color: #f49090">Laaqiq</span></b>
+		<div id="full__bg" class=""></div>
+	</footer>
+
+	<!-- Preloader script -->
+	<script>
+		let 
+			images_loaded_count 	= 0,
+		  images 								= document.images,
+		  bg_images 						= document.querySelectorAll('[style*=background-image]'),
+		  preloader 						= document.getElementById('preloader'),
+		  loadbar 							= document.getElementById('load_done'),
+		  perc_display 					= document.getElementById('preload_perc'),
+			images_total_count	 	= images.length + bg_images.length,
+			page_is_loaded 				= new Event('ContentLoaded');
+			
+		
+		for (let i = images_loaded_count; i < images_total_count; i++) {
+		  image_clone = new Image();
+		  image_clone.onload = image_loaded;
+		  image_clone.onerror = image_loaded;
+			image_clone.src = images[i]?.src || bg_images[images_total_count-i-1].style.backgroundImage.replace('url("', '').replace('")', '');
+		}
+
+		function image_loaded() {
+		  images_loaded_count++;
+		  let load_percent = (( (100 / images_total_count) * images_loaded_count ) << 0) + "%";
+		  perc_display.innerText = load_percent;
+		  loadbar.style.width = load_percent;
+		  
+		  if (images_loaded_count >= images_total_count) {
+		    setTimeout(function () {
+		      if (!preloader.classList.contains('hide')) {
+		        preloader.classList.add('hide');
+		      }
+					document.dispatchEvent(page_is_loaded);
+		    }, 300)
+		  }
+		}
+	</script>
+	
+	<!-- Connect JS -->
+	<script type="text/javascript" async src="JS/main.js"></script>
+	
+</body>
+</html><a>

@@ -1,0 +1,13 @@
+{
+  "name": "Custom Template",
+  "slug": "custom",
+  "description": "A template for any custom build process.",
+  "type": "custom",
+  "sourceDir": "src",
+  "buildCommand": "npm run build",
+  "outputDir": "dist",
+  "devCommand": "npm run dev",
+  "tags": ["custom"],
+  "visibility": "public",
+  "enabled": true
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Mogo",
+  "slug": "mogo",
+  "description": "My site layout MOGO from PSD.",
+  "type": "plain-html",
+  "sourceDir": "",
+  "buildCommand": "echo 'No build step'",
+  "outputDir": "",
+  "devCommand": "npx serve src",
+  "tags": ["demo", "html", "vanilla"],
+  "visibility": "public",
+  "enabled": true
+}

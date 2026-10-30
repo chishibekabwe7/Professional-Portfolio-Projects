@@ -1,0 +1,13 @@
+{
+  "name": "Vite Vue Template",
+  "slug": "vite-vue",
+  "description": "A modern Vue app built with Vite.",
+  "type": "vite",
+  "sourceDir": "src",
+  "buildCommand": "pnpm build",
+  "outputDir": "dist",
+  "devCommand": "pnpm dev",
+  "tags": ["vue", "vite", "typescript"],
+  "visibility": "public",
+  "enabled": true
+}

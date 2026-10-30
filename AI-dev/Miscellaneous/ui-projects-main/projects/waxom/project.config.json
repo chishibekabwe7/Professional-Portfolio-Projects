@@ -1,0 +1,13 @@
+{
+  "name": "Waxom",
+  "slug": "waxom",
+  "description": "My site layout Waxom from PSD.",
+  "type": "plain-html",
+  "sourceDir": "",
+  "buildCommand": "echo 'No build step'",
+  "outputDir": "",
+  "devCommand": "npx serve src",
+  "tags": ["demo", "html", "vanilla"],
+  "visibility": "public",
+  "enabled": true
+}

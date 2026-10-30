@@ -1,0 +1,13 @@
+{
+  "name": "Next.js Static Template",
+  "slug": "next-static",
+  "description": "Next.js app configured for static export.",
+  "type": "next-static",
+  "sourceDir": ".",
+  "buildCommand": "pnpm build",
+  "outputDir": "out",
+  "devCommand": "pnpm dev",
+  "tags": ["nextjs", "react", "static"],
+  "visibility": "public",
+  "enabled": true
+}

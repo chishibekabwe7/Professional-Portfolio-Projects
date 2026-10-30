@@ -1,0 +1,13 @@
+{
+  "name": "Krean",
+  "slug": "krean",
+  "description": "My site layout KREAN with Bootstrap 5 from PSD.",
+  "type": "plain-html",
+  "sourceDir": "",
+  "buildCommand": "echo 'No build step'",
+  "outputDir": "",
+  "devCommand": "npx serve src",
+  "tags": ["demo", "html", "vanilla"],
+  "visibility": "public",
+  "enabled": true
+}

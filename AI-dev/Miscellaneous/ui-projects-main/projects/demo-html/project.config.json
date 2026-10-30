@@ -1,0 +1,13 @@
+{
+  "name": "HTML Demo",
+  "slug": "demo-html",
+  "description": "A beautiful static HTML demo showcasing the monorepo capability.",
+  "type": "plain-html",
+  "sourceDir": "src",
+  "buildCommand": "echo 'No build step'",
+  "outputDir": "src",
+  "devCommand": "npx serve src",
+  "tags": ["demo", "html", "vanilla"],
+  "visibility": "public",
+  "enabled": true
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Plain HTML Template",
+  "slug": "plain-html",
+  "description": "A simple template with plain HTML, CSS, and JS.",
+  "type": "plain-html",
+  "sourceDir": "src",
+  "buildCommand": "echo 'No build step'",
+  "outputDir": "src",
+  "devCommand": "npx serve src",
+  "tags": ["html", "css", "js"],
+  "visibility": "public",
+  "enabled": true
+}

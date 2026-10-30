@@ -1,0 +1,13 @@
+{
+  "name": "3D-effect",
+  "slug": "3d-effect",
+  "description": "Presentation of a 3D effect using pure html/css code and the JavaScript swiper library.",
+  "type": "plain-html",
+  "sourceDir": "",
+  "buildCommand": "echo 'No build step'",
+  "outputDir": "",
+  "devCommand": "npx serve src",
+  "tags": ["demo", "html", "vanilla"],
+  "visibility": "public",
+  "enabled": true
+}
