@@ -1,45 +1,43 @@
-﻿# Python
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Local virtual environment
-.venv/
-venv/
-env/
-
-# Runtime downloads and generated tools
-apple-music-downloader/
-wrapper/
-bento4/
-go*.linux-amd64.tar.gz
-wrapper.x86_64.zip
-
-# Runtime state, credentials, and local config artifacts
-firstrun
-.instance.lock
-.credentials
-config-backups/
-
-# Common local download folders if users point output at the project root
-AM-DL downloads/
-AM-DL-AAC downloads/
-AM-DL-Atmos downloads/
-
-# Archives and temporary packaging files
-*.tar.gz
-*.zip
-_smoketest_*.py
-_diff_*.txt
-_working_ref/
-_amd_main.go
-
-# OS/editor files
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
 .DS_Store
-Thumbs.db
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
 .idea/
-.vscode/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
