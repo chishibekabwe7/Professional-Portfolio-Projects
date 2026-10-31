@@ -47,6 +47,8 @@ dependencies:
   palette_generator: ^0.3.3+3
   cached_network_image: ^3.4.1
   just_audio: ^0.9.41
+  shared_preferences: ^2.3.2
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:

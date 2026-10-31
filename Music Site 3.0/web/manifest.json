@@ -1,11 +1,11 @@
 {
-     "name": "Apple Music",
-     "short_name": "Apple Music",
+     "name": "Music Site 3.0",
+     "short_name": "Music Site 3.0",
      "start_url": ".",
      "display": "standalone",
-     "background_color": "#0175C2",
-     "theme_color": "#0175C2",
-     "description": "A new Flutter project.",
+     "background_color": "#000000",
+     "theme_color": "#1842B6",
+     "description": "A music streaming and hosting home for independent listening.",
      "orientation": "portrait-primary",
      "prefer_related_applications": false,
      "icons": [

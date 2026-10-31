@@ -79,9 +79,6 @@ Before you begin, make sure to [install Flutter](https://flutter.dev/docs/get-st
 
 ## Author
 
-- [@nakuldevmv](https://github.com/nakuldevmv)
-- Connect With me on [LinkedIn](https://www.linkedin.com/in/nakuldevmv/)
-
 Happy Coding!
 
 

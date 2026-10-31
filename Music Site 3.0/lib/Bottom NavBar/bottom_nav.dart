@@ -1,14 +1,12 @@
-// ignore_for_file: prefer_const_literals_to_create_immutables
-
 import 'package:flutter/material.dart';
-import 'package:glassmorphism_widgets/glassmorphism_widgets.dart';
-import 'package:musicplayer/pages/artist_list.dart';
+import 'package:musicplayer/core/app_colors.dart';
+import 'package:musicplayer/core/app_theme.dart';
 import 'package:musicplayer/pages/browse_page.dart';
 import 'package:musicplayer/pages/home_page.dart';
 import 'package:musicplayer/pages/library_page.dart';
-import 'package:musicplayer/pages/music_list.dart';
 import 'package:musicplayer/pages/radio.dart';
 import 'package:musicplayer/pages/search_page.dart';
+import 'package:musicplayer/widgets/mini_player.dart';
 
 class FirstPage extends StatefulWidget {
   const FirstPage({super.key});
@@ -18,84 +16,48 @@ class FirstPage extends StatefulWidget {
 }
 
 class _FirstPageState extends State<FirstPage> {
-  int _selected_index = 0;
+  int _selectedIndex = 0;
 
-  void _navgateBottomBar(int index) {
-    setState(() {
-      _selected_index = index;
-    });
-  }
-
-  final List _pages = [
-    const HomePage(),
-    const BrowsePage(),
-    const RadioPage(),
-    const LibraryPage(),
-    const SearchPage(),
-  ];
+  void _navigateBottomBar(int index) => setState(() => _selectedIndex = index);
 
   @override
   Widget build(BuildContext context) {
+    const pages = [
+      HomePage(),
+      BrowsePage(),
+      RadioPage(),
+      LibraryPage(),
+      SearchPage(),
+    ];
     return Scaffold(
-      body: _pages[_selected_index],
-      bottomNavigationBar: SizedBox(
-        height: 80,
-
-        // padding: EdgeInsets.only(bottom: 0),
-        // color: Colors.amber,
-        child: Theme(
-          data: Theme.of(context).copyWith(
-            // Apply transparent color to both splashColor and highlightColor
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
+      body: pages[_selectedIndex],
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MiniPlayer(),
+          SizedBox(
+            height: 80,
+            child: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: _selectedIndex,
+              onTap: _navigateBottomBar,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.home_filled, size: 35), label: 'Home'),
+                BottomNavigationBarItem(icon: Icon(Icons.grid_view_rounded, size: 35), label: 'Browse'),
+                BottomNavigationBarItem(icon: Icon(Icons.sensors, size: 35), label: 'Radio'),
+                BottomNavigationBarItem(icon: Icon(Icons.subscriptions_rounded, size: 35), label: 'Library'),
+                BottomNavigationBarItem(icon: Icon(Icons.search, size: 35), label: 'Search'),
+              ],
+              elevation: 0,
+              selectedItemColor: AppThemeTokens.of(context).primaryOnDark,
+              unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              showUnselectedLabels: true,
+              backgroundColor: AppColors.transparent,
+              unselectedFontSize: 13,
+              selectedFontSize: 13,
+            ),
           ),
-          child: BottomNavigationBar(
-            type: BottomNavigationBarType.fixed,
-            currentIndex: _selected_index,
-            onTap: _navgateBottomBar,
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(
-                  Icons.home_filled,
-                  size: 35,
-                ),
-                label: 'Home',
-              ),
-              const BottomNavigationBarItem(
-                  icon: Icon(
-                    Icons.grid_view_rounded,
-                    size: 35,
-                  ),
-                  label: 'Browse'),
-              const BottomNavigationBarItem(
-                  icon: Icon(
-                    Icons.sensors,
-                    size: 35,
-                  ),
-                  label: 'Radio'),
-              const BottomNavigationBarItem(
-                  icon: Icon(
-                    Icons.subscriptions_rounded,
-                    size: 35,
-                  ),
-                  label: 'Library'),
-              const BottomNavigationBarItem(
-                  icon: Icon(
-                    Icons.search,
-                    size: 35,
-                  ),
-                  label: 'Search'),
-            ],
-            elevation: 0,
-            selectedLabelStyle: const TextStyle(color: Colors.white),
-            selectedItemColor: const Color.fromARGB(255, 255, 17, 0),
-            unselectedItemColor: Colors.grey,
-            showUnselectedLabels: true,
-            backgroundColor: Colors.transparent,
-            unselectedFontSize: 13.0,
-            selectedFontSize: 13.0,
-          ),
-        ),
+        ],
       ),
     );
   }
