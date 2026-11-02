@@ -1,0 +1,32 @@
+﻿services:
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    ports: ["8000:8000"]
+    env_file: [.env]
+    depends_on: [db, redis, minio]
+  worker:
+    build: .
+    command: celery -A config.celery.app worker --loglevel=info
+    env_file: [.env]
+    depends_on: [db, redis, minio]
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: music
+      POSTGRES_USER: music
+      POSTGRES_PASSWORD: change-me-in-env
+    volumes: [postgres_data:/var/lib/postgresql/data]
+  redis:
+    image: redis:7-alpine
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: change-me-in-env
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [minio_data:/data]
+volumes:
+  postgres_data:
+  minio_data:

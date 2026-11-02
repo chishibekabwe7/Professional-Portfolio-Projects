@@ -1,0 +1,505 @@
+import 'package:musicplayer/core/app_config.dart';
+
+class DemoData {
+  const DemoData._();
+
+  static const fallbackCover = 'assets/loading.jpg';
+  static const coverAssets = <String>['assets/1.jpg', 'assets/2.jpg', 'assets/3.jpg', 'assets/4.jpg', 'assets/5.jpg'];
+
+  static const featured = <Map<String, String>>[
+    {'topMsg': 'Made for you', 'image': '', 'title': 'Night Signal', 'artist': 'Northstar Echo', 'song': ''},
+    {'topMsg': 'New release', 'image': '', 'title': 'Glass Tides', 'artist': 'Mira Circuit', 'song': ''},
+    {'topMsg': 'Fresh sounds', 'image': '', 'title': 'Solar Arcade', 'artist': 'Velvet Current', 'song': ''},
+    {'topMsg': 'Made for you', 'image': '', 'title': 'Afterglow Scenes', 'artist': 'Signal Garden', 'song': ''},
+  ];
+
+  static const banners = <Map<String, String>>[
+    {'t1': 'NEW PLAYLIST', 't2': 'Reception Hits', 't3': AppConfig.appName, 'img': 'assets/1.jpg'},
+    {'t1': 'JUST UPDATED', 't2': 'Soundtrack your day', 't3': AppConfig.appName, 'img': 'assets/2.jpg'},
+    {'t1': 'ADD TO YOUR LIBRARY', 't2': 'Soul Revival', 't3': AppConfig.appName, 'img': 'assets/3.jpg'},
+    {'t1': 'NEW PLAYLIST', 't2': 'Punjabi Workout', 't3': AppConfig.appName, 'img': 'assets/4.jpg'},
+    {'t1': 'FEATURED', 't2': 'Late Night Motion', 't3': AppConfig.appName, 'img': 'assets/5.jpg'},
+  ];
+
+  static const browseCategories = <Map<String, String>>[
+    {'image': '', 'title': 'Pop'},
+    {'image': '', 'title': 'Rock'},
+    {'image': '', 'title': 'Jazz'},
+    {'image': '', 'title': 'Hip Hop'},
+    {'image': '', 'title': 'Country'},
+    {'image': '', 'title': 'Blues'},
+    {'image': '', 'title': 'Electronic'},
+    {'image': '', 'title': 'Classical'},
+    {'image': '', 'title': 'Reggae'},
+    {'image': '', 'title': 'Folk'},
+  ];
+
+  static const artistCollections = <List<Map<String, String>>>[
+    [
+      {'artist': 'Northstar Echo', 'artist_img': '', 'image': '', 'song': 'First Light', 'album': 'Night Signal'},
+      {'artist': 'Northstar Echo', 'artist_img': '', 'image': '', 'song': 'Open Skies', 'album': 'Night Signal'},
+      {'artist': 'Northstar Echo', 'artist_img': '', 'image': '', 'song': 'Slow Orbit', 'album': 'Night Signal'},
+      {'artist': 'Northstar Echo', 'artist_img': '', 'image': '', 'song': 'Signal Bloom', 'album': 'Night Signal'},
+    ],
+    [
+      {'artist': 'Mira Circuit', 'artist_img': '', 'image': '', 'song': 'Blue Hour', 'album': 'Glass Tides'},
+      {'artist': 'Mira Circuit', 'artist_img': '', 'image': '', 'song': 'Paper Satellites', 'album': 'Glass Tides'},
+      {'artist': 'Mira Circuit', 'artist_img': '', 'image': '', 'song': 'New Weather', 'album': 'Glass Tides'},
+      {'artist': 'Mira Circuit', 'artist_img': '', 'image': '', 'song': 'Ocean Thread', 'album': 'Glass Tides'},
+    ],
+    [
+      {'artist': 'Velvet Current', 'artist_img': '', 'image': '', 'song': 'Solar Arcade', 'album': 'Bright Machines'},
+      {'artist': 'Velvet Current', 'artist_img': '', 'image': '', 'song': 'Soft Static', 'album': 'Bright Machines'},
+      {'artist': 'Velvet Current', 'artist_img': '', 'image': '', 'song': 'Golden Frame', 'album': 'Bright Machines'},
+      {'artist': 'Velvet Current', 'artist_img': '', 'image': '', 'song': 'Back to Blue', 'album': 'Bright Machines'},
+    ],
+    [
+      {'artist': 'Signal Garden', 'artist_img': '', 'image': '', 'song': 'Quiet Motion', 'album': 'Afterglow Scenes'},
+      {'artist': 'Signal Garden', 'artist_img': '', 'image': '', 'song': 'City Lanterns', 'album': 'Afterglow Scenes'},
+      {'artist': 'Signal Garden', 'artist_img': '', 'image': '', 'song': 'Window Seat', 'album': 'Afterglow Scenes'},
+      {'artist': 'Signal Garden', 'artist_img': '', 'image': '', 'song': 'Last Horizon', 'album': 'Afterglow Scenes'},
+    ],
+  ];
+
+  // Development-only audio sources. Replace these with licensed production streams.
+  static final List<Map<String, dynamic>> songs = [
+    {
+      "id": "wake_up_01",
+      "title": "Intro - The Way Of Waking Up (feat. Alan Watts)",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/01_-_Intro_-_The_Way_Of_Waking_Up_feat_Alan_Watts.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 1,
+      "totalTrackCount": 13,
+      "duration": 90,
+    },
+    {
+      "id": "wake_up_02",
+      "title": "Geisha",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/02_-_Geisha.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 2,
+      "totalTrackCount": 13,
+      "duration": 267,
+    },
+    {
+      "id": "wake_up_03",
+      "title": "Voyage I - Waterfall",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/03_-_Voyage_I_-_Waterfall.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 3,
+      "totalTrackCount": 13,
+      "duration": 264,
+    },
+    {
+      "id": "wake_up_04",
+      "title": "The Music In You",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/04_-_The_Music_In_You.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 4,
+      "totalTrackCount": 13,
+      "duration": 223,
+    },
+    {
+      "id": "wake_up_05",
+      "title": "The Calm Before The Storm",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/05_-_The_Calm_Before_The_Storm.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 5,
+      "totalTrackCount": 13,
+      "duration": 229,
+    },
+    {
+      "id": "wake_up_06",
+      "title": "No Pain, No Gain",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/06_-_No_Pain_No_Gain.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 6,
+      "totalTrackCount": 13,
+      "duration": 304,
+    },
+    {
+      "id": "wake_up_07",
+      "title": "Voyage II - Satori",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/07_-_Voyage_II_-_Satori.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 7,
+      "totalTrackCount": 13,
+      "duration": 256,
+    },
+    {
+      "id": "wake_up_08",
+      "title": "Reveal the Magic",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/08_-_Reveal_the_Magic.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 8,
+      "totalTrackCount": 13,
+      "duration": 293,
+    },
+    {
+      "id": "wake_up_09",
+      "title": "Hachiko (The Faithtful Dog)",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/09_-_Hachiko_The_Faithtful_Dog.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 9,
+      "totalTrackCount": 13,
+      "duration": 185,
+    },
+    {
+      "id": "wake_up_10",
+      "title": "Night Signal",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/10_-_Wake_Up.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 10,
+      "totalTrackCount": 13,
+      "duration": 251,
+    },
+    {
+      "id": "wake_up_11",
+      "title": "Voyage III - The Space Between Us",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/11_-_Voyage_III_-_The_Space_Between_Us.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 11,
+      "totalTrackCount": 13,
+      "duration": 290,
+    },
+    {
+      "id": "wake_up_12",
+      "title": "Ume No Kaori (feat. Sunawai)",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/12_-_Ume_No_Kaori_feat_Sunawai.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 12,
+      "totalTrackCount": 13,
+      "duration": 334,
+    },
+    {
+      "id": "wake_up_13",
+      "title": "Outro - Totally Here and Now (feat. Alan Watts)",
+      "album": "Night Signal",
+      "artist": "Northstar Echo",
+      "genre": "Electronic",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/The_Kyoto_Connection_-_Wake_Up/13_-_Outro_-_Totally_Here_and_Now_feat_Alan_Watts.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 13,
+      "totalTrackCount": 13,
+      "duration": 242,
+    },
+    {
+      "id": "jazz_in_paris",
+      "title": "Jazz in Paris",
+      "album": "Blue Horizon",
+      "artist": "Cobalt Avenue",
+      "genre": "Blue Horizon",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Jazz_In_Paris.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 1,
+      "totalTrackCount": 6,
+      "duration": 103,
+    },
+    {
+      "id": "the_messenger",
+      "title": "The Messenger",
+      "album": "Blue Horizon",
+      "artist": "Mira Circuit",
+      "genre": "Blue Horizon",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/The_Messenger.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 2,
+      "totalTrackCount": 6,
+      "duration": 132,
+    },
+    {
+      "id": "talkies",
+      "title": "Talkies",
+      "album": "Blue Horizon",
+      "artist": "Velvet Current",
+      "genre": "Blue Horizon",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Talkies.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 3,
+      "totalTrackCount": 6,
+      "duration": 162,
+    },
+    {
+      "id": "on_the_bach",
+      "title": "On the Bach",
+      "album": "Afterglow Scenes",
+      "artist": "Signal Garden",
+      "genre": "Afterglow Scenes",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/On_the_Bach.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 4,
+      "totalTrackCount": 6,
+      "duration": 66,
+    },
+    {
+      "id": "the_story_unfolds",
+      "title": "The Story Unfolds",
+      "album": "Afterglow Scenes",
+      "artist": "Signal Garden",
+      "genre": "Afterglow Scenes",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/The_Story_Unfolds.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 5,
+      "totalTrackCount": 6,
+      "duration": 91,
+    },
+    {
+      "id": "drop_and_roll",
+      "title": "Drop and Roll",
+      "album": "Youtube Audio Library Rock",
+      "artist": "Mira Circuit",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Drop_and_Roll.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 1,
+      "totalTrackCount": 7,
+      "duration": 121,
+    },
+    {
+      "id": "motocross",
+      "title": "Motocross",
+      "album": "Youtube Audio Library Rock",
+      "artist": "Topher Mohr and Alex Elena",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Motocross.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 2,
+      "totalTrackCount": 7,
+      "duration": 182,
+    },
+    {
+      "id": "wish_youd_come_true",
+      "title": "Wish You'd Come True",
+      "album": "Youtube Audio Library Rock",
+      "artist": "The 126ers",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Wish_You_d_Come_True.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 3,
+      "totalTrackCount": 7,
+      "duration": 169,
+    },
+    {
+      "id": "awakening",
+      "title": "Awakening",
+      "album": "Youtube Audio Library Rock",
+      "artist": "Mira Circuit",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Awakening.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 4,
+      "totalTrackCount": 7,
+      "duration": 220,
+    },
+    {
+      "id": "home",
+      "title": "Home",
+      "album": "Youtube Audio Library Rock",
+      "artist": "Letter Box",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Home.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 5,
+      "totalTrackCount": 7,
+      "duration": 213,
+    },
+    {
+      "id": "tell_the_angels",
+      "title": "Tell The Angels",
+      "album": "Youtube Audio Library Rock",
+      "artist": "Letter Box",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Tell_The_Angels.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 6,
+      "totalTrackCount": 7,
+      "duration": 208,
+    },
+    {
+      "id": "hey_sailor",
+      "title": "Hey Sailor",
+      "album": "Youtube Audio Library Rock",
+      "artist": "Letter Box",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Hey_Sailor.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 7,
+      "totalTrackCount": 7,
+      "duration": 193,
+    },
+    {
+      "id": "keys_to_the_kingdom",
+      "title": "Keys To The Kingdom",
+      "album": "Youtube Audio Library Rock 2",
+      "artist": "The 126ers",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/Keys_To_The_Kingdom.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 1,
+      "totalTrackCount": 2,
+      "duration": 221,
+    },
+    {
+      "id": "the_coldest_shoulder",
+      "title": "The Coldest Shoulder",
+      "album": "Youtube Audio Library Rock 2",
+      "artist": "The 126ers",
+      "genre": "Rock",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/automotive-media/The_Coldest_Shoulder.mp3",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 2,
+      "totalTrackCount": 2,
+      "duration": 160,
+    },
+    {
+      "id": "spatial_01",
+      "title": "Pre-game marching band",
+      "album": "Spatial Audio",
+      "artist": "Watson Wu",
+      "genre": "People",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/Spatial Audio/Marching band.wav",
+      "image": "assets/loading.jpg Audio/Marching band.jpg",
+      "trackNumber": 1,
+      "totalTrackCount": 6,
+      "duration": 56,
+    },
+    {
+      "id": "spatial_02",
+      "title": "Chickens on a farm",
+      "album": "Spatial Audio",
+      "artist": "Watson Wu",
+      "genre": "Animals",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/Spatial Audio/Chickens.wav",
+      "image": "assets/loading.jpg Audio/Chickens.jpg",
+      "trackNumber": 2,
+      "totalTrackCount": 6,
+      "duration": 180,
+    },
+    {
+      "id": "spatial_03",
+      "title": "Rural market busker",
+      "album": "Spatial Audio",
+      "artist": "Stephan Schutze",
+      "genre": "Ambience",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/Spatial Audio/Rural market.wav",
+      "image": "assets/loading.jpg Audio/Rural market.jpg",
+      "trackNumber": 3,
+      "totalTrackCount": 6,
+      "duration": 299,
+    },
+    {
+      "id": "spatial_04",
+      "title": "Steamtrain interior",
+      "album": "Spatial Audio",
+      "artist": "Stephan Schutze",
+      "genre": "Ambience",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/Spatial Audio/Steamtrain.wav",
+      "image": "assets/loading.jpg Audio/Steamtrain.jpg",
+      "trackNumber": 4,
+      "totalTrackCount": 6,
+      "duration": 296,
+    },
+    {
+      "id": "spatial_05",
+      "title": "Rural road car pass",
+      "album": "Spatial Audio",
+      "artist": "Stephan Schutze",
+      "genre": "Ambience",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/Spatial Audio/Car pass.wav",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 5,
+      "totalTrackCount": 6,
+      "duration": 302,
+    },
+    {
+      "id": "spatial_06",
+      "title": "10 feet from shore",
+      "album": "Spatial Audio",
+      "artist": "Watson Wu",
+      "genre": "Ambience",
+      // TODO(audio-source): Replace with a licensed production stream.
+      "source": "https://storage.googleapis.com/uamp/Spatial Audio/Shore.wav",
+      "image": DemoData.coverAssets[0],
+      "trackNumber": 6,
+      "totalTrackCount": 6,
+      "duration": 180,
+    }
+  ];
+
+  static const radioStations = <Map<String, String>>[
+    {'text1': 'Music Site Radio', 'text2': 'The new music matter', 'topMsg': 'Made for you', 'image': '', 'title': 'Night Signal', 'artist': 'Northstar Echo', 'song': ''},
+    {'text1': 'Fresh Finds', 'text2': 'Songs you know and love', 'topMsg': 'New release', 'image': '', 'title': 'Glass Tides', 'artist': 'Mira Circuit', 'song': ''},
+    {'text1': 'Weekend Drive', 'text2': 'Where it sounds like home', 'topMsg': 'Featuring Velvet Current', 'image': '', 'title': 'Bright Machines', 'artist': 'Velvet Current', 'song': ''},
+    {'text1': 'Deep Focus', 'text2': 'A calm place to listen', 'topMsg': 'Made for you', 'image': '', 'title': 'Afterglow Scenes', 'artist': 'Signal Garden', 'song': ''},
+  ];
+}
+
+
