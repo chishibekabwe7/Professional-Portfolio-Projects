@@ -1,0 +1,182 @@
+# Troubleshooting / FAQ Guide
+
+As common issues or questions are encountered solutions will be added to this guide.
+
+??? "'spotdl' is not recognized"
+
+    Python/(site packages) is not added to PATH correctly. You need to install Python from
+    <https://www.python.org/downloads/>
+
+    Or you are using Python from the Microsoft Store. If so, uninstall it and restart cmd. If this
+    doesn't work, reinstall Python.
+
+    ### Error message
+
+    ```
+    'spotdl' is not recognized as an internal or external command,
+    operable program or batch file.
+    ```
+
+    ### Solution
+
+    Ensure to add to PATH when installing: ![python install](https://i.imgur.com/jWq5EnV.png)
+
+??? "spotdl: command not found"
+
+    If you see this error after installing spotdl, that means that the bin (Binaries) folder is not
+    in `$PATH`.
+
+    ### Solution
+
+    #### `.bashrc`
+
+    Add `export PATH=~/.local/bin:$PATH` at the bottom of `~/.bashrc`
+
+    Then run `source ~/.bashrc`
+
+    #### `.zshrc`
+
+    Add `export PATH=~/.local/bin:$PATH` at the bottom of `~/.zshrc` Then run `source ~/.zshrc`
+
+??? "pkg_resources.DistributionNotFound"
+
+    Sometimes not all packages are installed but are required by yt-dlp, for example: `brotli` or
+    `websockets`.
+
+    ### Error Message
+
+    `pkg_resources.DistributionNotFound: The 'websockets' distribution was not found and is required by yt-dlp`
+
+    ### Solution
+
+    `pip install brotli websockets yt-dlp -U`
+
+??? "AudioProviderError: YT-DLP download error"
+
+    This can happen when Deno is not installed. spotDL uses yt-dlp for YouTube downloads, and some
+    videos require Deno to download successfully, including videos marked as "made for kids".
+
+    ### Error Message
+
+    `AudioProviderError: YT-DLP download error`
+
+    ### Solution
+
+    Install Deno for spotDL:
+
+    ```bash
+    spotdl --download-deno
+    ```
+
+    If you prefer a system-wide Deno install, follow the
+    [official Deno installation guide](https://docs.deno.com/runtime/getting_started/installation/).
+
+??? "HTTP Error 404"
+
+    <https://github.com/plamere/spotipy/issues/795#issuecomment-1100321148>
+
+    ### Error Message
+
+    `HTTP Error for GET to URL with Params: {} returned 404 due to None`
+
+    ### Solution
+
+    Update spotdl to the latest version which contains a workaround.
+
+    `pip install -U spotdl`
+
+??? "ssl.SSLError: \[SSL: CERTIFICATE_VERIFY_FAILED\]"
+
+    <https://stackoverflow.com/questions/27835619/urllib-and-ssl-certificate-verify-failed-error>
+
+    ### Error Message
+
+    `urllib.error.URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:847)>`
+
+    ### Solution
+
+    <https://stackoverflow.com/questions/27835619/urllib-and-ssl-certificate-verify-failed-error>
+
+??? "RecursionError"
+
+    <https://github.com/spotDL/spotify-downloader/issues/1493>
+
+    ### Error Message
+
+    `RecursionError: maximum recursion depth exceeded`
+
+    ### Solution
+
+    Update spotdl:
+
+    `pip install spotdl -U`
+
+??? "RuntimeWarning"
+
+    This happens when running spotdl using `python -m`.
+
+    ### Error Message
+
+    ```
+    RuntimeWarning: 'spotdl.__main__' found in sys.modules after import of package 'spotdl',
+    but prior to execution of 'spotdl.__main__'; this may result in unpredictable behaviour
+    warn(RuntimeWarning(msg))
+    ```
+
+    ### Solution
+
+    You can ignore this error or just run spotdl directly.
+
+??? "Not found '\_raw_ecb.so'"
+
+    This error is specific to M1 Macs only.
+
+    https://discord.com/channels/771628785447337985/871006150357823498
+    https://discord.com/channels/771628785447337985/939475659238043738
+
+    ### Error Message
+
+    ```
+    aise OSError("Cannot load native module '%s': %s" % (name, ", ".join(attempts)))
+    OSError: Cannot load native module 'Cryptodome.Cipher._raw_ecb': Not found '_raw_ecb.cpython-39-darwin.so',
+    Cannot load '_raw_ecb.abi3.so': dlopen(/opt/homebrew/lib/python3.9/site-packages/Cryptodome/Util/../Cipher/_raw_ecb.abi3.so, 6): no suitable image found.  Did find:
+    /opt/homebrew/lib/python3.9/site-packages/Cryptodome/Util/../Cipher/_raw_ecb.abi3.so: mach-o, but wrong architecture
+    /opt/homebrew/lib/python3.9/site-packages/Cryptodome/Cipher/_raw_ecb.abi3.so: mach-o, but wrong architecture, Not found '_raw_ecb.so'
+    ```
+
+    ### Solution
+
+    Possible solutions:
+
+    <https://discord.com/channels/771628785447337985/871006150357823498>
+    <https://discord.com/channels/771628785447337985/939475659238043738>
+
+??? "KeyError: 'header' - YouTube Music API error"
+
+    This error occurs when YouTube Music's API response structure changes intermittently. The error has been fixed in ytmusicapi v1.11.1, which is the minimum version required by spotdl v4.4.3.
+
+    ### Error Message
+
+    ```
+    KeyError: "Unable to find 'header' using path ['header', 'musicCardShelfHeaderBasicRenderer', 'title', 'runs', 0, 'text']"
+    ```
+
+    ### Solution
+
+    1. Update ytmusicapi to v1.11.1 or later:
+
+        ```bash
+        pip install -U ytmusicapi
+        ```
+
+    2. If the error persists, reinstall spotdl:
+
+        ```bash
+        pip install -U --force spotdl
+        ```
+
+    3. If you're still experiencing issues, the error may be intermittent due to YouTube's anti-bot mechanisms. Wait a few minutes and try again.
+
+    ### Background
+
+    YouTube Music occasionally returns different response structures from their API. Version 1.11.1 of ytmusicapi includes a fallback mechanism that handles cases where the `header` field is missing from search results. This fix was implemented in PR #800 (https://github.com/sigma67/ytmusicapi/pull/800) to address issue #799.
