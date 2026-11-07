@@ -1,0 +1,6 @@
+{
+  "name": "Fantasy Character Generator",
+  "description": "Generate unique fantasy characters with random names, classes, lore, and abilities powered by the Gemini API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #0e0a07;
+  }
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', Georgia, serif;
+}
+
+.font-cinzel-dec {
+  font-family: 'Cinzel Decorative', 'Cinzel', Georgia, serif;
+}
+
+.font-medieval {
+  font-family: 'MedievalSharp', cursive, serif;
+}
+
+.font-uncial {
+  font-family: 'Uncial Antiqua', 'MedievalSharp', Georgia, serif;
+}
+
+/* Ancient Alchemist's Workbench background - aged dark oak planks, slate slabs, and warm candlelight reflections */
+.bg-alchemist-workbench {
+  background-color: #0c0805;
+  background-image:
+    /* Candle flame light points */
+    radial-gradient(circle at 15% 12%, rgba(245, 158, 11, 0.18) 0px, transparent 380px),
+    radial-gradient(circle at 85% 15%, rgba(217, 119, 6, 0.16) 0px, transparent 350px),
+    radial-gradient(circle at 50% 60%, rgba(180, 83, 9, 0.12) 0px, transparent 550px),
+    radial-gradient(circle at 80% 85%, rgba(6, 78, 59, 0.14) 0px, transparent 400px),
+    /* Aged wood planks horizontal texture */
+    repeating-linear-gradient(
+      0deg,
+      rgba(24, 16, 11, 0.95),
+      rgba(24, 16, 11, 0.95) 78px,
+      rgba(10, 7, 5, 0.98) 79px,
+      rgba(10, 7, 5, 0.98) 80px
+    ),
+    /* Subtle wood grain noise */
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(0, 0, 0, 0.03) 2px,
+      transparent 4px,
+      transparent 8px
+    );
+}
+
+/* Aged parchment card with burned leather edges and brass trim */
+.parchment-card {
+  background: 
+    linear-gradient(135deg, rgba(36, 26, 18, 0.95) 0%, rgba(24, 17, 12, 0.98) 60%, rgba(18, 12, 8, 1) 100%);
+  box-shadow: 
+    0 15px 40px -10px rgba(0, 0, 0, 0.8),
+    inset 0 0 40px rgba(10, 7, 5, 0.6),
+    inset 0 1px 0 rgba(217, 119, 6, 0.25);
+}
+
+/* Collectible Trading Card Outer Frame */
+.trading-card {
+  background: linear-gradient(165deg, #2a1c12 0%, #17100b 50%, #0e0906 100%);
+  box-shadow: 
+    0 20px 50px -10px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(254, 240, 138, 0.2),
+    inset 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.trading-card-border {
+  border: 4px solid #b45309;
+  outline: 2px solid rgba(254, 240, 138, 0.5);
+  outline-offset: -6px;
+}
+
+/* Mini Collectible Card in My Deck */
+.mini-trading-card {
+  background: linear-gradient(160deg, #22160e 0%, #140d08 100%);
+  border: 2px solid #b45309;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.7);
+}
+
+/* Candlelit amber glow */
+.glow-candle {
+  box-shadow: 0 0 30px -4px rgba(245, 158, 11, 0.45), 0 0 10px rgba(217, 119, 6, 0.3);
+}
+
+.glow-brass {
+  box-shadow: 0 0 20px -3px rgba(202, 138, 4, 0.4);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.35);
+}
+
+.glow-ruby {
+  box-shadow: 0 0 15px -2px rgba(239, 68, 68, 0.4);
+}
+
+.glow-sapphire {
+  box-shadow: 0 0 15px -2px rgba(56, 189, 248, 0.4);
+}
+
+/* Brass plate rivets */
+.rivet {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fef08a, #ca8a04 60%, #713f12 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
