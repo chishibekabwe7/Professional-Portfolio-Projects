@@ -1,0 +1,13 @@
+{
+  "store": {
+    "google-cloud-developer": {
+      "hash": "94846ebf2d5cdc8423e8d73811a4fcd2acb28bf0f571af37903d430a4741b098",
+      "signature": "a546258e0ab9878e770523f396c0bb419e2e2c5128aa87437b5909758922b69d"
+    },
+    "vertex": {
+      "hash": "eb3eea40f9c593d1c386b168fd4e9ea97a35d4f904d2137eb83a57e326f3f76e",
+      "signature": "3dec2868c8517d2b869cfbcdfacb6748e862c2e8fcb479dc9eac4138302d0cb5"
+    }
+  },
+  "signature": "cfc0cbe2939a5b2631014eb8d350247d0184c9f71baf6d57795b970953002c74"
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "developer-knowledge": {
+      "type": "streamable-http",
+      "url": "https://developerknowledge.googleapis.com/mcp",
+      "headers": {
+          "X-Goog-Api-Key": "${DEVELOPERKNOWLEDGE_API_KEY}"
+      }
+    }
+  }
+}
